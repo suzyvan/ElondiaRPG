@@ -78,8 +78,8 @@
     { "id": "park_theater", "name": "夢魔劇場", "region": "south", "type": "dungeon", "park": "sm_lust_park" },
     { "id": "history_rift", "name": "歷史裂縫", "region": "central", "type": "dungeon", "requires": {"flags": ["pol_start"]}, "note": "河谷鎮附近；政治史詩開始時出現（阿契隆睜眼之前的徵兆）" },
     { "id": "history_corridor", "name": "歷史迴廊", "region": "central", "type": "dungeon", "requires": {"flags": ["pol_done"]}, "note": "河谷鎮附近；政治史詩完成時出現（阿契隆第一次睜眼之後的遺跡）" },
-    { "id": "forbidden_garden", "name": "禁果庭園", "region": "south", "type": "dungeon", "park": "sm_lust_park" },
-    { "id": "pleasure_palace", "name": "歡愉秘宮", "region": "south", "type": "dungeon", "park": "sm_lust_park" }
+    { "id": "forbidden_garden", "name": "禁果庭園", "region": "south", "type": "dungeon", "park": "sm_lust_park", "material_series": "pleasure" },
+    { "id": "pleasure_palace", "name": "歡愉秘宮", "region": "south", "type": "dungeon", "park": "sm_lust_park", "material_series": "pleasure" }
   ],
   "routes": [
     { "a": "soriel", "b": "rhineburg", "days": [5, 5], "mode": "road" },

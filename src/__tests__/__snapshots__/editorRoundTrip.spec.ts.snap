@@ -184,11 +184,11 @@ exports[`world editor round trip > marks: opening and saving without changes kee
 exports[`world editor round trip > materials: opening and saving without changes keeps the data 1`] = `
 {
   "adamantine": "17b6b4baa9cb",
-  "afterglow_weave": "547462bd3036",
-  "chronicle_hide": "a33db99bbf3b",
-  "chronicle_steel": "2d73baf5b8e1",
+  "afterglow_weave": "d966da39d1f4",
+  "chronicle_hide": "f0a1d314a729",
+  "chronicle_steel": "965812b1a2a8",
   "copper": "0f35f3ff02da",
-  "dragon_eye": "f77784a91e7d",
+  "dragon_eye": "ce06b22209c5",
   "dragonhide": "b00fa6a83874",
   "iron": "fd6e8d411e4d",
   "leather": "6c7300037ad2",
@@ -196,7 +196,7 @@ exports[`world editor round trip > materials: opening and saving without changes
   "mithril_jewel": "1eb78c632245",
   "oak": "d442b461fb72",
   "spellweave": "3624c6c8f05d",
-  "stilltime_wood": "dfa588e7a29f",
+  "stilltime_wood": "1c75ac8d7fe3",
   "worldtree": "c255b59bf297",
 }
 `;

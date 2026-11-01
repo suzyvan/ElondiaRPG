@@ -2274,7 +2274,7 @@ export function finishCombat(state: GameState): Report {
       }
       // 持有裝備的人形怪物：有機會掉一件依等級生成的裝備
       if (def.armed && rng.chance(Math.min(drops.armed.max_chance, drops.armed.chance + drops.armed.per_level * def.level))) {
-        gain(registerGear(state, randomGear(rng, def.level)))
+        gain(registerGear(state, randomGear(rng, def.level, undefined, geography.locations.find((l) => l.id === combat.location)?.material_series)))
       }
       // 人形的敵人身上可能搜到鑰匙（lewd.json 的 unbind.keys）
       const key = def.armed && rng.chance(lewdRules.unbind.keys.chance) ? keyForLevel(def.level) : undefined

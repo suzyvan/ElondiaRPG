@@ -35,8 +35,8 @@ DUNGEONS = {
                      "note": "河谷鎮附近；政治史詩開始時出現（阿契隆睜眼之前的徵兆）"},
     'history_corridor': {"name": "歷史迴廊", "region": "central", "requires": {"flags": ["pol_done"]},
                          "note": "河谷鎮附近；政治史詩完成時出現（阿契隆第一次睜眼之後的遺跡）"},
-    'forbidden_garden': {"name": "禁果庭園", "region": "south", "park": s7.PLAZA},
-    'pleasure_palace': {"name": "歡愉秘宮", "region": "south", "park": s7.PLAZA},
+    'forbidden_garden': {"name": "禁果庭園", "region": "south", "park": s7.PLAZA, "material_series": "pleasure"},
+    'pleasure_palace': {"name": "歡愉秘宮", "region": "south", "park": s7.PLAZA, "material_series": "pleasure"},
 }
 ROUTES = [
     {"a": "rivervale", "b": "history_rift", "days": [1, 1], "mode": "trail"},
@@ -101,7 +101,7 @@ TUNE = {
     "fg_drowned_knight": {"hp": 105, "ap": 8, "off": 4},
     "fg_boss_gardener": {"hp": 1233, "off": 5.9},
     "fg_boss_toybox": {"hp": 1502, "off": 7},
-    "fg_boss_forbidden_tree": {"hp": 1434, "off": 5.9},
+    "fg_boss_forbidden_tree": {"hp": 1434, "off": 6.1},
     "pp_endless_guest": {"hp": 136, "off": 2.46},
     "pp_cup_succubus": {"hp": 133, "off": 3.29},
     "pp_lonely_fancy": {"hp": 138, "ap": 7, "off": 3.37},
@@ -466,7 +466,7 @@ def write():
     rows = []
     for d, v in DUNGEONS.items():
         loc = {"id": d, "name": v["name"], "region": v["region"], "type": "dungeon"}
-        for k in ('park', 'requires', 'note'):
+        for k in ('park', 'requires', 'material_series', 'note'):
             if k in v:
                 loc[k] = v[k]
         rows.append('    { ' + json.dumps(loc, ensure_ascii=False)[1:-1] + ' }')

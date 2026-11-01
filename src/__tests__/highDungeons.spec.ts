@@ -5,7 +5,7 @@ import { forgeItemFor, gearName, gearRules, MATERIAL_KINDS, MAX_TIER, ordinaryBa
 import { craftTarget, parseCraftTarget } from '@/engine/craft'
 import { GEAR_SHOP } from '@/engine/mods'
 import { Rng } from '@/engine/rng'
-import { crossLink, currentArea, currentCell, enterLocation, findKind, generateLayer, layerKey, placeAt, storeArea } from '@/engine/grid'
+import { crossLink, currentArea, currentCell, enterLocation, findKind, generateLayer, layerKey, moveTo, placeAt, storeArea } from '@/engine/grid'
 import { mimicFor, PARK_LINK } from '@/engine/park'
 import { startJourney } from '@/engine/road'
 import { connectionOpen, enterSpecial } from '@/engine/specialMaps'
@@ -263,7 +263,77 @@ describe('高等地下城的材料與底材', () => {
     const tiers = Array.from({ length: 400 }, () => gearRules.materials[randomGear(rng, 20, ['longsword']).material]!.tier)
     expect(Math.max(...tiers)).toBeLessThanOrEqual(7)
     expect(tiers.filter((t) => t >= 5).length / tiers.length).toBeLessThan(0.3)
-    const low = Array.from({ length: 200 }, () => gearRules.materials[randomGear(rng, 16, ['longsword']).material]!.tier)
+    const low = Array.from({ length: 200 }, () => gearRules.materials[randomGear(rng, 15, ['longsword']).material]!.tier)
     expect(Math.max(...low)).toBeLessThanOrEqual(5)
+    // 第 6 級的建議等級 16：Lv.13～16 的地下城最深一層開得到
+    const mid = Array.from({ length: 600 }, () => gearRules.materials[randomGear(rng, 16, ['longsword']).material]!.tier)
+    expect(Math.max(...mid)).toBe(6)
+  })
+})
+
+describe('緋夢樂園底下的寶箱開歡愉系列', () => {
+  const seriesOf = (name: string) => {
+    const g = itemDef(name)?.gear ?? undefined
+    return g ? gearRules.materials[g.material] : undefined
+  }
+
+  it('材料標上系列，兩座遺跡指定歡愉系列；第 6 級的建議等級是 16', () => {
+    const high = Object.values(gearRules.materials).filter((m) => m.tier >= 6)
+    expect(high.filter((m) => m.series === 'history').length).toBe(10)
+    expect(high.filter((m) => m.series === 'pleasure').length).toBe(10)
+    expect(high.filter((m) => m.tier === 6).every((m) => m.level === 16)).toBe(true)
+    const at = (id: string) => geography.locations.find((l) => l.id === id)!
+    expect(at('forbidden_garden').material_series).toBe('pleasure')
+    expect(at('pleasure_palace').material_series).toBe('pleasure')
+    expect(at('history_corridor').material_series).toBeUndefined()
+  })
+
+  it('隨機裝備：指定歡愉系列時第 6、7 級用歡愉系列，沒指定時用歷史系列；打造材料也一樣', () => {
+    const rng = new Rng(9)
+    const pick = (series?: string) => Array.from({ length: 600 }, () => gearRules.materials[randomGear(rng, 20, ['longsword', 'leather_armor', 'robe', 'longbow', 'ring_guard'], series).material]!)
+    const pleasure = pick('pleasure').filter((m) => m.tier >= 6)
+    const plain = pick().filter((m) => m.tier >= 6)
+    expect(pleasure.length).toBeGreaterThan(0)
+    expect(pleasure.every((m) => m.series === 'pleasure')).toBe(true)
+    expect(plain.every((m) => m.series === 'history')).toBe(true)
+    // 第 5 級以下不受影響
+    expect(pick('pleasure').filter((m) => m.tier <= 5).every((m) => !m.series)).toBe(true)
+    expect(forgeItemFor('metal', 7, 'pleasure')).toBe('鱗光金塊')
+    expect(forgeItemFor('metal', 7)).toBe('編年鋼塊')
+    expect(forgeItemFor('metal', 5, 'pleasure')).toBe('星隕鐵塊')
+  })
+
+  it('在歡愉秘宮打開寶箱：開出來的第 6、7 級裝備是歡愉系列', () => {
+    const state = game('bloodplume')
+    for (const f of STAMPS) setFlag(state, f)
+    setFlag(state, 'lpe_done')
+    enterSpecial(state, PLAZA)
+    const c = specialMaps[PLAZA]!.connections!.find((x) => x.to.area === `${PARK_LINK}pleasure_palace`)!
+    placeAt(state, currentArea(state), c.at.x, c.at.y)
+    crossLink(state)
+    expect(state.location).toBe('pleasure_palace')
+    const found: string[] = []
+    for (let n = 0; n < 80 && found.length < 3; n++) {
+      // 寶箱觸發的地下城事件不管它（這裡只看寶箱的內容）
+      delete state.dungeonEvent
+      delete state.parasiteEvent
+      delete state.pendingDefeat
+      if (state.combat) delete state.combat
+      const area = currentArea(state)
+      const here = currentCell(state)
+      const at = area.cells.findIndex((cell, i) => i !== state.position!.y * area.width + state.position!.x && cell.kind !== 'wall'
+        && Math.abs((i % area.width) - state.position!.x) + Math.abs(Math.floor(i / area.width) - state.position!.y) === 1)
+      area.cells[at] = { kind: 'chest', level: 20 }
+      storeArea(state, area)
+      const step = moveTo(state, at % area.width, Math.floor(at / area.width))
+      const names = (step.report?.changes.items_gained ?? []).map((i) => i.name)
+      for (const name of names) {
+        const m = seriesOf(name)
+        if (m && m.tier >= 6) found.push(name)
+      }
+      void here
+    }
+    expect(found.length).toBeGreaterThan(0)
+    for (const name of found) expect(seriesOf(name)!.series, name).toBe('pleasure')
   })
 })

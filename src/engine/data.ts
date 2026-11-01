@@ -57,6 +57,8 @@ export interface Location {
   park?: string
   /** 劇情條件成立前不存在：旅行的目的地、委託、情報與給 AI 的地點都不列出（docs/DUNGEON_DESIGN.md 第 1 節） */
   requires?: StoryCond
+  /** 這裡的寶箱與人形怪物掉的隨機裝備優先用這一套材料（gear.json 材料的 series；例如緋夢樂園底下的遺跡是 pleasure） */
+  material_series?: string
 }
 export interface Route {
   a: string

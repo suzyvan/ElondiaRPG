@@ -17,30 +17,31 @@ import re
 # ---------------- 材料 ----------------
 # 兩套材料：歷史系列（歷史裂縫第 6 級、歷史迴廊第 7 級）與歡愉系列（禁果庭園第 6 級、歡愉秘宮第 7 級），各有五種類型。
 # 同一級的兩套加成一樣，差在防具加成與抗性：歷史系列厚重（減傷、暗影與心靈抗性），歡愉系列輕巧（迴避、慾望抗性）。
-# 隨機裝備依「類型 × 等級」找材料時用排在前面的歷史系列；歡愉系列只靠層主掉的打造材料打造。
+# 隨機裝備（寶箱、人形怪物）同一級有兩套時，依地點的 material_series 挑（緋夢樂園底下的遺跡開歡愉系列），其他地方用排在前面的歷史系列。
+# 第 6 級的建議等級 16：Lv.13～16 的地下城最深一層的寶箱開得到。
 # id: (系列, 類型, 名稱, 等級, 加成, 建議等級, 價格倍率, 防具加成, 抗性, 描述)
 MATERIALS = {
     # 歷史系列
-    'riftsteel': ('history', 'metal', '時隙鋼', 6, 8, 17, 1800, {"dr": 2, "evade": 1}, None, '從歷史裂縫的邊緣剝下來的金屬，鍛打的時候聽得見兩百年前的號角。'),
+    'riftsteel': ('history', 'metal', '時隙鋼', 6, 8, 16, 1800, {"dr": 2, "evade": 1}, None, '從歷史裂縫的邊緣剝下來的金屬，鍛打的時候聽得見兩百年前的號角。'),
     'chronicle_steel': ('history', 'metal', '編年鋼', 7, 10, 19, 3000, {"dr": 3, "evade": 1}, None, '歷史迴廊裡的「鱗片」熔成的鋼，一層一層疊著不同時代的紋路。'),
-    'echo_hide': ('history', 'leather', '回響獸皮', 6, 8, 17, 1800, None, {"necrotic": -0.5}, '統一戰爭的戰獸留在裂縫裡的皮，摸起來還是溫的。'),
+    'echo_hide': ('history', 'leather', '回響獸皮', 6, 8, 16, 1800, None, {"necrotic": -0.5}, '統一戰爭的戰獸留在裂縫裡的皮，摸起來還是溫的。'),
     'chronicle_hide': ('history', 'leather', '編年鱗皮', 7, 10, 19, 3000, None, {"necrotic": -0.5, "radiant": -0.25}, '「編年的鱗片」一片片縫成的皮，每一片都是不同時代的切面。'),
-    'echoweave': ('history', 'cloth', '殘影織', 6, 8, 17, 1800, None, {"psychic": -0.5}, '用時隙裡的殘影紡成的布，穿上的人看起來總是慢了半拍。'),
+    'echoweave': ('history', 'cloth', '殘影織', 6, 8, 16, 1800, None, {"psychic": -0.5}, '用時隙裡的殘影紡成的布，穿上的人看起來總是慢了半拍。'),
     'afterglow_weave': ('history', 'cloth', '殘光織', 7, 10, 19, 3000, None, {"psychic": -0.5, "force": -0.25}, '「那一眼」留下的殘光紡成的布，冷得像月光。'),
-    'ringwood': ('history', 'wood', '年輪木', 6, 8, 17, 1800, None, None, '一圈年輪就是一年——這塊木頭有兩百圈，每一圈都是同一場戰役。'),
+    'ringwood': ('history', 'wood', '年輪木', 6, 8, 16, 1800, None, None, '一圈年輪就是一年——這塊木頭有兩百圈，每一圈都是同一場戰役。'),
     'stilltime_wood': ('history', 'wood', '凝時木', 7, 10, 19, 3000, None, None, '那一眼掃過時正在生長的樹，從此停在那一刻，硬得刀劈不進。'),
-    'chrono_crystal': ('history', 'jewel', '時晶', 6, 5, 17, 2500, None, None, '裂縫裡結成的晶體，裡面封著一小段會動的過去。'),
+    'chrono_crystal': ('history', 'jewel', '時晶', 6, 5, 16, 2500, None, None, '裂縫裡結成的晶體，裡面封著一小段會動的過去。'),
     'dragon_eye': ('history', 'jewel', '龍瞳石', 7, 6, 19, 4000, None, None, '像一隻半閉的眼睛的寶石；學者說，它只是看起來像阿契隆的眼睛。'),
     # 歡愉系列
-    'alien_alloy': ('pleasure', 'metal', '異鄉合金', 6, 8, 17, 1800, {"dr": 1, "evade": 2}, None, '庭園玩具箱裡那種不屬於這個世界的金屬，輕得不像金屬，摸起來滑溜溜的。'),
+    'alien_alloy': ('pleasure', 'metal', '異鄉合金', 6, 8, 16, 1800, {"dr": 1, "evade": 2}, None, '庭園玩具箱裡那種不屬於這個世界的金屬，輕得不像金屬，摸起來滑溜溜的。'),
     'glimmer_gold': ('pleasure', 'metal', '鱗光金', 7, 10, 19, 3000, {"dr": 1, "evade": 3}, None, '秘宮寢殿的鱗光凝成的金，一閃一閃，像有人在燈影裡跳舞。'),
-    'white_serpent_hide': ('pleasure', 'leather', '白蛇皮', 6, 8, 17, 1800, None, {"poison": -0.5, "lust": -0.25}, '守園的白蛇蛻下來的皮，軟得像絲，貼著身體會慢慢變暖。'),
+    'white_serpent_hide': ('pleasure', 'leather', '白蛇皮', 6, 8, 16, 1800, None, {"poison": -0.5, "lust": -0.25}, '守園的白蛇蛻下來的皮，軟得像絲，貼著身體會慢慢變暖。'),
     'glimmer_hide': ('pleasure', 'leather', '鱗光皮', 7, 10, 19, 3000, None, {"fire": -0.5, "lust": -0.5}, '一閃一閃地發著鱗光的皮，誰也說不出是從什麼東西身上來的。'),
-    'fruit_gauze': ('pleasure', 'cloth', '禁果紗', 6, 8, 17, 1800, None, {"lust": -0.5}, '禁果之樹的花絲織成的紗，帶著淡淡的果香。'),
+    'fruit_gauze': ('pleasure', 'cloth', '禁果紗', 6, 8, 16, 1800, None, {"lust": -0.5}, '禁果之樹的花絲織成的紗，帶著淡淡的果香。'),
     'wingweave': ('pleasure', 'cloth', '薄翼紗', 7, 10, 19, 3000, None, {"psychic": -0.25, "lust": -0.75}, '像薄翼、像裙裾的紗，輕得幾乎感覺不到。'),
-    'fruitwood': ('pleasure', 'wood', '禁果木', 6, 8, 17, 1800, None, None, '只長禁果的那棵樹的木頭，削開來是粉紅色的，甜得發膩。'),
+    'fruitwood': ('pleasure', 'wood', '禁果木', 6, 8, 16, 1800, None, None, '只長禁果的那棵樹的木頭，削開來是粉紅色的，甜得發膩。'),
     'revel_sandal': ('pleasure', 'wood', '香檀', 7, 10, 19, 3000, None, None, '秘宮宴會廳的樑柱，三百年來的酒香燈影都滲進了木紋裡。'),
-    'honey_crystal': ('pleasure', 'jewel', '蜜晶', 6, 5, 17, 2500, None, None, '禁果的汁液凝成的晶體，含在嘴裡會化，戴在身上不會。'),
+    'honey_crystal': ('pleasure', 'jewel', '蜜晶', 6, 5, 16, 2500, None, None, '禁果的汁液凝成的晶體，含在嘴裡會化，戴在身上不會。'),
     'charm_eye': ('pleasure', 'jewel', '魅瞳石', 7, 6, 19, 4000, None, None, '魅魔之母的眼淚凝成的寶石；看著它的人，會覺得被它看著。'),
 }
 SERIES = {'history': '歷史系列', 'pleasure': '歡愉系列'}
@@ -257,8 +258,8 @@ def gear_name(base, mat):
 
 
 def material_def(k):
-    _, kind, name, tier, bonus, level, pr, armor, resist, desc = MATERIALS[k]
-    d = {"kind": kind, "name": name, "tier": tier, "bonus": bonus, "rarity": "legendary", "level": level, "price": pr}
+    series, kind, name, tier, bonus, level, pr, armor, resist, desc = MATERIALS[k]
+    d = {"kind": kind, "name": name, "tier": tier, "bonus": bonus, "rarity": "legendary", "level": level, "price": pr, "series": series}
     if armor:
         d["armor"] = armor
     if resist:

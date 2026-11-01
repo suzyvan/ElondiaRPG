@@ -1048,6 +1048,7 @@ export function sanitizeMaterial(raw: Partial<MaterialMod>, custom: boolean, id?
   const res = affinity(raw.resist)
   if (res) out.resist = res
   if (str(raw.desc, 120)) out.desc = str(raw.desc, 120)
+  if (str(raw.series, 16)) out.series = str(raw.series, 16)
   if (custom) out.custom = true
   // 內建材料的類型與等級不能改：隨機裝備、起始裝備與 NPC 的配備依「類型 × 等級」找材料
   const builtin = !custom && id ? snapshot.materials[id] : undefined

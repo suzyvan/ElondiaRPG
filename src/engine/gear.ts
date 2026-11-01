@@ -26,6 +26,8 @@ export interface MaterialDef {
   armor?: Mods
   resist?: AffinityMap
   desc?: string
+  /** 材料的系列（第 6、7 級有 history 歷史、pleasure 歡愉兩套）：同一級有好幾種時，隨機裝備優先用地點的 material_series 那一套，沒有指定時用排在前面的 */
+  series?: string
 }
 
 /** 底材放的位置：一個欄位，或一組欄位（ring 兩個戒指、piercing 兩個穿孔飾品，見 gear.json 的 slot_groups） */
@@ -361,11 +363,12 @@ export function equipped(name: string, spec: GearSpec): EquippedGear {
   return { name, spec }
 }
 
-/** 材料類型裡指定等級的材料（tier 1～7） */
-function materialOf(kind: MaterialKind, tier: number): string {
+/** 材料類型裡指定等級的材料（tier 1～7）；series 給了時，同一級優先用那一套 */
+function materialOf(kind: MaterialKind, tier: number, series?: string): string {
   const list = Object.entries(gearRules.materials).filter(([, m]) => m.kind === kind)
-  // 沒有剛好這一級的材料時，用最接近的（同樣接近時取低的）
-  const best = list.sort(([, a], [, b]) => Math.abs(a.tier - tier) - Math.abs(b.tier - tier) || a.tier - b.tier)[0]
+  // 沒有剛好這一級的材料時，用最接近的（同樣接近時取低的）；同一級好幾種時，地點指定的系列優先，其他照排列順序
+  const pref = (m: MaterialDef) => (series && m.series === series ? 0 : 1)
+  const best = list.sort(([, a], [, b]) => Math.abs(a.tier - tier) - Math.abs(b.tier - tier) || a.tier - b.tier || pref(a) - pref(b))[0]
   if (!best) throw new Error(`沒有${kind}類的材料`)
   return best[0]
 }
@@ -869,10 +872,10 @@ export function rollEnchants(base: string, points: number, rng: Rng, elements: s
 // ---- 寶箱與掉落 ----
 
 /** 依等級隨機生成一件裝備（寶箱、人形怪物的掉落）：底材平均挑，材料依等級，有機會高一級稀有度並附魔 */
-export function randomGear(rng: Rng, level: number, bases = randomBases()): GearSpec {
+export function randomGear(rng: Rng, level: number, bases = randomBases(), series?: string): GearSpec {
   const base = rng.pick(bases)
   const kind = gearRules.bases[base]!.kind
-  const material = materialOf(kind, rollTier(rng, kind, level))
+  const material = materialOf(kind, rollTier(rng, kind, level), series)
   const spec: GearSpec = { base, material }
   if (rng.chance(gearRules.drops.bump)) {
     const rarity = shiftRarity(gearRules.materials[material]!.rarity, 1)
@@ -884,8 +887,8 @@ export function randomGear(rng: Rng, level: number, bases = randomBases()): Gear
 }
 
 /** 某一類型、某一級的打造材料（items.json 有 forge 的物品，挑最便宜的） */
-export function forgeItemFor(kind: MaterialKind, tier: number): string | undefined {
-  const material = materialOf(kind, tier)
+export function forgeItemFor(kind: MaterialKind, tier: number, series?: string): string | undefined {
+  const material = materialOf(kind, tier, series)
   return itemRules.items
     .filter((i) => i.forge?.materials.includes(material))
     .sort((a, b) => a.price_cc - b.price_cc)[0]?.name
