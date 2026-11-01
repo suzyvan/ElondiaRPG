@@ -214,11 +214,9 @@ function remove() {
         </label>
       </div>
       <label class="block"><span>描述 <Hint text="給 AI 的外觀與習性。戰鬥與戰敗事件的敘事會附上。" /></span><textarea v-model="draft.desc" rows="2" maxlength="200" /></label>
-      <div class="grid">
-        <label>魔物娘的名字 <Hint text="設定「魔物娘」打開時，交給 AI 的稱呼（例如「狼娘」）。畫面上的名字不變。名字和外觀都寫了才算；都不寫就沒有魔物娘形態，照原本的樣子。" />
-          <input :value="draft.girl?.name ?? ''" maxlength="20" @input="setGirl('name', ($event.target as HTMLInputElement).value)" />
-        </label>
-      </div>
+      <label class="block"><span>魔物娘的名字 <Hint text="設定「魔物娘」打開時，交給 AI 的稱呼（例如「狼娘」）。畫面上的名字不變。名字和外觀都寫了才算；都不寫就沒有魔物娘形態，照原本的樣子。" /></span>
+        <input class="girl-name" :value="draft.girl?.name ?? ''" maxlength="20" @input="setGirl('name', ($event.target as HTMLInputElement).value)" />
+      </label>
       <label class="block"><span>魔物娘的外觀 <Hint text="成年女性的身體，保留原本種族的特徵（耳朵、尾巴、鱗片、觸手……）與習性。不要寫成未成年的樣子。" /></span>
         <textarea :value="draft.girl?.desc ?? ''" rows="2" maxlength="300" @input="setGirl('desc', ($event.target as HTMLTextAreaElement).value)" />
       </label>
@@ -341,3 +339,6 @@ function remove() {
 </template>
 
 <style scoped src="./editor.css"></style>
+<style scoped>
+label.block input.girl-name { width: min(100%, 16em); }
+</style>
