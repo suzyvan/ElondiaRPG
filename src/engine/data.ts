@@ -713,6 +713,8 @@ export interface ClassDef {
   hit_die: number
   /** 無法戰鬥：同行但不參與戰鬥、不分經驗（普通人入隊時用） */
   noncombat?: boolean
+  /** 職業本身的受傷倍率加減（武僧的卸力：物理 -0.25），和防具、特質一樣相乘 */
+  resist?: AffinityMap
 }
 export const classes = (classesJson as unknown as { classes: Record<string, ClassDef> }).classes
 /** 普通人入隊時的職業 */
@@ -991,7 +993,26 @@ export interface AbilityDef {
   ap_give?: number
   /** 用了之後，戰後曝露名聲 +這個數（寬衣） */
   exposure?: number
+  /** 升環（只有法術）：用比 circle 高的法術環施放時，每高一環多的效果（upcast.ts） */
+  upcast?: UpcastDef
   desc: string
+}
+/** 升環：每高一環多的效果，數值照 D&D 5e 的升環規則 */
+export interface UpcastDef {
+  /** 傷害多擲的骰子，加在 damage 的第 part 筆（預設第一筆） */
+  dice?: string
+  part?: number
+  /** 治療多擲的骰子、多的固定值 */
+  heal?: string
+  heal_flat?: number
+  /** 隨機敵人的次數（魔法飛彈的飛彈、連環閃電的跳躍） */
+  count?: number
+  /** 攻擊次數（灼熱射線的射線） */
+  hits?: number
+  /** 臨時生命 */
+  shield?: number
+  /** 施加的持續傷害、每回合攻擊的狀態（月華光束、靈體武器……）每次多擲的骰子 */
+  status_dice?: string
 }
 const abilityList = (abilitiesJson as unknown as { abilities: AbilityDef[] }).abilities
 /** 所有能力（玩家自訂的內容會改這份：見 mods.ts） */

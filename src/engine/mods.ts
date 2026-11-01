@@ -1482,6 +1482,24 @@ export function sanitizeAbility(id: string, raw: Partial<AbilityMod>, custom: bo
   if (raw.lifesteal) out.lifesteal = Math.round(num(raw.lifesteal, 0.05, 1, 0.5) * 100) / 100
   if (raw.vs_slave && raw.vs_slave !== 1) out.vs_slave = Math.round(num(raw.vs_slave, 0.25, 4, 2) * 100) / 100
   if (raw.hp_limit) out.hp_limit = int(raw.hp_limit, 1, 9999, 30)
+  // 升環（只有法術；upcast.ts）
+  if (type === 'spell' && raw.upcast && typeof raw.upcast === 'object') {
+    const r = raw.upcast
+    const dice = (v: unknown) => (v && DICE.test(String(v).replace(/\s+/g, '')) ? String(v).replace(/\s+/g, '') : undefined)
+    const u: NonNullable<AbilityDef['upcast']> = {}
+    if (dice(r.dice) && out.damage?.length) {
+      u.dice = dice(r.dice)
+      const part = int(r.part, 0, out.damage.length - 1, 0)
+      if (part > 0) u.part = part
+    }
+    if (dice(r.heal) && out.heal) u.heal = dice(r.heal)
+    if (r.heal_flat && out.heal) u.heal_flat = int(r.heal_flat, 1, 999, 10)
+    if (r.count && target === 'random_enemies') u.count = int(r.count, 1, 5, 1)
+    if (r.hits) u.hits = int(r.hits, 1, 5, 1)
+    if (r.shield && out.shield) u.shield = int(r.shield, 1, 999, 5)
+    if (dice(r.status_dice) && out.apply?.length) u.status_dice = dice(r.status_dice)
+    if (Object.keys(u).length) out.upcast = u
+  }
   if (raw.threat) out.threat = int(raw.threat, -50, 50, 0)
   // 慾望戰鬥（docs/COMBAT_SYSTEM.md 第 8.5 節）
   if (raw.lust_gain?.flat) out.lust_gain = { flat: int(raw.lust_gain.flat, 1, 200, 10) }

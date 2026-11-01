@@ -2,11 +2,12 @@
 import { useSummary } from '@/engine/inventory'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
-  abilityApCost, combatItems, currentActor, defenseMult, effectiveLustMax, isActive, itemNeedsTarget, itemTargets, multLabel, struggleDc, struggleTargets, threatMultOf, threatShares, unusableReason, validTargets,
+  abilityApCost, castCircle, combatItems, currentActor, defenseMult, effectiveLustMax, isActive, itemNeedsTarget, itemTargets, multLabel, struggleDc, struggleTargets, threatMultOf, threatShares, unusableReason, validTargets,
   type Combatant,
 } from '@/engine/combat'
 import { luckyThreshold } from '@/engine/character'
 import { abilityDef, combatRules, damageTypeName, lewdRules, describeStatus, monsterTraits, statusDef, type AbilityDef } from '@/engine/data'
+import { upcastText } from '@/engine/upcast'
 import { describeCombatLine } from '@/narrator/describe'
 import { banner, climaxBreath, fxOn, flash, floatText, lustHit, screenFlash, screenShake, shake, shatter } from '@/fx/fx'
 import { BUFF_COLOR, CRIT_COLOR, DEBUFF_COLOR, HEAL_COLOR, LUST_COLOR, MISS_COLOR, PHYSICAL_COLOR, cuesFor, unplayedHpDelta, unplayedLustDelta } from '@/fx/combatFx'
@@ -33,7 +34,32 @@ const log = ref<HTMLElement | null>(null)
 const costs = combatRules.action_costs
 
 /** 已選擇、等待指定目標的行動 */
-const pending = ref<{ kind: 'attack' } | { kind: 'struggle' } | { kind: 'ability'; ability: AbilityDef } | { kind: 'item'; item: string } | null>(null)
+const pending = ref<{ kind: 'attack' } | { kind: 'struggle' } | { kind: 'ability'; ability: AbilityDef; circle?: number } | { kind: 'item'; item: string } | null>(null)
+
+// 升環：選要用幾環施放下一個法術（null＝自動，用最低可用的）；施放後、換人時回到自動
+const upcastPick = ref<number | null>(null)
+watch(() => actor.value?.id, () => { upcastPick.value = null })
+/** 能選的環數：第 2 環以上、還有剩的 */
+const upcastCircles = computed(() => {
+  const a = actor.value
+  if (!a || !a.abilities.some((id) => abilityDef(id).type === 'spell')) return []
+  return a.slotMax.map((max, i) => ({ circle: i + 1, left: a.slots[i] ?? 0, max })).filter((x) => x.circle > 1 && x.max > 0)
+})
+/** 這個法術要指定的環數（選的比法術本身高才算升環） */
+function wantedCircle(a: AbilityDef): number | undefined {
+  return a.type === 'spell' && upcastPick.value !== null && upcastPick.value > (a.circle ?? 1) ? upcastPick.value : undefined
+}
+/** 這個法術實際會用幾環施放 */
+function usedCircle(a: AbilityDef): number | null {
+  return actor.value && a.type === 'spell' ? castCircle(actor.value, a, wantedCircle(a)) : null
+}
+/** 升環的說明：「升 2 環：傷害 +2d6」 */
+function upcastNote(a: AbilityDef): string {
+  const used = usedCircle(a)
+  const n = used !== null ? used - (a.circle ?? 1) : 0
+  if (n <= 0) return ''
+  return `升 ${n} 環：${upcastText(a, n) || '沒有額外效果'}`
+}
 
 const targets = computed(() => {
   if (!actor.value || !pending.value) return []
@@ -71,20 +97,30 @@ const groups = computed(() => {
 })
 
 function reason(a: AbilityDef): string | null {
-  return actor.value ? unusableReason(combat.value, actor.value, a.id) : '不是你的回合'
+  return actor.value ? unusableReason(combat.value, actor.value, a.id, wantedCircle(a)) : '不是你的回合'
 }
 
 function costText(a: AbilityDef): string {
   const ap = abilityApCost(a)
   if (a.type === 'cantrip') return '0 AP・每回合一次'
-  if (a.type === 'spell') return `${a.circle} 環・${ap} AP`
+  if (a.type === 'spell') {
+    const used = usedCircle(a)
+    return `${a.circle}${used !== null && used > (a.circle ?? 1) ? `→${used}` : ''} 環・${ap} AP`
+  }
   const gain = a.ap_gain ? `・+${a.ap_gain} AP` : a.ap_gain_on_hit ? `・命中 +${a.ap_gain_on_hit} AP` : ''
   return `${ap} AP${gain}`
 }
 
 function send(action: Parameters<typeof game.act>[0]) {
   pending.value = null
+  if (action.type === 'ability' && abilityDef(action.ability).type === 'spell') upcastPick.value = null
   game.act(action)
+}
+
+/** 法術按鈕的滑鼠提示：說明、升環、不能用的原因 */
+function abilityTitle(a: AbilityDef): string {
+  const r = reason(a)
+  return [a.desc, upcastNote(a), r ? `（${r}）` : ''].filter(Boolean).join('\n')
 }
 
 // 自願戰敗：左邊切換「不幸／主動」（記在這個瀏覽器），右邊的「戰敗」長按一秒才以戰敗結束（避免誤觸）；規則和一般戰敗一樣，只影響交給 AI 的文字
@@ -126,8 +162,9 @@ function holdCancel() {
 onBeforeUnmount(holdCancel)
 
 function choose(a: AbilityDef) {
-  if (a.target === 'enemy' || a.target === 'ally' || a.target === 'ally_or_downed') pending.value = { kind: 'ability', ability: a }
-  else send({ type: 'ability', ability: a.id })
+  const circle = wantedCircle(a)
+  if (a.target === 'enemy' || a.target === 'ally' || a.target === 'ally_or_downed') pending.value = { kind: 'ability', ability: a, ...(circle ? { circle } : {}) }
+  else send({ type: 'ability', ability: a.id, ...(circle ? { circle } : {}) })
 }
 
 function chooseItem(name: string) {
@@ -323,7 +360,7 @@ function chooseTarget(id: string) {
   if (!p) return
   if (p.kind === 'item') send({ type: 'item', item: p.item, target: id })
   else if (p.kind === 'struggle') send({ type: 'struggle', target: id })
-  else send(p.kind === 'attack' ? { type: 'attack', target: id } : { type: 'ability', ability: p.ability.id, target: id })
+  else send(p.kind === 'attack' ? { type: 'attack', target: id } : { type: 'ability', ability: p.ability.id, target: id, ...(p.circle ? { circle: p.circle } : {}) })
 }
 
 function finish() {
@@ -656,12 +693,20 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
         <div v-if="!isMobile" class="groups">
           <div v-for="g in groups" :key="g.name" class="group">
             <h4 class="small muted">{{ g.name }}</h4>
+            <div v-if="g.name === '法術' && upcastCircles.length" class="row upcast" role="group" aria-label="升環">
+              <span class="small muted" title="用比法術本身高的法術環施放（升環），效果寫在法術的說明裡；施放後回到自動">施放環數</span>
+              <button class="small" :class="{ on: upcastPick === null }" :aria-pressed="upcastPick === null" @click="upcastPick = null">自動</button>
+              <button
+                v-for="x in upcastCircles" :key="x.circle" class="small" :class="{ on: upcastPick === x.circle }" :aria-pressed="upcastPick === x.circle"
+                :disabled="x.left <= 0" @click="upcastPick = upcastPick === x.circle ? null : x.circle"
+              >{{ x.circle }} 環 <span class="muted">{{ x.left }}/{{ x.max }}</span></button>
+            </div>
             <div class="row">
               <button
                 v-for="a in g.items"
                 :key="a.id"
                 :disabled="reason(a) !== null"
-                :title="`${a.desc}${reason(a) ? `\n（${reason(a)}）` : ''}`"
+                :title="abilityTitle(a)"
                 class="ability"
                 @click="choose(a)"
               >
@@ -691,6 +736,14 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
         <SwipeTabs v-if="isMobile" v-model="abilityTab" :tabs="abilityTabs" swipe bar class="m-skills">
           <template #tab="{ tab: t }">{{ t.label }}<span class="cnt">{{ (t as AbilityTab).count }}</span></template>
           <template #default="{ id }">
+            <div v-if="id === 'spell' && upcastCircles.length" class="row upcast m-upcast" role="group" aria-label="升環">
+              <span class="small muted">施放環數</span>
+              <button class="small" :class="{ on: upcastPick === null }" :aria-pressed="upcastPick === null" @click="upcastPick = null">自動</button>
+              <button
+                v-for="x in upcastCircles" :key="x.circle" class="small" :class="{ on: upcastPick === x.circle }" :aria-pressed="upcastPick === x.circle"
+                :disabled="x.left <= 0" @click="upcastPick = upcastPick === x.circle ? null : x.circle"
+              >{{ x.circle }} 環 <span class="muted">{{ x.left }}</span></button>
+            </div>
             <div class="m-grid">
               <template v-if="id === 'item'">
                 <button
@@ -749,6 +802,7 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
         <p>{{ infoAbility.desc }}</p>
         <dl>
           <dt>花費</dt><dd>{{ costText(infoAbility) }}</dd>
+          <template v-if="upcastNote(infoAbility)"><dt>升環</dt><dd>{{ upcastNote(infoAbility).replace(/^升 \d+ 環：/, '') }}</dd></template>
           <template v-if="reason(infoAbility)"><dt>現在</dt><dd class="bad">{{ reason(infoAbility) }}</dd></template>
         </dl>
       </div>
@@ -893,6 +947,9 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
 .group .row { gap: 4px; }
 .group h4 { margin: 4px 0 3px; font-weight: normal; color: var(--accent-2); display: flex; align-items: center; gap: 4px; }
 /* 技能與道具按鈕固定兩行高：不能用的原因放在滑鼠提示 */
+.upcast { gap: 4px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
+.upcast button.on { color: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.m-upcast { padding: 4px 2px 6px; }
 .ability { display: inline-grid; grid-template-rows: auto auto; text-align: left; line-height: 1.3; min-width: 120px; max-width: 220px; }
 .ability .an { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ability .sub2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

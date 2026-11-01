@@ -25,10 +25,11 @@ function current(): AbilityMod {
   a.heal ??= {}
   a.shield ??= {}
   a.uses ??= {}
+  a.upcast ??= {}
   return a
 }
-// 空的 heal、shield、uses 不算修改
-const snap = (a: AbilityMod) => JSON.stringify(a, (k, v) => (['heal', 'shield', 'uses'].includes(k) && v && !Object.keys(v).length ? undefined : v))
+// 空的 heal、shield、uses、upcast 不算修改
+const snap = (a: AbilityMod) => JSON.stringify(a, (k, v) => (['heal', 'shield', 'uses', 'upcast'].includes(k) && v && !Object.keys(v).length ? undefined : v))
 const draft = ref<AbilityMod>(current())
 const saved = ref(snap(draft.value))
 watch(() => props.id, () => {
@@ -268,6 +269,20 @@ function remove() {
         <label class="check"><input v-model="draft.heal!.mod" type="checkbox" /> 加屬性調整值</label>
         <label class="check"><input v-model="draft.heal!.level" type="checkbox" /> 加等級</label>
         <label class="check"><input v-model="draft.heal!.full" type="checkbox" /> 回滿</label>
+      </div>
+    </FoldSet>
+
+    <FoldSet v-if="draft.type === 'spell'">
+      <template #legend>升環 <Hint text="用比法術本身高的法術環施放時，每高一環多的效果（D&D 5e 的升環）。都不填時，用高環施放效果不變。說明文字要自己寫上。" /></template>
+      <div class="grid">
+        <label>傷害多擲 <input v-model="draft.upcast!.dice" placeholder="1d6" /></label>
+        <label v-if="(draft.damage?.length ?? 0) > 1">加在第幾筆傷害 <input :value="(draft.upcast!.part ?? 0) + 1" type="number" min="1" :max="draft.damage!.length" @input="draft.upcast!.part = Math.max(0, Number(($event.target as HTMLInputElement).value) - 1) || undefined" /></label>
+        <label>治療多擲 <input v-model="draft.upcast!.heal" placeholder="1d8" /></label>
+        <label>治療多（固定）<input v-model.number="draft.upcast!.heal_flat" type="number" min="0" /></label>
+        <label v-if="draft.target === 'random_enemies'">次數多 <input v-model.number="draft.upcast!.count" type="number" min="0" max="5" /></label>
+        <label>攻擊次數多 <input v-model.number="draft.upcast!.hits" type="number" min="0" max="5" /></label>
+        <label>臨時生命多 <input v-model.number="draft.upcast!.shield" type="number" min="0" /></label>
+        <label><span>持續傷害多擲 <Hint text="施加的持續傷害、每回合攻擊的狀態（例如月華光束、靈體武器）每次多擲的骰子。" /></span><input v-model="draft.upcast!.status_dice" placeholder="1d10" /></label>
       </div>
     </FoldSet>
 
