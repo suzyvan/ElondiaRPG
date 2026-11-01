@@ -1051,6 +1051,8 @@ export interface NpcNews {
   level?: number
   gear?: string
   rest?: string
+  /** 夥伴換下、寄回行囊的裝備 */
+  returned?: string
   place?: string
 }
 

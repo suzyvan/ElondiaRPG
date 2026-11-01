@@ -10,14 +10,16 @@
 //   交給 AI 的人際關係裡附上最近的近況（social.ts 的 formatContext），重逢時 AI 會知道。
 // 引擎不讀設定：畫面套用設定時呼叫 setNpcLife。
 
-import { gainXp, xpToNext } from './character'
-import { classDef, geography, locationById, npcs as namedNpcs } from './data'
-import { gearName, generateLoadout, syncGear } from './gear'
+import { gainXp, recalc, xpToNext } from './character'
+import { classDef, dungeonEncounters, enemies, geography, itemDef, locationById, npcs as namedNpcs, parkPlaza } from './data'
+import { gearName, gearPrice, generateLoadout, syncGear } from './gear'
 import { characterFor, hashString, npcRecord, registerNpc } from './npcs'
 import { isNoncombatant } from './party'
 import { Rng } from './rng'
 import { attributeRules } from './data'
-import type { Character, GameState, GearSlot, NpcLifeState, NpcNews, NpcRecord } from './types'
+import { addItem } from './state'
+import { locationOpen } from './storyFlags'
+import type { Character, EquippedGear, GameState, GearSlot, NpcLifeState, NpcNews, NpcRecord } from './types'
 
 export type { NpcLifeState, NpcNews }
 
@@ -100,7 +102,11 @@ export function livingNpcs(state: GameState): NpcRecord[] {
  * 第一次呼叫只記下今天（不補擲遊戲開始以前的日子）
  */
 export function tickNpcLife(state: GameState): string[] {
-  if (!enabled) return []
+  // 關掉的期間不算：打開時從那天開始數，不補擲關掉的那段日子
+  if (!enabled) {
+    if (state.npcLife) state.npcLife.last = state.time.day
+    return []
+  }
   const first = !state.npcLife
   const life = lifeOf(state)
   if (first) return []
@@ -132,12 +138,36 @@ function storedRecord(state: GameState, rec: NpcRecord): NpcRecord {
   return state.npcs?.[rec.id] ?? registerNpc(state, JSON.parse(JSON.stringify(rec)) as NpcRecord)
 }
 
-/** 去了哪裡：同一個地區的地下城或城鎮 */
-function placeFor(rng: Rng, rec: NpcRecord): { name: string; dungeon: boolean } {
+/** 曾經是隊員的人（雇用過、留守或寄放）：身上的裝備是玩家給的，升級的選擇留給玩家 */
+export function wasCompanion(state: GameState, rec: NpcRecord): boolean {
+  return !!rec.staying || state.recruited.includes(rec.id)
+}
+
+/** 地下城最上面一層的怪物等級（周邊，沒有周邊時淺層）：比 NPC 高太多的不去 */
+export function dungeonEntryLevel(id: string): number | undefined {
+  const e = dungeonEncounters[id]
+  const groups = e?.outskirts?.length ? e.outskirts : e?.shallow
+  const levels = (groups ?? []).flat().map(([enemy]) => enemies[enemy]?.level).filter((l): l is number => typeof l === 'number')
+  return levels.length ? Math.min(...levels) : undefined
+}
+
+/** 入口的怪物最多比 NPC 高幾級 */
+export const DUNGEON_LEVEL_SLACK = 1
+
+/** 會去的地下城：劇情條件成立（還沒出現的歷史裂縫不去）、不是主題園區（緋夢樂園）、入口的怪物不比他高太多 */
+function dungeonFits(state: GameState, id: string, level: number): boolean {
+  if (!locationOpen(state, id) || parkPlaza(id)) return false
+  const entry = dungeonEntryLevel(id)
+  return entry !== undefined && entry <= level + DUNGEON_LEVEL_SLACK
+}
+
+/** 去了哪裡：同一個地區的地下城（合他的等級的）或城鎮 */
+function placeFor(state: GameState, rng: Rng, rec: NpcRecord): { name: string; dungeon: boolean } {
   const home = rec.location ? geography.locations.find((l) => l.id === rec.location) : undefined
   const region = home?.region
-  const near = geography.locations.filter((l) => l.region === region)
-  const dungeons = near.filter((l) => l.type === 'dungeon')
+  const level = rec.character?.level ?? rec.level
+  const near = geography.locations.filter((l) => l.region === region && !l.requires)
+  const dungeons = geography.locations.filter((l) => l.region === region && l.type === 'dungeon' && dungeonFits(state, l.id, level))
   if (dungeons.length && rng.chance(0.5)) return { name: rng.pick(dungeons).name, dungeon: true }
   const towns = near.filter((l) => l.type !== 'dungeon')
   const t = towns.length ? rng.pick(towns) : home
@@ -150,7 +180,7 @@ export function rollOnce(state: GameState, rec0: NpcRecord, day: number): boolea
   const fixed = isFixed(rec0.id)
   const pcLevel = state.party.find((m) => m.isPlayer)?.level ?? 1
   const scale = Math.min(3, everyDays / 3)
-  const place = placeFor(rng, rec0)
+  const place = placeFor(state, rng, rec0)
   const news: NpcNews = { day, text: '', place: place.name }
   const parts: string[] = [`${place.dungeon ? `去了${place.name}` : `在${place.name}`}${rng.pick(ACTIVITIES)}`]
   let c: Character | undefined
@@ -163,25 +193,35 @@ export function rollOnce(state: GameState, rec0: NpcRecord, day: number): boolea
   }
   // 升級：上限是主角的等級；固定 NPC 不升級（等級寫在資料裡，任務的戰鬥照那個設計）
   const level = rec0.character?.level ?? rec0.level
+  const companion = wasCompanion(state, rec0)
   if (!fixed && level < pcLevel && rng.chance(levelUpChance(pcLevel - level, everyDays))) {
     const ch = character()
     gainXp(ch, Math.max(1, xpToNext(ch.level) - ch.xp), rng)
-    settleLevelUp(ch)
+    // 曾經是隊員的人：能力選項與屬性點留著，歸隊時玩家自己選
+    if (!companion) settleLevelUp(ch)
     storedRecord(state, rec0).level = ch.level
     news.level = ch.level
     parts.push(`升到 Lv.${ch.level}`)
   }
-  // 換一件武器或護甲（照現在的等級）
-  if (rng.chance(Math.min(0.6, 0.2 * scale))) {
+  // 換一件武器或護甲（照現在的等級）：固定 NPC 不換（穿著照內容的設計）；只換比現在好、沒上鎖、不是獨特的那件
+  if (!fixed && rng.chance(Math.min(0.6, 0.2 * scale))) {
     const ch = character()
     const loadout = generateLoadout(ch.class, ch.level, rng, ch.race)
-    const slots = (['main_hand', 'body'] as GearSlot[]).filter((s) => loadout[s] && loadout[s]!.name !== ch.gear?.[s]?.name)
+    const slots = (['main_hand', 'body'] as GearSlot[]).filter((s) => loadout[s] && replaceable(state, ch.gear?.[s], loadout[s]!))
     if (slots.length) {
       const slot = rng.pick(slots)
+      const old = ch.gear?.[slot]
       ;(ch.gear ??= {})[slot] = loadout[slot]
       syncGear(ch, classDef(ch.class).weapon)
+      recalc(ch)
       news.gear = gearName(loadout[slot]!.spec)
       parts.push(`換上了${news.gear}`)
+      // 夥伴換下的（玩家給的）寄回行囊
+      if (old && companion) {
+        addItem(state.inventory, old.name, 1)
+        news.returned = old.name
+        parts.push(`把換下的${old.name}寄回給你`)
+      }
     }
   }
   // 受了點傷，休養幾天（只是近況：隨時可以找他）
@@ -196,6 +236,21 @@ export function rollOnce(state: GameState, rec0: NpcRecord, day: number): boolea
   list.push(news)
   if (list.length > NEWS_KEEP) list.splice(0, list.length - NEWS_KEEP)
   return true
+}
+
+/** 這一格能不能換成 next：空著，或現在的沒上鎖（主人、陷阱、寄生、拘束具的鎖）、不是獨特裝備、而且 next 比較好（估價：底材、材料、附魔） */
+function replaceable(state: GameState, cur: EquippedGear | undefined, next: EquippedGear): boolean {
+  if (!cur) return true
+  if (cur.locked || cur.lock || cur.spec.lock) return false
+  if (isUniqueGear(state, cur.name)) return false
+  return gearPrice(next.spec) > gearPrice(cur.spec)
+}
+
+/** 獨特裝備（和 trade.ts 的 isUniqueItem 一樣；這裡不引用 trade.ts，避免循環引用） */
+function isUniqueGear(state: GameState, name: string): boolean {
+  const def = itemDef(name)
+  if (def) return !!def.gear?.unique || !!def.tags?.includes('unique')
+  return !!state.customItems?.[name]?.gear?.unique
 }
 
 /**

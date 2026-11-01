@@ -4,8 +4,10 @@ import { nextTick } from 'vue'
 import { enterLocation } from '@/engine/grid'
 import { generateNpc, npcRecord, registerNpc } from '@/engine/npcs'
 import {
-  AFFINITY_MIN, MAX_CATCH_UP, applyNewsStories, levelUpChance, livingNpcs, newsOf, setFollowed, setNpcLife, tickNpcLife,
+  AFFINITY_MIN, DUNGEON_LEVEL_SLACK, MAX_CATCH_UP, applyNewsStories, dungeonEntryLevel, levelUpChance, livingNpcs, newsOf, setFollowed, setNpcLife, tickNpcLife,
 } from '@/engine/npcLife'
+import { characterFor } from '@/engine/npcs'
+import { geography } from '@/engine/data'
 import { npcOutfit } from '@/engine/outfits'
 import { ensureRelationship, formatContext, selectContext, setAffinity } from '@/engine/social'
 import { newGame, withRng } from '@/engine/state'
@@ -97,7 +99,7 @@ describe('NPC 自己的日子：擲骰', () => {
     expect(levelUpChance(1, 1)).toBeLessThan(levelUpChance(1, 3))
   })
 
-  it('never levels up fixed NPCs, but they still change gear and get news', () => {
+  it('never levels up or re-equips fixed NPCs, but they still get news', () => {
     setNpcLife({ days: 1 })
     const state = game()
     ensureRelationship(state, npcRecord(state, 'npc_lina')!)
@@ -106,7 +108,9 @@ describe('NPC 自己的日子：擲骰', () => {
     tickNpcLife(state)
     for (let i = 0; i < 8; i++) passDays(state, MAX_CATCH_UP)
     expect(npcRecord(state, 'npc_lina')!.level).toBe(level)
-    expect(newsOf(state, 'npc_lina').some((n) => n.level)).toBe(false)
+    expect(newsOf(state, 'npc_lina').some((n) => n.level || n.gear)).toBe(false)
+    // 不換裝：不會被複製進存檔、穿著照內容的設計
+    expect(state.npcs?.npc_lina?.character).toBeUndefined()
     expect(newsOf(state, 'npc_lina').length).toBeGreaterThan(0)
   })
 
@@ -175,5 +179,142 @@ describe('普通人每週換一套衣服', () => {
     expect(npcOutfit(def('a'), 3)).toEqual(npcOutfit(def('a'), 7))
     const changed = ['a', 'b', 'c', 'd', 'e'].some((id) => JSON.stringify(npcOutfit(def(id), 8)) !== JSON.stringify(npcOutfit(def(id), 1)))
     expect(changed).toBe(true)
+  })
+})
+
+describe('NPC 自己的日子：夥伴的裝備與升級', () => {
+  /** 留在酒館的夥伴（曾經是隊員） */
+  function lodger(state: GameState, level = 3): { rec: NpcRecord; id: string } {
+    const rec = registerNpc(state, withRng(state, (rng) => generateNpc(state, rng, { level, location: state.location, class: 'fighter' })))
+    ensureRelationship(state, rec)
+    const ch = characterFor(state, rec)
+    registerNpc(state, { ...rec, character: ch, staying: `tavern:${state.location}`, stayingSince: { ...state.time } })
+    return { rec, id: rec.id }
+  }
+
+  it('only swaps in better gear, never locked or unique gear, and sends the old piece back', () => {
+    setNpcLife({ days: 3 })
+    const state = game()
+    state.party[0]!.level = 15
+    const { id } = lodger(state)
+    const ch = npcRecord(state, id)!.character!
+    const weapon = ch.gear!.main_hand!.name
+    ch.gear!.body = { ...ch.gear!.body!, name: '主人鎖上的胸甲', locked: 'master_x' }
+    tickNpcLife(state)
+    for (let i = 0; i < 30; i++) passDays(state, 3)
+    const after = npcRecord(state, id)!.character!
+    expect(after.gear!.body!.name).toBe('主人鎖上的胸甲')
+    expect(after.gear!.body!.locked).toBe('master_x')
+    // 換下的武器寄回行囊
+    expect(after.gear!.main_hand!.name).not.toBe(weapon)
+    expect(state.inventory.some((i) => i.name === weapon)).toBe(true)
+  })
+
+  it('does not swap for worse gear', () => {
+    setNpcLife({ days: 3 })
+    const state = game()
+    const { id } = lodger(state)
+    const ch = npcRecord(state, id)!.character!
+    // 很好的武器（秘銀＋附魔）：等級 3 生成的不會比較好
+    ch.gear!.main_hand = { ...ch.gear!.main_hand!, name: '秘銀長劍＋', spec: { ...ch.gear!.main_hand!.spec, material: 'mithril', enchants: { mods: { hit: 2, damage: 2 } } } }
+    tickNpcLife(state)
+    for (let i = 0; i < 30; i++) passDays(state, 3)
+    expect(npcRecord(state, id)!.character!.gear!.main_hand!.name).toBe('秘銀長劍＋')
+  })
+
+  it('leaves level-up choices and attribute points to the player for former companions', () => {
+    setNpcLife({ days: 9 })
+    const state = game()
+    state.party[0]!.level = 15
+    const { id } = lodger(state, 2)
+    npcRecord(state, id)!.character!.attrPoints = 2
+    tickNpcLife(state)
+    for (let i = 0; i < 10; i++) passDays(state, 9)
+    const c = npcRecord(state, id)!.character!
+    expect(c.level).toBeGreaterThan(2)
+    expect(c.attrPoints).toBeGreaterThan(2)
+  })
+})
+
+describe('NPC 自己的日子：去的地方', () => {
+  it('skips dungeons that have not appeared, theme parks, and dungeons far above his level', () => {
+    setNpcLife({ days: 1 })
+    const state = game()
+    const towns = geography.locations.filter((l) => l.type !== 'dungeon' && ['central', 'south'].includes(l.region) && !l.requires)
+    const ids: string[] = []
+    for (const t of towns) {
+      const rec = registerNpc(state, withRng(state, (rng) => generateNpc(state, rng, { level: 2, location: t.id, class: 'fighter' })))
+      ensureRelationship(state, rec)
+      setAffinity(state, rec.id, 50)
+      ids.push(rec.id)
+    }
+    state.party[0]!.level = 2
+    tickNpcLife(state)
+    const places = new Set<string>()
+    for (let i = 0; i < 30; i++) {
+      passDays(state, 1)
+      for (const id of ids) for (const n of newsOf(state, id)) if (n.place) places.add(n.place)
+    }
+    const dungeons = geography.locations.filter((l) => l.type === 'dungeon')
+    const visited = dungeons.filter((l) => places.has(l.name))
+    expect(visited.length).toBeGreaterThan(0)
+    for (const l of visited) {
+      expect(l.requires).toBeUndefined()
+      expect(l.park).toBeUndefined()
+      expect(dungeonEntryLevel(l.id)!).toBeLessThanOrEqual(2 + DUNGEON_LEVEL_SLACK)
+    }
+    expect(places.has('歷史裂縫')).toBe(false)
+  })
+
+  it('does not catch up on the days it was switched off', () => {
+    setNpcLife({ days: 3 })
+    const state = game()
+    const rec = friend(state, 50)
+    tickNpcLife(state)
+    setNpcLife({ on: false })
+    passDays(state, 60)
+    setNpcLife({ on: true })
+    passDays(state, 0)
+    expect(newsOf(state, rec.id)).toEqual([])
+    passDays(state, 3)
+    expect(newsOf(state, rec.id).length).toBe(1)
+  })
+})
+
+
+describe('NPC 自己的日子：重逢時寫（store）', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  it('asks the AI once per reunion, even when it fails', async () => {
+    const providers = await import('@/narrator/providers')
+    const complete = vi.mocked(providers.completeText)
+    const { useGame } = await import('@/stores/game')
+    const { useSettings } = await import('@/stores/settings')
+    const settings = useSettings()
+    settings.sources[0]!.configs.anthropic.apiKey = 'test'
+    settings.npcLifeAi = 'reunion'
+    await nextTick()
+    const game = useGame()
+    game.start('艾倫', 'human', 'fighter')
+    const rec = friend(game.state!, 50)
+    game.runAction(() => ({}))
+    complete.mockClear()
+    complete.mockRejectedValue(new Error('boom'))
+    // 有近況、回到隊上（在身邊）
+    game.runAction((s) => { s.npcLife!.news[rec.id] = [{ day: 1, text: '在近郊討伐魔物。' }]; s.party.push(characterFor(s, npcRecord(s, rec.id)!)) })
+    for (let i = 0; i < 5; i++) {
+      game.runAction(() => ({}))
+      await new Promise((r) => setTimeout(r, 5))
+    }
+    expect(complete).toHaveBeenCalledTimes(1)
+    // 離開身邊再見面：再寫一次
+    game.runAction((s) => { s.party = s.party.filter((m) => m.id !== rec.id) })
+    game.runAction((s) => { s.party.push(characterFor(s, npcRecord(s, rec.id)!)) })
+    await new Promise((r) => setTimeout(r, 5))
+    expect(complete).toHaveBeenCalledTimes(2)
+    complete.mockReset()
   })
 })
