@@ -105,4 +105,12 @@ describe('採集算「事件與委託」', () => {
     expect(narrateKindOf(report)).toBe('event')
     expect(narrateKindOf({ kind: 'action', outcome: { result: 'success' } } as unknown as Report)).toBe('action')
   })
+
+  it('puts every step of a special quest under ⭐ 特殊任務: story points, checks and battles', () => {
+    const story = { id: 'x', title: 'X', status: 'progress' }
+    expect(narrateKindOf({ kind: 'event', story, outcome: { result: 'neutral' } } as unknown as Report)).toBe('story')
+    expect(narrateKindOf({ kind: 'action', story, check: { source: 'ai' }, outcome: { result: 'success' } } as unknown as Report)).toBe('story')
+    expect(narrateKindOf({ kind: 'combat', story, outcome: { result: 'victory' } } as unknown as Report)).toBe('story')
+    expect(narrateKindOf({ kind: 'event', outcome: { result: 'neutral' } } as unknown as Report)).toBe('event')
+  })
 })
