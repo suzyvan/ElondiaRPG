@@ -134,7 +134,7 @@ function resetService() {
         <legend class="small"><GameIcon name="user" :size="16" />形象插圖</legend>
         <label class="check">
           <input v-model="image.portraitAuto" type="checkbox" /> 第一次和 NPC 產生關係時自動畫他的形象圖
-          <Hint warn :width="320" text="人際關係裡第一次出現這個人時（認識、雇用、入隊、AI 判定認識了新的人……）畫一張形象圖，每個人只畫這一次；已經有形象圖（內建的或畫過的）就不畫。一次認識好幾個人時一張一張排隊畫。每一張都要花錢（選了預處理時另外花 token）；生圖服務沒設定好時不畫。開啟之前就認識的人不會補畫（在人際關係或角色詳情手動按「生成形象圖」）。" />
+          <Hint warn :width="320" text="人際關係裡第一次出現這個人時（認識、雇用、入隊、AI 判定認識了新的人，交易的店主、俘虜也算……）畫一張形象圖，每個人只畫這一次；已經有形象圖（內建的或畫過的）就不畫。一次認識好幾個人時一張一張排隊畫。每一張都要花錢（選了預處理時另外花 token）；生圖服務沒設定好時不畫。開啟之前就認識的人不會補畫（在人際關係或角色詳情手動按「生成形象圖」）。" />
         </label>
         <p v-if="image.portraitAuto && !image.ready()" class="small warn-text">{{ info.name }} 還沒設定好：不會自動畫。</p>
       </fieldset>

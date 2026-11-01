@@ -497,12 +497,18 @@ export const useGame = defineStore('game', () => {
     }
   }
 
-  /** 重逢時才寫：身邊（含隊上）有還沒寫近況的人 */
+  /** 這次重逢已經請 AI 寫過的人（失敗或漏寫也不再送）：離開身邊之後再見面才會再寫 */
+  const reunited = new Set<string>()
+
+  /** 重逢時才寫：身邊（含隊上）有還沒寫近況的人，同一個人這次重逢只送一次 */
   function polishReunions() {
     const s = state.value
-    if (!s?.npcLife || !Object.values(s.npcLife.news).some((list) => list.some((n) => !n.story))) return
+    if (!s?.npcLife) return
     const near = new Set([...s.party.map((m) => m.id), ...population.nearbyPeople(s).map((p) => p.rec.id)])
-    const ids = Object.keys(s.npcLife.news).filter((id) => near.has(id) && npcLife.newsOf(s, id).some((n) => !n.story))
+    for (const id of reunited) if (!near.has(id)) reunited.delete(id)
+    if (!Object.values(s.npcLife.news).some((list) => list.some((n) => !n.story))) return
+    const ids = Object.keys(s.npcLife.news).filter((id) => near.has(id) && !reunited.has(id) && npcLife.newsOf(s, id).some((n) => !n.story))
+    for (const id of ids) reunited.add(id)
     if (ids.length) void polishNews(ids)
   }
 
