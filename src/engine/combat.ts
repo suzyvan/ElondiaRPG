@@ -28,6 +28,7 @@ import { gearBonuses, gearRules, randomGear, registerGear } from './gear'
 import { rollDefeatEvent } from './defeat'
 import { inPark, parkDefeat, parkLust, parkStamps, saveParkLust } from './park'
 import { charmRutMult } from './charm'
+import { upcastAbility, upcastLevels, upcastStatusDice } from './upcast'
 import { parasiteAbilities, parasiteStartLust } from './parasites'
 import { addCondition, isNoncombatant, pcOf } from './party'
 import { contractTerms } from './slavery'
@@ -62,6 +63,8 @@ export interface StatusInstance {
   source: string
   /** 專注法術的標記：`${施法者}:${能力}` */
   conc?: string
+  /** 升環施放時，持續傷害、每回合攻擊每次多擲的骰子（upcast.ts） */
+  dice?: string
 }
 
 export interface Combatant {
@@ -160,7 +163,8 @@ export interface Combatant {
 
 export type CombatAction =
   | { type: 'attack'; target: string }
-  | { type: 'ability'; ability: string; target?: string }
+  /** circle：法術用幾環的法術環施放（升環）；沒寫時用最低可用的 */
+  | { type: 'ability'; ability: string; target?: string; circle?: number }
   | { type: 'defend' }
   /** 掙脫（目標是自己）或撕開（目標是隊友）戰鬥中的拘束（狀態有 struggle） */
   | { type: 'struggle'; target: string }
@@ -797,7 +801,7 @@ export function validTargets(combat: CombatState, actorId: string, a?: AbilityDe
 }
 
 /** 能力無法使用的原因；可以使用時回傳 null。 */
-export function unusableReason(combat: CombatState, actor: Combatant, abilityId: string): string | null {
+export function unusableReason(combat: CombatState, actor: Combatant, abilityId: string, circle?: number): string | null {
   const a = abilityDef(abilityId)
   if (!actor.abilities.includes(a.id)) return '尚未學會'
   const gate = actor.hpGates?.[a.id]
@@ -809,7 +813,7 @@ export function unusableReason(combat: CombatState, actor: Combatant, abilityId:
   if (a.uses?.per_combat !== undefined && (actor.usedCombat[a.id] ?? 0) >= a.uses.per_combat) return '本場戰鬥已使用'
   if (a.uses?.per_rest !== undefined && (actor.usedRest[a.id] ?? 0) >= a.uses.per_rest) return '需要休息'
   if (abilityApCost(a) > actor.ap) return '行動點不足'
-  if (a.type === 'spell' && slotFor(actor, a.circle ?? 1) === null) return '沒有法術環'
+  if (a.type === 'spell' && castCircle(actor, a, circle) === null) return circle !== undefined && circle > (a.circle ?? 1) ? `沒有 ${circle} 環的法術環` : '沒有法術環'
   if (a.recover_slot && recoverableSlot(actor) === null) return '沒有可回復的法術環'
   // 慾望戰鬥：關閉時不能用；要消耗或依靠慾望的，慾望要夠
   if (isLustAbility(a)) {
@@ -840,6 +844,16 @@ function hasAnyAction(combat: CombatState, actor: Combatant): boolean {
 function slotFor(actor: Combatant, circle: number): number | null {
   for (let c = circle; c <= actor.slots.length; c++) if ((actor.slots[c - 1] ?? 0) > 0) return c
   return null
+}
+
+/**
+ * 法術實際用幾環施放：wanted 比法術本身高（升環）時一定用那一環，那一環用完了回傳 null；
+ * 沒指定或不比法術本身高時，用最低可用的（低環用完時自動用高環，也算升環）。
+ */
+export function castCircle(actor: Combatant, a: AbilityDef, wanted?: number): number | null {
+  const base = a.circle ?? 1
+  if (wanted !== undefined && wanted > base) return (actor.slots[wanted - 1] ?? 0) > 0 ? wanted : null
+  return slotFor(actor, base)
 }
 
 // ---- 狀態與修正 ----
@@ -961,6 +975,8 @@ function addStatus(c: Combatant, inst: StatusInstance): boolean {
     existing.turns = Math.max(existing.turns, inst.turns)
     if (inst.charges !== undefined) existing.charges = inst.charges
     if (inst.value !== undefined) existing.value = inst.value
+    if (inst.dice) existing.dice = inst.dice
+    else delete existing.dice
     existing.source = inst.source
     if (inst.conc) existing.conc = inst.conc
     else delete existing.conc
@@ -1067,9 +1083,9 @@ function perform(combat: CombatState, actor: Combatant, action: CombatAction, rn
       return
     }
     case 'ability': {
-      const reason = unusableReason(combat, actor, action.ability)
+      const reason = unusableReason(combat, actor, action.ability, action.circle)
       if (reason) throw new Error(reason)
-      useAbility(combat, rng, actor, abilityDef(action.ability), action.target)
+      useAbility(combat, rng, actor, abilityDef(action.ability), action.target, action.circle)
       return
     }
   }
@@ -1648,7 +1664,7 @@ function applyValue(rng: Rng, actor: Combatant, a: AbilityDef, v?: ApplyDef['val
 
 function applyStatuses(
   combat: CombatState, rng: Rng, actor: Combatant, a: AbilityDef, target: Combatant | null,
-  when: 'hit' | 'fail' | 'always', effects: Effect[],
+  when: 'hit' | 'fail' | 'always', effects: Effect[], dice?: string,
 ) {
   const defaultOn = a.resolve === 'attack' ? 'hit' : a.resolve === 'save' ? 'fail' : 'always'
   for (const ap of a.apply ?? []) {
@@ -1689,6 +1705,7 @@ function applyStatuses(
         ...(def.charges !== undefined ? { charges: def.charges } : {}),
         ...(ap.value ? { value: applyValue(rng, actor, a, ap.value) } : {}),
         ...(a.concentration ? { conc: `${actor.id}:${a.id}` } : {}),
+        ...(dice && (def.dot || def.pulse) ? { dice } : {}),
       }, effects)
     }
   }
@@ -1699,14 +1716,19 @@ function slaveMult(a: AbilityDef, target: Combatant): number {
   return a.vs_slave && target.slave ? a.vs_slave : 1
 }
 
-function useAbility(combat: CombatState, rng: Rng, actor: Combatant, a: AbilityDef, targetId?: string) {
-  // 支付代價
-  actor.ap -= abilityApCost(a)
+function useAbility(combat: CombatState, rng: Rng, actor: Combatant, base: AbilityDef, targetId?: string, wantedCircle?: number) {
+  // 支付代價（升環不多花行動點）
+  actor.ap -= abilityApCost(base)
+  let a = base
   let label = a.name
+  let statusDice: string | undefined
   if (a.type === 'spell') {
-    const circle = slotFor(actor, a.circle ?? 1)!
+    const circle = castCircle(actor, a, wantedCircle)!
     actor.slots[circle - 1]! -= 1
-    label = `${a.name}（${circle} 環）`
+    const up = upcastLevels(a, circle)
+    a = upcastAbility(base, up)
+    statusDice = upcastStatusDice(base, up)
+    label = `${a.name}（${circle} 環${up > 0 && base.upcast ? '・升環' : ''}）`
   }
   if (a.type === 'cantrip') actor.usedTurn[CANTRIP_KEY] = 1
   if (a.uses?.per_turn !== undefined) actor.usedTurn[a.id] = (actor.usedTurn[a.id] ?? 0) + 1
@@ -1749,7 +1771,7 @@ function useAbility(combat: CombatState, rng: Rng, actor: Combatant, a: AbilityD
             if (a.damage.some((p) => p.weapon)) rolls.push(...onHitExtras(actor, target, rng, effects))
             dealt += dealDamage(combat, rng, actor, target, rolls, effects, { mult: (a.mult ?? 1) * slaveMult(a, target), crit: r.lucky })
           }
-          applyStatuses(combat, rng, actor, a, target, 'hit', effects)
+          applyStatuses(combat, rng, actor, a, target, 'hit', effects, statusDice)
         }
       } else if (a.resolve === 'save') {
         const s = savingThrow(rng, target, a.save ?? 'dex', saveDc(actor, a))
@@ -1759,11 +1781,11 @@ function useAbility(combat: CombatState, rng: Rng, actor: Combatant, a: AbilityD
           const rolls = rollParts(rng, actor, a, a.damage, false)
           dealt += dealDamage(combat, rng, actor, target, rolls, effects, { mult: (a.mult ?? 1) * slaveMult(a, target), half: s.success })
         }
-        if (!s.success) applyStatuses(combat, rng, actor, a, target, 'fail', effects)
+        if (!s.success) applyStatuses(combat, rng, actor, a, target, 'fail', effects, statusDice)
       } else {
         resolveAuto(combat, rng, actor, a, target, effects, spent)
         dealt += effects.filter((e) => e.type === 'damage').reduce((sum, e) => sum + (e.amount ?? 0), 0)
-        applyStatuses(combat, rng, actor, a, target, 'always', effects)
+        applyStatuses(combat, rng, actor, a, target, 'always', effects, statusDice)
       }
       // 不論命中與否都套用的狀態（on: always）：給自己、全隊、全體敵人的（例如魯莽猛擊的破綻）在第一個目標結算時套用一次；
       // 給目標的每個目標各套用一次
@@ -1771,8 +1793,8 @@ function useAbility(combat: CombatState, rng: Rng, actor: Combatant, a: AbilityD
         const always = (a.apply ?? []).filter((x) => x.on === 'always')
         const once = always.filter((x) => (x.to ?? 'target') !== 'target')
         const each = always.filter((x) => (x.to ?? 'target') === 'target')
-        if (once.length && target === targets[0]) applyStatuses(combat, rng, actor, { ...a, apply: once }, null, 'always', effects)
-        if (each.length) applyStatuses(combat, rng, actor, { ...a, apply: each }, target, 'always', effects)
+        if (once.length && target === targets[0]) applyStatuses(combat, rng, actor, { ...a, apply: once }, null, 'always', effects, statusDice)
+        if (each.length) applyStatuses(combat, rng, actor, { ...a, apply: each }, target, 'always', effects, statusDice)
       }
       push(combat, {
         actor: actor.id, action: label, target: target.id,
@@ -2008,7 +2030,8 @@ function startTurn(combat: CombatState, rng: Rng, actor: Combatant): boolean {
     const source = combat.combatants.find((c) => c.id === s.source) ?? null
     if (def.dot) {
       const effects: Effect[] = []
-      dealDamage(combat, rng, source, actor, [{ amount: rollDice(rng, def.dot.dice, 1), type: def.dot.type, weapon: false }], effects, { dot: true })
+      const amount = rollDice(rng, def.dot.dice, 1) + (s.dice ? rollDice(rng, s.dice, 1) : 0)
+      dealDamage(combat, rng, source, actor, [{ amount, type: def.dot.type, weapon: false }], effects, { dot: true })
       push(combat, { actor: actor.id, action: `${def.name}發作`, result: 'none', effects })
     }
     if (def.hot && isActive(actor)) {
@@ -2021,7 +2044,7 @@ function startTurn(combat: CombatState, rng: Rng, actor: Combatant): boolean {
       if (foes.length > 0) {
         const target = rng.pick(foes)
         const effects: Effect[] = []
-        const amount = rollDice(rng, def.pulse.dice, 1) + (def.pulse.mod ? mod(actor.attrs[actor.castingAttr]) : 0)
+        const amount = rollDice(rng, def.pulse.dice, 1) + (s.dice ? rollDice(rng, s.dice, 1) : 0) + (def.pulse.mod ? mod(actor.attrs[actor.castingAttr]) : 0)
         dealDamage(combat, rng, actor, target, [{ amount, type: def.pulse.type, weapon: false }], effects)
         push(combat, { actor: actor.id, action: def.name, target: target.id, result: 'success', effects })
       }

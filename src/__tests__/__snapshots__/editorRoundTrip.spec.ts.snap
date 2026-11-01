@@ -4,7 +4,7 @@ exports[`world editor round trip > abilities: opening and saving without changes
 {
   "bone_chill": "af5c2a82a8dc",
   "bursting_arrow": "c5175e26a6b0",
-  "cure_wounds": "e933e1928c98",
+  "cure_wounds": "02ee0678ea20",
   "divine_fury": "a26565c82b2f",
   "divine_strike": "7408efaddfef",
   "drown_grip": "eed0aa99a6a4",
@@ -14,7 +14,7 @@ exports[`world editor round trip > abilities: opening and saving without changes
   "final_strike": "fda428322512",
   "flurry_of_mercy": "ffb0c1a5a1d9",
   "hideous_laughter": "5c2541c43ad3",
-  "insect_plague": "c1149d626e56",
+  "insect_plague": "423eb11c5ab9",
   "lp_long_tongue": "325a01f31315",
   "lust_endure": "104ed432570b",
   "lust_frozen_pose": "6111e3663e96",
