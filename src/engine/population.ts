@@ -6,14 +6,14 @@
 //   不需要另外存檔，重新整理也不會變。
 // - 店主、公會職員等職員沒有活躍地點，固定待在自己的設施；舊資料（沒有活躍地點）沿用同樣的規則。
 
-import { combatClasses, geography, landmarkDef, landmarkTypes, locationById, npcs as namedNpcs, npcTags, population, tagsExclusive, type Haunt, type Location, type NpcKind } from './data'
+import { combatClasses, geography, landmarkDef, landmarkTypes, locationById, namedNpcById, npcs as namedNpcs, npcTags, population, tagsExclusive, type Haunt, type Location, type NpcKind } from './data'
 import {
   currentArea, DUNGEON_LAYERS, findKind, layerKey, outskirtsKey, position, settlementBlocks, zonesOf, type Area, type CellKind, type Zone,
 } from './grid'
 import { generateNpc, hashString, npcKind, npcRecord, npcSpot, registerNpc, weightedPick } from './npcs'
 import { Rng } from './rng'
 import { condMet } from './storyFlags'
-import { allyPlacement } from './story'
+import { allyPlacement, allyPlacements, type AllyPlacements } from './story'
 import { followsLeader, inActiveSquad } from './squads'
 import type { GameState, NpcRecord, Roster } from './types'
 import { contractOf } from './tattoos'
@@ -142,7 +142,7 @@ export function rosterSize(loc: Location): { adventurer: number; commoner: numbe
 
 /** 不佔名單名額的固定 NPC：不受雇用的（統治者、機構首長……）與成人向角色 */
 export function outsideQuota(id: string): boolean {
-  return isUnhireable(id) || !!namedNpcs.find((n) => n.id === id)?.adult
+  return isUnhireable(id) || !!namedNpcById(id)?.adult
 }
 
 function takesSlot(rec: NpcRecord, kind: NpcKind): boolean {
@@ -238,16 +238,16 @@ function pickBlock(rec: Pick<NpcRecord, 'id'>, day: number, keys: string[]): str
 }
 
 /** NPC 今天在哪個區域（區域 key）；不在任何地圖上時為 undefined */
-export function areaOf(state: GameState, rec: NpcRecord, day = state.time.day): string | undefined {
+export function areaOf(state: GameState, rec: NpcRecord, day = state.time.day, allies?: AllyPlacements): string | undefined {
   if (rec.dead) return undefined
-  // 特殊任務在場的友方：站在任務點旁邊（不看自己的出現條件）
-  const ally = allyPlacement(state, rec.id)
+  // 特殊任務在場的友方：站在任務點旁邊（不看自己的出現條件）；allies 是一次算好的整批（peopleHere）
+  const ally = allyPlacement(state, rec.id, allies)
   if (ally) return ally.area
   if (!visibleNpc(state, rec)) return undefined
   if (rec.at && day <= rec.at.until) return rec.at.area
   // 小隊的隊員：今天跟著隊長
   const lead = followsLeader(state, rec, day)
-  if (lead) return areaOf(state, lead, day)
+  if (lead) return areaOf(state, lead, day, allies)
   // 固定 NPC：站在指定的格子
   const fixed = fixedCell(rec)
   if (fixed) return fixed.area
@@ -306,14 +306,14 @@ const TAG_CELLS: Record<string, Partial<Record<CellKind, number>>> = {
 }
 
 /** NPC 在區域裡的格子：職員在自己的設施，暫時待著的人在指定的格子，其他人依日期與時段（每 6 小時）分佈 */
-export function npcCell(state: GameState, rec: NpcRecord, area: Area): { x: number; y: number } | null {
-  const ally = allyPlacement(state, rec.id)
+export function npcCell(state: GameState, rec: NpcRecord, area: Area, allies?: AllyPlacements): { x: number; y: number } | null {
+  const ally = allyPlacement(state, rec.id, allies)
   if (ally?.area === area.key) return { x: ally.x, y: ally.y }
   if (rec.at && rec.at.area === area.key && state.time.day <= rec.at.until) return { x: rec.at.x, y: rec.at.y }
   // 小隊的隊員：站在隊長旁邊
   const lead = followsLeader(state, rec)
   if (lead) {
-    const at = npcCell(state, lead, area)
+    const at = npcCell(state, lead, area, allies)
     return at ? besideCell(area, at, rec.id) : null
   }
   const fixed = fixedCell(rec)
@@ -358,9 +358,11 @@ export function peopleHere(state: GameState): PresentNpc[] {
   const area = currentArea(state)
   const p = position(state)
   const out: PresentNpc[] = []
+  // 任務在場的友方：整批算一次，不要每個 NPC 各把任務點掃一遍
+  const allies = allyPlacements(state)
   for (const rec of allNpcs(state)) {
-    if (inParty.has(rec.id) || areaOf(state, rec) !== area.key) continue
-    const cell = npcCell(state, rec, area)
+    if (inParty.has(rec.id) || areaOf(state, rec, state.time.day, allies) !== area.key) continue
+    const cell = npcCell(state, rec, area, allies)
     if (!cell) continue
     const staff = !rec.haunts?.length && !!npcSpot(rec)
     out.push({ rec, kind: npcKind(rec), staff, ...cell, dist: Math.max(Math.abs(cell.x - p.x), Math.abs(cell.y - p.y)) })
@@ -418,13 +420,13 @@ export function hireable(state: GameState): NpcRecord[] {
 
 /** 這位固定 NPC 不能偷襲、不能偷竊（看內容頁籤的設定） */
 export function isGuarded(id: string, kind: 'attack' | 'steal'): boolean {
-  const def = namedNpcs.find((n) => n.id === id)
+  const def = namedNpcById(id)
   return !!(kind === 'attack' ? def?.no_attack : def?.no_steal)
 }
 
 /** 這位固定 NPC 不受雇用 */
 export function isUnhireable(id: string): boolean {
-  return !!namedNpcs.find((n) => n.id === id)?.unhireable
+  return !!namedNpcById(id)?.unhireable
 }
 
 /**

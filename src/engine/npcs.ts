@@ -7,7 +7,7 @@
 import { npcPerksOf, perksOf } from './perks'
 import { createNpc, lifeTier } from './character'
 import {
-  attributeRules, className, combatClasses, NONCOMBAT_CLASS, companionRules, GENDER_IDS, isCustomShopId, locationById, npcPool, npcs as namedNpcs, npcTags, perkDef, slaveryRules, tagDef,
+  attributeRules, className, combatClasses, NONCOMBAT_CLASS, companionRules, GENDER_IDS, isCustomShopId, locationById, npcPool, namedNpcById, npcs as namedNpcs, npcTags, perkDef, slaveryRules, tagDef,
   type Haunt, type NpcKind, type NpcStage,
 } from './data'
 import { Rng } from './rng'
@@ -44,7 +44,7 @@ export function hashString(s: string): number {
 
 export function npcRecord(state: GameState, id: string): NpcRecord | undefined {
   let stored = state.npcs?.[id]
-  const def = namedNpcs.find((n) => n.id === id)
+  const def = namedNpcById(id)
   if (!def) return stored
   // 依劇情旗標改變出沒：有一組成立時，複製進存檔再改（同一個角色，關係與記憶延續）
   const stage = activeStage(state, def)
@@ -56,7 +56,7 @@ export function npcRecord(state: GameState, id: string): NpcRecord | undefined {
 
 /** 交給 AI 與形象圖的外貌：接上固定 NPC 的成人向外貌（跟著內容頁籤的設定走，不存進存檔） */
 export function appearanceOf(id: string, appearance?: string): string {
-  const extra = namedNpcs.find((n) => n.id === id)?.adult_appearance
+  const extra = namedNpcById(id)?.adult_appearance
   return [appearance, extra].filter(Boolean).join('')
 }
 

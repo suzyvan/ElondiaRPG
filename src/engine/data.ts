@@ -383,8 +383,29 @@ export function bumpContentRevision() {
   contentRev++
 }
 
+/**
+ * 依 id 查清單的索引（每走一步會查上千次，線性搜尋太慢）。記下每個 id 的位置，取用時確認那個位置還是同一個 id：
+ * 自訂內容增刪、換掉某一筆時對不上就重建，所以不必跟著內容的版本走，直接改陣列也不會拿到舊的
+ */
+export function indexById<T extends { id: string }>(list: T[]): (id: string) => T | undefined {
+  let pos = new Map<string, number>()
+  const rebuild = () => {
+    pos = new Map()
+    list.forEach((x, i) => { if (!pos.has(x.id)) pos.set(x.id, i) })
+  }
+  return (id) => {
+    const i = pos.get(id)
+    if (i !== undefined && list[i]?.id === id) return list[i]
+    rebuild()
+    const j = pos.get(id)
+    return j === undefined ? undefined : list[j]
+  }
+}
+
 /** 內建的特殊任務；內容頁籤的修改套用在這份清單上 */
 export const stories = (storiesJson as unknown as { stories: StoryDef[] }).stories
+/** 依 id 找特殊任務（索引，見 indexById） */
+export const storyById = indexById(stories)
 
 export type NpcKind = 'commoner' | 'adventurer'
 
@@ -395,6 +416,8 @@ export interface Haunt {
   weight: number
 }
 export const npcs = (npcsJson as unknown as { npcs: NpcDef[] }).npcs
+/** 依 id 找固定 NPC（索引，見 indexById） */
+export const namedNpcById = indexById(npcs)
 
 // ---- 城鎮的特色地標（docs/LANDMARKS.md） ----
 

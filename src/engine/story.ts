@@ -13,7 +13,7 @@ import { startCombat, type CombatState } from './combat'
 import { playerRank, storyMerit } from './guild'
 import { RANK_ORDER } from './materialQuests'
 import {
-  contentRevision, locationById, npcs as namedNpcs, regionById, specialMaps, stories, type Degree, type DungeonLayerId, type StoryAffinity, type StoryCheck, type StoryDef, type StoryNode, type StoryOutcome, DUNGEON_LAYER_NAME,
+  contentRevision, locationById, npcs as namedNpcs, regionById, specialMaps, stories, storyById, type Degree, type DungeonLayerId, type StoryAffinity, type StoryCheck, type StoryDef, type StoryNode, type StoryOutcome, DUNGEON_LAYER_NAME,
 } from './data'
 import { applyEffects, type RewardEffect } from './effects'
 import { blockKeys, cellName, currentArea, currentCell, DUNGEON_LAYERS, getArea, position, type Area, type CellKind } from './grid'
@@ -34,7 +34,7 @@ import { restEventBlock } from './rest'
 import type { GameState, GameTime, NpcRecord, Report, StoryProgress } from './types'
 
 export function storyDef(id: string): StoryDef | undefined {
-  return stories.find((s) => s.id === id)
+  return storyById(id)
 }
 
 export function storyProgress(state: GameState, id: string): StoryProgress | undefined {
@@ -905,34 +905,74 @@ export function refreshStoryMarkers(state: GameState) {
 
 // ---- 在場的友方站在哪裡 ----
 
+/** 任務定義裡列為友方的人（任務點的 allies 合起來；依定義物件記住，自訂內容換掉定義時自然重算） */
+const storyAllyCache = new WeakMap<StoryDef, Set<string>>()
+function storyAllies(def: StoryDef): Set<string> {
+  let set = storyAllyCache.get(def)
+  if (!set) {
+    set = new Set(def.nodes.flatMap((n) => n.allies ?? []))
+    storyAllyCache.set(def, set)
+  }
+  return set
+}
+
+export type AllyPlacements = Map<string, { area: string; x: number; y: number }>
+
 /**
- * 任務點在場的友方固定 NPC 現在站在哪一格：近郊、地下城、臨時地圖的 ⭐ 旁邊，聚落裡任務點的設施上（任何區塊）。
- * 任務點還沒解鎖、已經結束，或那一區還沒生成時為 undefined（照平常的出沒）。
+ * 所有任務點在場的友方固定 NPC 現在站在哪一格（npc id → 位置）：近郊、地下城、臨時地圖的 ⭐ 旁邊，聚落裡任務點的設施上（任何區塊）。
+ * 任務點還沒解鎖、已經結束，或那一區還沒生成的不列（照平常的出沒）。一次算好給一整批 NPC 用（peopleHere），不要每個人各算一次
  */
-export function allyPlacement(state: GameState, npcId: string): { area: string; x: number; y: number } | undefined {
-  // 先便宜地看有沒有進行中的任務把這個人列為友方（每畫一次人群都會叫）
-  if (!Object.values(state.stories ?? {}).some((p) => p.status === 'active' && storyDef(p.id)?.nodes.some((n) => n.allies?.includes(npcId)))) return undefined
+export function allyPlacements(state: GameState): AllyPlacements {
+  const out: AllyPlacements = new Map()
+  // 先便宜地看有沒有進行中的任務有友方
+  const any = Object.values(state.stories ?? {}).some((p) => {
+    if (p.status !== 'active') return false
+    const def = storyDef(p.id)
+    return !!def && storyAllies(def).size > 0
+  })
+  if (!any) return out
   for (const n of activeNodes(state)) {
-    if (!n.node.allies?.includes(npcId)) continue
-    const at = n.node.at
-    if (at.where === 'outskirts' || at.where === 'dungeon' || at.where === 'side' || at.where === 'special') {
-      for (const area of Object.values(state.areas ?? {})) {
-        const i = area.cells.findIndex((c) => c.storyNode === n.ref)
-        if (i < 0) continue
-        return { area: area.key, ...besideCell(area, i) }
-      }
-      continue
+    const allies = n.node.allies?.filter((id) => !out.has(id))
+    if (!allies?.length) continue
+    const at = allyNodePlace(state, n)
+    if (at) for (const id of allies) out.set(id, at)
+  }
+  return out
+}
+
+/** 這個任務點的友方站的地方（找不到時 undefined） */
+function allyNodePlace(state: GameState, n: ActiveNode): { area: string; x: number; y: number } | undefined {
+  const at = n.node.at
+  if (at.where === 'outskirts' || at.where === 'dungeon' || at.where === 'side' || at.where === 'special') {
+    for (const area of Object.values(state.areas ?? {})) {
+      const i = area.cells.findIndex((c) => c.storyNode === n.ref)
+      if (i >= 0) return { area: area.key, ...besideCell(area, i) }
     }
-    if ((at.where === 'cell' || at.where === 'settlement') && at.location) {
-      const kind = (at.where === 'cell' ? at.cell : 'gate') as CellKind
-      for (const key of blockKeys(at.location)) {
-        const area = getArea(state, key)
-        const i = area.cells.findIndex((c) => c.kind === kind)
-        if (i >= 0) return { area: key, x: i % area.width, y: Math.floor(i / area.width) }
-      }
+    return undefined
+  }
+  if ((at.where === 'cell' || at.where === 'settlement') && at.location) {
+    const kind = (at.where === 'cell' ? at.cell : 'gate') as CellKind
+    for (const key of blockKeys(at.location)) {
+      const area = getArea(state, key)
+      const i = area.cells.findIndex((c) => c.kind === kind)
+      if (i >= 0) return { area: key, x: i % area.width, y: Math.floor(i / area.width) }
     }
   }
   return undefined
+}
+
+/**
+ * 一位任務點在場的友方現在站在哪一格（見 allyPlacements）。allies：已經算好的整批（同一次查很多人時傳進來）
+ */
+export function allyPlacement(state: GameState, npcId: string, allies?: AllyPlacements): { area: string; x: number; y: number } | undefined {
+  if (allies) return allies.get(npcId)
+  // 單獨查一個人：先便宜地看有沒有進行中的任務把這個人列為友方
+  const listed = Object.values(state.stories ?? {}).some((p) => {
+    if (p.status !== 'active') return false
+    const def = storyDef(p.id)
+    return !!def && storyAllies(def).has(npcId)
+  })
+  return listed ? allyPlacements(state).get(npcId) : undefined
 }
 
 /** ⭐ 旁邊一格可以站的地方（沒有時就是 ⭐ 本身） */
