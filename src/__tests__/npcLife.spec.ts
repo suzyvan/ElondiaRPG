@@ -216,7 +216,7 @@ describe('NPC 自己的日子：夥伴的裝備與升級', () => {
     const { id } = lodger(state)
     const ch = npcRecord(state, id)!.character!
     // 很好的武器（秘銀＋附魔）：等級 3 生成的不會比較好
-    ch.gear!.main_hand = { ...ch.gear!.main_hand!, name: '秘銀長劍＋', spec: { ...ch.gear!.main_hand!.spec, material: 'mithril', enchants: { mods: { str: 3 } } } }
+    ch.gear!.main_hand = { ...ch.gear!.main_hand!, name: '秘銀長劍＋', spec: { ...ch.gear!.main_hand!.spec, material: 'mithril', enchants: { mods: { hit: 2, damage: 2 } } } }
     tickNpcLife(state)
     for (let i = 0; i < 30; i++) passDays(state, 3)
     expect(npcRecord(state, id)!.character!.gear!.main_hand!.name).toBe('秘銀長劍＋')
