@@ -690,6 +690,8 @@ export interface ClassDef {
   hit_die: number
   /** 無法戰鬥：同行但不參與戰鬥、不分經驗（普通人入隊時用） */
   noncombat?: boolean
+  /** 職業本身的受傷倍率加減（武僧的卸力：物理 -0.25），和防具、特質一樣相乘 */
+  resist?: AffinityMap
 }
 export const classes = (classesJson as unknown as { classes: Record<string, ClassDef> }).classes
 /** 普通人入隊時的職業 */

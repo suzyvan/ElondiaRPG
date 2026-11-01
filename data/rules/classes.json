@@ -1,5 +1,5 @@
 {
-  "$comment": "職業。priority 為建角時基礎陣列 [15,14,13,12,10] 的分配順序。caster：full = 全施法者（1-9 環）、half = 半施法者（以 ceil(等級/2) 查表，最高 5 環）、none = 不施法。casting 為施法屬性（法術命中與豁免 DC）。start 為初始能力，其餘在升級時三選一（清單見 abilities.json）。hit_die 為生命骰：短休時花費以回復生命值（依 D&D 5e）。",
+  "$comment": "職業。priority 為建角時基礎陣列 [15,14,13,12,10] 的分配順序。caster：full = 全施法者（1-9 環）、half = 半施法者（以 ceil(等級/2) 查表，最高 5 環）、none = 不施法。casting 為施法屬性（法術命中與豁免 DC）。start 為初始能力，其餘在升級時三選一（清單見 abilities.json）。hit_die 為生命骰：短休時花費以回復生命值（依 D&D 5e）。resist 為職業本身的受傷倍率加減（和防具、特質一樣相乘，例如武僧的卸力 physical -0.25）。",
   "version": 1,
   "classes": {
     "fighter": {
@@ -36,7 +36,8 @@
       "name": "武僧", "emoji": "👊", "hit_die": 8, "threat": { "start": 4, "mult": 1.0 }, "priority": ["dex", "fai", "str", "cha", "int"], "caster": "none",
       "weapon": "monk_fists", "armor": "monk_robe",
       "start": ["flurry", "centering"],
-      "role": "自行產生行動點的多段攻擊與控制"
+      "resist": { "physical": -0.25 },
+      "role": "自行產生行動點的多段攻擊與控制；卸力：受到的物理傷害 ×0.75"
     },
     "bard": {
       "name": "吟遊詩人", "emoji": "🪕", "hit_die": 8, "threat": { "start": 2, "mult": 0.9 }, "priority": ["cha", "dex", "int", "fai", "str"], "caster": "full", "casting": "cha",

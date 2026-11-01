@@ -44,7 +44,17 @@ describe('race talents as race perks', () => {
         const baseMods = gearDr ? { ...cb.baseMods, dr: (cb.baseMods.dr ?? 0) + gearDr } : cb.baseMods
         // 魅惑（慾望戰鬥）是之後才加的屬性：種族特質與信仰給的魅惑抗性不在快照裡
         const noLust = <T extends object>(m: T) => Object.fromEntries(Object.entries(m).filter(([k]) => k !== 'lust')) as T
-        const now = { g: { ...g, resist: noLust(g.resist) }, threat: cb.threat, threatMult: cb.threatMult, resist: noLust(cb.resist), offense: cb.offense, baseMods }
+        // 職業本身的抗性（武僧的卸力）也是之後才加的：除掉（抗性是相乘的）
+        const noClass = <T extends Record<string, number | undefined>>(m: T) => {
+          const out: Record<string, number> = {}
+          for (const [k, v] of Object.entries(m)) {
+            const own = classes[cls]!.resist?.[k] ?? 0
+            const rest = Math.round(((1 + (v ?? 0)) / (1 + own) - 1) * 1e6) / 1e6
+            if (rest) out[k] = rest
+          }
+          return out as T
+        }
+        const now = { g: { ...g, resist: noClass(noLust(g.resist)) }, threat: cb.threat, threatMult: cb.threatMult, resist: noClass(noLust(cb.resist)), offense: cb.offense, baseMods }
         expect(JSON.parse(JSON.stringify(now)), `${race}/${cls}`).toEqual(snapshot[`${race}/${cls}`])
         n++
       }
