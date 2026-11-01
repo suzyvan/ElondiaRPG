@@ -73,10 +73,11 @@ async function doLongRest(where: RestPlace) {
         title="成人向：魅氣濃的城鎮，旅店有便宜的奴房。全隊照樣長休；主角被鎖在床頭過一夜（主角非自願），順從 +1，有機會學會色情技能，醒來時虛脫。"
         @click="doLongRest('slave_room')"
       ><GameIcon name="moon" :size="15" />住奴房 <small>{{ formatMoney(slaveRoomCost(s)) }}</small></button>
-      <button v-else-if="place === 'safe'" :disabled="!!blocked || rations < s.party.length" @click="doLongRest('safe')"><GameIcon name="moon" :size="15" />長休 <small>乾糧 {{ s.party.length }} 份</small></button>
+      <!-- 旅店的長休在上面（另外可能有奴房）；不在旅店時才是下面這一串，最後一個是「不能長休」 -->
+      <button v-if="place === 'safe'" :disabled="!!blocked || rations < s.party.length" @click="doLongRest('safe')"><GameIcon name="moon" :size="15" />長休 <small>乾糧 {{ s.party.length }} 份</small></button>
       <button v-else-if="place === 'home'" :disabled="!!blocked" @click="doLongRest('home')"><GameIcon name="moon" :size="15" />在家長休</button>
       <button v-else-if="place === 'camp'" :disabled="!!blocked || rations < s.party.length" :title="ambush ? `紮營時有 ${Math.round(ambush * 100)}% 的機率被襲擊（${tent ? `已算進${tent.name}，` : ''}被襲擊就沒睡成，乾糧不扣）` : ''" @click="doLongRest('camp')"><GameIcon name="moon" :size="15" />紮營長休 <small>乾糧 {{ s.party.length }} 份</small></button>
-      <button v-else disabled title="長休要在旅店、地下城的安全房或自己的房子"><GameIcon name="moon" :size="15" />長休 <small>不在旅店</small></button>
+      <button v-else-if="place !== 'inn'" disabled title="長休要在旅店、地下城的安全房或自己的房子"><GameIcon name="moon" :size="15" />長休 <small>不在旅店</small></button>
     </div>
     <p v-if="blocked && place" class="small muted note">{{ blocked }}</p>
     <p v-else-if="wait > 0" class="small muted note"><GameIcon name="hourglass" :size="12" /> 還要 {{ waitText(wait) }}才能再長休。</p>

@@ -75,6 +75,8 @@ export const NARRATE_KINDS: { id: NarrateKind; name: string; desc: string }[] = 
 /** 日誌屬於哪一種（決定要不要自動寫出經過） */
 export function narrateKindOf(report: Report): NarrateKind {
   if (report.check) return 'action'
+  // 採集（日誌顯示成「行動」）：照設定的說明算「事件與委託」
+  if (report.outcome.tags?.includes('採集')) return 'event'
   switch (report.kind) {
     case 'combat': return 'combat'
     case 'travel': return 'travel'

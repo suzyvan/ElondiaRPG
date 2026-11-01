@@ -5,7 +5,7 @@ import { condMet } from './storyFlags'
 import { checkBonus } from './perks'
 import { abilityQuality, carryLearned, proficiency, rerollAbilityChoices, setCarried, snapshot } from './character'
 import { setQuestDeadline } from './deadlines'
-import { dropExam, examQuest, isExam, playerRank, postExam, promotionStatus, questMerit, questXp } from './guild'
+import { acceptExam, dropExam, examQuest, isExam, playerRank, postExam, promotionStatus, questMerit, questXp } from './guild'
 import { startCombat, type CombatState } from './combat'
 import {
   craftRules, abilityDef, attributeRules, combatRules, dungeonEncounters, economy, itemDef, landmarkDef, landmarksIn, locationById, npcs, regionById,
@@ -212,6 +212,12 @@ export function canAcceptRank(state: GameState, rank: GuildRank, quest?: Pick<Qu
  * F 級城內／近郊委託若干個、近郊的採集與掉落委託，加上附近每個冒險區域各一個 E 級以上的清剿委託，
  * 再挑幾座地下城發採集、掉落或討伐層主的委託（materialQuests.ts）。
  */
+/** 這座城的委託板：這裡發的委託，加上在別的公會接的晉升考核（階級各地通用，在這裡也能交付） */
+function boardQuests(state: GameState): Quest[] {
+  const exam = examQuest(state)
+  return state.quests.filter((q) => (q.giver === state.location || q === exam) && q.status !== 'completed')
+}
+
 export function guildQuests(state: GameState): Quest[] {
   if (locationById(state.location).type === 'dungeon') return []
   const boardKey = `guild_board:${state.location}`
@@ -219,7 +225,7 @@ export function guildQuests(state: GameState): Quest[] {
   // 功績與等級夠了：公會發晉升考核（不會被委託板的更新撤下）
   postExam(state)
   if (posted && state.time.day - posted < townQuestsRefreshDays) {
-    return state.quests.filter((q) => q.giver === state.location && q.status !== 'completed')
+    return boardQuests(state)
   }
   // 委託板更新：沒人接的舊委託撤下（談過報酬與晉升考核的保留），談到一半的談判也一併結束
   const expired = new Set(
@@ -268,7 +274,7 @@ export function guildQuests(state: GameState): Quest[] {
     }
     state.quests.push(...postWildQuests(state, rng), ...postDungeonQuests(state, rng, targets))
   })
-  return state.quests.filter((q) => q.giver === state.location && q.status !== 'completed')
+  return boardQuests(state)
 }
 
 export function acceptQuest(state: GameState, questId: string): Report {
@@ -276,6 +282,7 @@ export function acceptQuest(state: GameState, questId: string): Report {
   const quest = state.quests.find((q) => q.id === questId && q.status === 'available')
   if (!quest) throw new Error('找不到這個委託')
   if (!canAcceptRank(state, quest.rank, quest)) throw new Error('公會階級不足，無法接取')
+  if (isExam(quest)) acceptExam(state, quest)
   quest.status = 'accepted'
   setQuestDeadline(state, quest)
   const report = baseReport(state, 'quest', 0.5)
@@ -346,7 +353,8 @@ export function turnInQuest(state: GameState, questId: string, count?: number): 
   assertNotFugitive(state, '公會')
   const quest = state.quests.find((q) => q.id === questId && canTurnIn(state, q))
   if (!quest) throw new Error('委託尚未完成')
-  if (quest.giver !== state.location) throw new Error(`請回到${locationById(quest.giver).name}交付`)
+  // 晉升考核：階級各地通用，在任何一座公會都可以交付
+  if (quest.giver !== state.location && !isExam(quest)) throw new Error(`請回到${locationById(quest.giver).name}交付`)
   const material = isMaterialQuest(quest)
   const most = material ? deliverable(state, quest) : quest.goal
   const n = material ? Math.max(quest.goal, Math.min(most, Math.round(count ?? most))) : quest.goal
@@ -386,7 +394,7 @@ export function turnInQuest(state: GameState, questId: string, count?: number): 
   report.lore_keys!.push('冒險者公會')
   const committed = commitReport(state, report)
   if (!isExam(quest) && promotionStatus(state).eligible && !examQuest(state)) {
-    committed.outcome.summary += `功績已經足夠，公會願意讓你參加 ${promotionStatus(state).next} 級的晉升考核。`
+    committed.outcome.summary += `功績已經足夠，公會願意讓你參加 ${promotionStatus(state).next} 級的晉升考核（各城鎮的公會都有，挑方便的一個接）。`
   }
   return committed
 }
