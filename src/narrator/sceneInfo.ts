@@ -55,7 +55,7 @@ const TIME_NAME = (hour = 12) => (hour >= 5 && hour < 7 ? '黎明' : hour >= 7 &
  * multi：服務能分開描述每個角色（NovelAI V4），不能時 scene 也要交代每個人
  */
 export function scenePrompt(
-  state: GameState, report: Report, cast: SceneCastMember[], opts: { format?: ImagePreprocessor; multi: boolean; narration?: string },
+  state: GameState, report: Report, cast: SceneCastMember[], opts: { format?: ImagePreprocessor; multi: boolean; narration?: string; style?: string },
 ): Prompt {
   const loc = locationById(report.location.at)
   // 分流：帶親密場景的日誌才可以畫成人場景
@@ -66,7 +66,7 @@ export function scenePrompt(
     '{"rating": "general | suggestive | explicit", "scene": "整體畫面", "characters": [{"id": "登場角色的 id", "position": "left | center | right", "prompt": "這個角色"}]}',
     '規則：',
     `1. characters 只放畫面上看得清楚的人，最多 ${SCENE_MAX_CHARACTERS} 人，從「可以登場的人」裡選；主角通常要在。其他人（路人、敵人、怪物）寫在 scene 裡。`,
-    '2. scene：人數（例如 2girls, 1boy）、地點與背景、時段與光線、氣氛、鏡頭與構圖、畫風。不要寫各角色的外貌細節；登場的怪物寫在 scene 裡，要寫出牠們的種族特徵（例如 green skin, pointy ears, wolf ears, tail）。',
+    `2. scene：人數（例如 2girls, 1boy）、地點與背景、時段與光線、氣氛、鏡頭與構圖${opts.style?.trim() ? '（畫風、畫師與畫質詞由程式另外接在最後，不要寫）' : '、畫風'}。不要寫各角色的外貌細節；登場的怪物寫在 scene 裡，要寫出牠們的種族特徵（例如 green skin, pointy ears, wolf ears, tail）。`,
     '3. 每個角色的 prompt：照提供的外貌描述畫（髮色、眼睛、種族特徵、體型不要改），加上服裝、表情、動作與姿勢；要和其他人的位置與互動對得上。',
     '4. position 是角色在畫面上的位置；兩個人時通常一左一右。',
     opts.multi ? '' : '5. 這個生圖服務不能分開描述每個人：scene 也要簡短交代每個人在哪裡、在做什麼（例如 on the left, on the right）。',
@@ -144,10 +144,12 @@ const POSITION_TEXT: Record<ScenePosition, string> = { left: 'on the left', cent
  * 其他服務與 V3 以前的 NovelAI 接成一段（標籤用逗號、句子用句點，加上位置）。
  * multi：這個服務能不能分開描述每個人（sceneMulti），要和整理分鏡時一樣
  */
-export function composeScene(plan: ScenePlan, service: ImageServiceId, tags: boolean, multi = service === 'novelai'): { prompt: string; characters?: SceneCharacter[] } {
+export function composeScene(plan: ScenePlan, service: ImageServiceId, tags: boolean, multi = service === 'novelai', style = ''): { prompt: string; characters?: SceneCharacter[] } {
+  // 畫風（設定的「畫風」，和形象圖同一個）照原樣接在最後：畫師名、權重寫法都不經過 AI
+  const s = style.trim()
   if (service === 'novelai' && multi && plan.characters.length) {
-    return { prompt: plan.scene, characters: plan.characters.map((c) => ({ prompt: c.prompt, x: positionX(c.position), y: 0.5 })) }
+    return { prompt: [plan.scene, s].filter(Boolean).join(', '), characters: plan.characters.map((c) => ({ prompt: c.prompt, x: positionX(c.position), y: 0.5 })) }
   }
-  if (tags) return { prompt: [plan.scene, ...plan.characters.map((c) => c.prompt)].join(', ') }
-  return { prompt: [plan.scene, ...plan.characters.map((c) => `${POSITION_TEXT[c.position]}: ${c.prompt}`)].join('\n') }
+  if (tags) return { prompt: [plan.scene, ...plan.characters.map((c) => c.prompt), s].filter(Boolean).join(', ') }
+  return { prompt: [plan.scene, ...plan.characters.map((c) => `${POSITION_TEXT[c.position]}: ${c.prompt}`), ...(s ? [`Art style: ${s}`] : [])].join('\n') }
 }

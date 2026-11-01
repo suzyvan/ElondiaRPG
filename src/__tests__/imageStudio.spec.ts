@@ -149,6 +149,9 @@ describe('log illustrations', () => {
     expect(p.system).toContain('rating 一律 general')
     // 登場的怪物只能寫在 scene 裡：要寫出種族特徵
     expect(p.system).toContain('登場的怪物寫在 scene 裡，要寫出牠們的種族特徵')
+    // 有設定畫風時，叫 AI 不要自己寫畫風（程式另外接上）
+    expect(scenePrompt(state, report as never, cast, { multi: true, style: '@artistname' }).system).toContain('由程式另外接在最後')
+    expect(p.system).toContain('、畫風。')
     expect(p.user).toContain(cast[0]!.id)
   })
 
@@ -174,6 +177,13 @@ describe('log illustrations', () => {
     const v3 = composeScene(plan, 'novelai', true, sceneMulti('novelai', 'nai-diffusion-3'))
     expect(v3.characters).toBeUndefined()
     expect(v3.prompt).toBe('2girls, forest, girl, silver hair, girl, red hair')
+
+    // 設定的「畫風」照原樣接在最後（畫師名、權重寫法不經過 AI）；分鏡的規則叫 AI 不要自己寫畫風
+    const style = '0.88::artist:maccha::, @artistname, masterpiece'
+    expect(composeScene(plan, 'novelai', true, true, style).prompt).toBe(`2girls, forest, ${style}`)
+    expect(composeScene(plan, 'comfyui', true, false, style).prompt).toBe(`2girls, forest, girl, silver hair, girl, red hair, ${style}`)
+    expect(composeScene(plan, 'openai', false, false, style).prompt.endsWith(`Art style: ${style}`)).toBe(true)
+    expect(composeScene(plan, 'comfyui', true, false, '  ').prompt).toBe('2girls, forest, girl, silver hair, girl, red hair')
   })
 })
 
