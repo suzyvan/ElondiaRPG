@@ -44,6 +44,8 @@ const targets = computed(() => {
 
 // 掙脫（自己）、撕開（隊友）戰鬥中的拘束：只有一個對象時直接做
 const struggleAp = lewdRules.unbind.combat.ap
+/** 行動點上限超過這個數字時改寫數字（高等級的圓點會把生命值擠掉） */
+const AP_PIPS_MAX = 8
 const bound = computed(() => (actor.value ? struggleTargets(combat.value, actor.value) : []))
 const struggleTitle = computed(() => bound.value.map((t) => `${t.id === actor.value?.id ? '掙脫' : `撕開${t.name}身上的`}拘束：DC ${struggleDc(combat.value, actor.value!, t)}`).join('\n'))
 function struggle() {
@@ -522,10 +524,12 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
                 <span class="num">{{ shownHp(c) }}/{{ c.maxHp }}<template v-if="c.tempHp">+{{ c.tempHp }}</template></span>
               </span>
               <span class="ap" :title="`行動點 ${c.ap}/${c.apMax}（每回合 +${c.apRegen}）`">
-                <span class="pips"><i v-for="n in c.apMax" :key="n" :class="{ on: n <= c.ap }" /></span>
+                <span v-if="c.apMax <= AP_PIPS_MAX" class="pips"><i v-for="n in c.apMax" :key="n" :class="{ on: n <= c.ap }" /></span>
+                <span v-else class="pips ap-num"><i class="on" />{{ c.ap }}/{{ c.apMax }}</span>
               </span>
-              <span v-if="c.slotMax.length" class="slots small muted" :title="slotsText(c)">環 {{ slotsShort(c) }}</span>
             </div>
+            <!-- 法術環另起一行：高等級的施法者有六、七個環，和生命值、行動點擠在同一行會把生命條壓扁 -->
+            <div v-if="c.slotMax.length" class="l2 slots small muted" :title="slotsText(c)">環 {{ slotsShort(c) }}</div>
             <div v-if="hasLustBar(c)" class="l2 lust" :title="`慾望 ${c.lust ?? 0}/${effectiveLustMax(c)}：滿了會高潮`">
               <span class="hpbar"><span class="bar lust"><span class="fill" :style="{ width: pct(shownLust(c), effectiveLustMax(c)) }" /></span>
                 <span class="num">♥ {{ shownLust(c) }}/{{ effectiveLustMax(c) }}</span></span>
@@ -839,10 +843,12 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
 .bar > span.ghost::after { display: none; }
 .bar > span.fill { transition: width 0.12s steps(3, end); }
 .num { font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ap { flex: none; }
 .pips { display: inline-flex; gap: 2px; }
+.ap-num { align-items: center; gap: 3px; font-size: var(--fs-xs); color: var(--accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pips i { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--accent); display: inline-block; }
 .pips i.on { background: var(--accent); }
-.slots { white-space: nowrap; }
+.slots { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .tag.buff { border-color: var(--good); color: var(--good); }
 .tag.debuff, .tag.bad { border-color: var(--danger); color: var(--danger); }
 .tag.weak { border-color: var(--good); color: var(--good); }
@@ -911,7 +917,7 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
 .field.m .fighter { padding: 5px 7px; cursor: pointer; -webkit-touch-callout: none; user-select: none; }
 .field.m .hpbar { min-width: 0; }
 /* 卡片上只留生命、慾望、行動點與狀態；武器屬性、法術環、仇恨、抗性、特性在長按（點一下）的詳情裡 */
-.field.m .l2 > .tag, .field.m .l2 .slots { display: none; }
+.field.m .l2 > .tag, .field.m .l2.slots { display: none; }
 .ticker {
   display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; text-align: left; box-sizing: border-box;
   background: #1a1410; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: none; font-size: var(--fs-sm);

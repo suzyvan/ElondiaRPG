@@ -33,7 +33,7 @@ const crafterId = ref('pc')
 const crafter = computed(() => who.value.find((w) => w.member.id === crafterId.value && !w.refusal)?.member ?? s.value.party.find((m) => m.isPlayer)!)
 
 // 委託：只列這間店做得出來的底材（鐵匠鋪：金屬、木材；裁縫店：皮革、布料；珠寶店：寶石）；自己動手：全部
-const bases = computed(() => Object.entries(gearRules.bases).filter(([id, b]) => !b.restraint && baseShown(id) && (make.value || craftKindsHere(s.value).includes(b.kind))).map(([id, b]) => ({ id, ...b })))
+const bases = computed(() => Object.entries(gearRules.bases).filter(([id, b]) => !b.restraint && !b.exclusive && baseShown(id) && (make.value || craftKindsHere(s.value).includes(b.kind))).map(([id, b]) => ({ id, ...b })))
 const picked = ref('')
 const base = computed({
   get: () => (bases.value.some((b) => b.id === picked.value) ? picked.value : bases.value[0]?.id ?? 'longsword'),

@@ -1,7 +1,7 @@
 // 城鎮行動：旅店休息、酒館招募、公會委託、補給、升級選技能。
 
 import { tagsAllowed } from './content'
-import { condMet } from './storyFlags'
+import { condMet, openFor } from './storyFlags'
 import { checkBonus } from './perks'
 import { abilityQuality, carryLearned, proficiency, rerollAbilityChoices, setCarried, snapshot } from './character'
 import { setQuestDeadline } from './deadlines'
@@ -253,7 +253,7 @@ export function guildQuests(state: GameState): Quest[] {
       })
     }
     const targets = Object.keys(dungeonEncounters).filter((id) => {
-      const path = shortestPath(state.location, id)
+      const path = shortestPath(state.location, id, openFor(state))
       return path !== null && path.days[1] <= QUEST_RANGE_DAYS
     })
     // 清剿委託指定一層：階級看那一層的怪物（layerRank），在那一層或更深處獲勝都算

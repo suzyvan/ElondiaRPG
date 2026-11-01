@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { itemDef, itemRules, stories } from '@/engine/data'
+import { enemies, itemDef, itemRules, stories } from '@/engine/data'
 import { gearRules, gearSummary, sanitizeGearSpec } from '@/engine/gear'
 import { enterLocation } from '@/engine/grid'
 import { equipItem } from '@/engine/inventory'
@@ -12,7 +12,10 @@ import { defenseMult, startCombat } from '@/engine/combat'
 // 內建的獨特物品（寶箱、黑市）；任務的獨特裝備另外測（不進寶箱、不上黑市）
 const uniques = () => itemRules.items.filter((i) => i.gear?.unique && i.black_market)
 // 成人向的獨特色情裝備（寄生物、打工任務線）另外算，不在這裡的等級區間裡
-const questGear = () => itemRules.items.filter((i) => i.gear?.unique && !i.black_market && !i.adult)
+// 高等地下城的層主掉的傳說獨特裝備另外算（dungeonGear）
+const dropped = () => new Set(Object.values(enemies).flatMap((e) => (e.loot ?? []).map((l) => l.item)))
+const questGear = () => itemRules.items.filter((i) => i.gear?.unique && !i.black_market && !i.adult && !dropped().has(i.name))
+const dungeonGear = () => itemRules.items.filter((i) => i.gear?.unique && dropped().has(i.name))
 
 /** 特殊任務給的物品名稱（完成獎勵與每個結果的效果） */
 function storyItems(): Map<string, string[]> {
@@ -152,6 +155,21 @@ describe('unique gear', () => {
         expect(weapon, `${c} weapon Lv.${band[0]}`).toBe(true)
         expect(pieces.some((i) => cls.body.includes(i.gear!.base)), `${c} armor Lv.${band[0]}`).toBe(true)
       }
+    }
+  })
+
+  it('dungeon gear: the high dungeon bosses fill the slots that had no legendary unique', () => {
+    const gear = dungeonGear()
+    const slots = new Set(gear.map((i) => gearRules.bases[i.gear!.base]!.slot))
+    for (const s of ['off_hand', 'head', 'legs', 'feet', 'belt', 'wrists', 'leg_accessory']) expect(slots.has(s as never), s).toBe(true)
+    // 非成人向的地下城補齊沒有的五個欄位（成人內容關閉也拿得到）
+    const plain = new Set(gear.filter((i) => !i.adult).map((i) => gearRules.bases[i.gear!.base]!.slot))
+    for (const s of ['off_hand', 'head', 'legs', 'feet', 'belt']) expect(plain.has(s as never), s).toBe(true)
+    for (const i of gear) {
+      expect(i.gear!.rarity, i.name).toBe('legendary')
+      expect(gearRules.materials[i.gear!.material]!.tier, i.name).toBeGreaterThanOrEqual(6)
+      expect(gearSummary(i.gear!), i.name).toContain('獨特：')
+      expect(i.black_market, i.name).toBeFalsy()
     }
   })
 })

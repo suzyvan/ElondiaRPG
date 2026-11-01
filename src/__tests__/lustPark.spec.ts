@@ -12,13 +12,15 @@ import { pcOf } from '@/engine/party'
 import { sanitizeSpecialMapMod } from '@/engine/specialMapMods'
 import { enterSpecial } from '@/engine/specialMaps'
 import { newGame, withRng } from '@/engine/state'
+import { hasFlag } from '@/engine/storyFlags'
 import type { GameState, Report } from '@/engine/types'
 
 const validate = new Ajv2020({ allErrors: true, strict: false }).compile(schema)
 const valid = (r: Report) => expect(validate(r), JSON.stringify(validate.errors)).toBe(true)
 
 const PLAZA = 'sm_lust_park'
-const PARKS = geography.locations.filter((l) => l.park === PLAZA).map((l) => l.id)
+// 五個園區（集章的那五個）；緋夢樂園底下的兩座遺跡另外測（highDungeons.spec.ts）
+const PARKS = geography.locations.filter((l) => l.park === PLAZA && !lewdRules.park.unstamped?.includes(l.id)).map((l) => l.id)
 
 function game(): GameState {
   const state = newGame({ name: '莉雅', race: 'human', classId: 'fighter', seed: 5, birthplace: 'bloodplume' })
@@ -56,7 +58,7 @@ describe('緋夢樂園：資料', () => {
     }
     // 整理過後通道還在（內容編輯器）
     const m = sanitizeSpecialMapMod(PLAZA, JSON.parse(JSON.stringify(specialMaps[PLAZA])))
-    expect(m.connections?.length).toBe(5)
+    expect(m.connections?.length).toBe(7)
     // 掉落、寶箱的物品都存在
     for (const id of Object.keys(enemies).filter((x) => x.startsWith('lp_'))) {
       for (const l of enemies[id]!.loot ?? []) expect(itemDef(l.item), `${id} ${l.item}`).toBeDefined()
@@ -185,7 +187,8 @@ describe('緋夢樂園：魅氣、戰敗、擬態寶箱、集章', () => {
     state.combat!.status = 'victory'
     const report = finishCombat(state)
     expect(report.outcome.tags).toContain('集章')
-    expect(state.flags.park_stamp_park_beast).toBe(true)
+    expect(hasFlag(state, 'park_stamp_park_beast')).toBe(true)
+    expect(state.flags['story:park_stamp_park_beast']).toBe(true)
     expect(parkPlaza('park_beast')).toBe(PLAZA)
   })
 })

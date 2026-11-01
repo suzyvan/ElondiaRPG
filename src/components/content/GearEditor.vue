@@ -168,6 +168,7 @@ function remove() {
           <Hint text="服裝不會出現在寶箱與掉落的隨機裝備裡；裁縫店（鐵匠鋪、珠寶店少量）每天另外上架幾件。上身的服裝建角時也能選。" />
         </div>
         <label class="check small"><input type="checkbox" :checked="!!base.adult" :disabled="base.outfit === 'adult'" @change="base.adult = ($event.target as HTMLInputElement).checked || undefined" /> 成人向（內容編輯器的篩選用）</label>
+        <label class="check small"><input type="checkbox" :checked="!!base.exclusive" :disabled="builtin" @change="base.exclusive = ($event.target as HTMLInputElement).checked || undefined" /> 地下城專屬：只靠掉落取得（層主的掉落物寫這個底材做成的裝備），不能打造，不會出現在寶箱、商店、建角與 AI 生成的裝備裡</label>
         <label v-if="base.slot !== 'main_hand' && base.slot !== 'body'" class="check small">
           <input v-model="base.restraint" type="checkbox" :disabled="builtin" /> 束縛用（項圈、鐐銬）：沒有加成，不能打造，不會出現在寶箱、掉落、建角與 AI 生成的裝備裡；效果只靠物品的屬性加減，給「主人會強制裝備」的物品用
         </label>
@@ -240,7 +241,7 @@ function remove() {
           <label>類型
             <select v-model="mat.kind" :disabled="builtin"><option v-for="(n, k) in KINDS" :key="k" :value="k">{{ n }}</option></select>
           </label>
-          <label><span>等級（1～5） <Hint text="決定打造的工錢與 DC。" /></span><input v-model.number="mat.tier" type="number" min="1" max="5" :disabled="builtin" :title="builtin ? '內建材料的等級不能改（隨機裝備依類型與等級找材料）' : ''" /></label>
+          <label><span>等級（1～7） <Hint text="決定打造的工錢與 DC。第 6、7 級是高等地下城的材料。" /></span><input v-model.number="mat.tier" type="number" min="1" max="7" :disabled="builtin" :title="builtin ? '內建材料的等級不能改（隨機裝備依類型與等級找材料）' : ''" /></label>
           <label>加成 <input v-model.number="mat.bonus" type="number" min="0" max="10" /></label>
           <label>稀有度
             <select v-model="mat.rarity"><option v-for="r in RARITY_ORDER" :key="r" :value="r">{{ rarityName(r) }}</option></select>

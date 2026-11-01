@@ -190,6 +190,8 @@ export interface JudgePromptOptions {
   sceneRules?: string
   /** 陽剛體型的主角玩照陰柔、中性主角寫的成人內容時的說明（prompt.ts 的 mascBodyNote） */
   bodyNote?: string
+  /** 登場的怪物的外觀（<monsters>；戰敗事件的回應時是圍上來的怪物） */
+  monsters?: string
   /** 正文篇幅（順便寫經過時） */
   lengthScale?: LengthScale
   /** 上一段正文的結尾與幕間發生的事（提示詞設定開啟「前後銜接」時） */
@@ -424,6 +426,7 @@ export function buildActionPrompt(state: GameState, p: ActionPending, context: s
     // 打聽、詢問：附上這一帶真的存在的地點與怪物，不讓判定編造地名
     { key: 'world_facts', title: '這一帶的地點與怪物', part: 'user', text: wantsWorldFacts(p) ? worldFacts(state) : '' },
     { key: 'target', title: '對象', part: 'user', text: `<target>\n${targetDetail(state, p)}\n</target>` },
+    { key: 'monsters', title: '登場的怪物', part: 'user', text: opts.monsters ?? '' },
     // 隊友的戰敗事件：被圍住、由玩家替他選擇反應的隊友（判定只寫 narrative 以外時也要知道是誰）
     { key: 'defeat_victim', title: '被圍住的隊友', part: 'user', text: defeatMate ? `<defeat_victim>\n${npcDetail(state, defeatMate.id, '被圍住的隊友', defeatMate.name)}\n這次戰敗後被圍住的是${defeatMate.name}，不是主角；玩家描述的是${defeatMate.name}的反應，擲骰的也是${defeatMate.name}。慾望指標（lewd）的 target 寫 ${defeatMate.id}。\n</defeat_victim>` : '' },
     {

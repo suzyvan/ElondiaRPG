@@ -26,7 +26,7 @@ import {
 import { characterFor, npcRecord, registerNpc, weightedPick } from './npcs'
 import { gearBonuses, gearRules, randomGear, registerGear } from './gear'
 import { rollDefeatEvent } from './defeat'
-import { inPark, parkDefeat, parkLust, saveParkLust } from './park'
+import { inPark, parkDefeat, parkLust, parkStamps, saveParkLust } from './park'
 import { charmRutMult } from './charm'
 import { parasiteAbilities, parasiteStartLust } from './parasites'
 import { addCondition, isNoncombatant, pcOf } from './party'
@@ -46,6 +46,7 @@ import type {
 } from './types'
 import { contractOf, tattooLust } from './tattoos'
 import { tagsAllowed } from './content'
+import { flagKey, hasFlag } from './storyFlags'
 import { addLewd, exposureAt, exposureLevel, growLewd, lewdOf } from './lewd'
 import { bindsOf, lockedBound, lustTotals, outfitCombat, twoFaceCombat } from './schools'
 import { DIFFICULTY_DEFS, difficultyFor, difficultyOf, difficultyRule, gameRule, rewardMoney, type DifficultyDef } from './gameRules'
@@ -227,6 +228,8 @@ export interface CombatOptions {
   intent?: string
   questId?: string
   story?: CombatState['story']
+  /** 特殊任務的戰鬥：「只在野外發情」（rut: field）的怪物也可以擲到發情（任務點寫了 rut） */
+  fieldRut?: boolean
   scene?: string
   cell?: CombatState['cell']
   /** 和 NPC（冒險者）戰鬥：他們的 id */
@@ -290,8 +293,9 @@ export function startCombat(state: GameState, group?: EncounterGroup, opts: Comb
       for (let i = 0; i < n; i++) {
         seen[defId] = (seen[defId] ?? 0) + 1
         const suffix = counts[defId]! > 1 ? ` ${String.fromCharCode(64 + seen[defId]!)}` : ''
-        // 淫鬥場的對手不會是年幼的
-        const f = fromEnemy(`e${idx++}`, defId, suffix, rng, bonus, diff, charmRutMult(state.location), opts.arena ? ['young'] : [])
+        // 淫鬥場的對手不會是年幼的；「只在野外發情」的怪物在淫鬥場、特殊任務的戰鬥（任務沒寫 rut 時）不擲發情
+        const fieldRut = enemies[defId]?.rut === 'field' && (!!opts.arena || (!!opts.story && !opts.fieldRut))
+        const f = fromEnemy(`e${idx++}`, defId, suffix, rng, bonus, diff, charmRutMult(state.location), [...(opts.arena ? ['young'] : []), ...(fieldRut ? ['rut'] : [])])
         if (g === 0 && defId === headliner) f.headliner = true
         fighters.push(f)
       }
@@ -670,8 +674,8 @@ function fromEnemy(id: string, defId: string, suffix: string, rng: Rng, bonus = 
     ...(isLayerBoss(defId) ? { boss: true } : {}),
     ...(coef.damage !== 1 ? { dmgMult: coef.damage } : {}),
   }
-  // 緋夢樂園的怪（lp_）與魔族不會是年幼的（和淫鬥場的對手一樣）
-  const noYoung = defId.startsWith('lp_') || def.kind === 'demon'
+  // 緋夢樂園與底下兩座遺跡的怪（lp_、禁果庭園 fg_、歡愉秘宮 pp_）與魔族不會是年幼的（和淫鬥場的對手一樣）
+  const noYoung = /^(lp|fg|pp)_/.test(defId) || def.kind === 'demon'
   applyTraits(c, rollTraits(rng, def, bonus, rutMult, noYoung && !exclude.includes('young') ? [...exclude, 'young'] : exclude))
   return c
 }
@@ -2228,6 +2232,7 @@ export function finishCombat(state: GameState): Report {
   }))
   const others: ActorState[] = [...allies, ...foes.map((f): ActorState => ({
     id: f.id, name: f.name, level: f.level,
+    ...(f.defId && !f.npcId ? { monster: f.defId } : {}),
     hp: [combat.startHp[f.id] ?? f.maxHp, f.hp, f.maxHp],
     status: f.hp === 0 ? [capturing && f.npcId ? '被制伏' : f.lustDefeated ? (f.npcId ? '在高潮中屈服、被制伏' : '在高潮中屈服') : '死亡'] : f.fled ? ['逃走'] : f.statuses.map((s) => statusDef(s.id).name),
   }))]
@@ -2273,7 +2278,7 @@ export function finishCombat(state: GameState): Report {
       }
       // 持有裝備的人形怪物：有機會掉一件依等級生成的裝備
       if (def.armed && rng.chance(Math.min(drops.armed.max_chance, drops.armed.chance + drops.armed.per_level * def.level))) {
-        gain(registerGear(state, randomGear(rng, def.level)))
+        gain(registerGear(state, randomGear(rng, def.level, undefined, geography.locations.find((l) => l.id === combat.location)?.material_series)))
       }
       // 人形的敵人身上可能搜到鑰匙（lewd.json 的 unbind.keys）
       const key = def.armed && rng.chance(lewdRules.unbind.keys.chance) ? keyForLevel(def.level) : undefined
@@ -2383,10 +2388,11 @@ export function finishCombat(state: GameState): Report {
   if (combat.arena) settleArena(state, combat, report)
   else if (combat.status === 'defeat' && !rescued && !parkDefeat(state, report)) withRng(state, (rng) => rollDefeatEvent(state, rng, report, foes, combat.combatants.reduce((n, c) => n + (c.side === 'party' ? c.climaxes ?? 0 : 0), 0)))
   // 園區：打倒最終層主蓋一個章
-  if (victory && cellHere?.kind === 'boss' && !cellHere.then && inPark(state)) {
+  if (victory && cellHere?.kind === 'boss' && !cellHere.then && inPark(state) && parkStamps(combat.location)) {
+    // 集章旗標是劇情旗標（story: 前綴），特殊任務與入口廣場的鐵柵才讀得到
     const stamp = `${PARK_STAMP_PREFIX}${combat.location}`
-    if (!state.flags[stamp]) {
-      report.changes.flags = { ...(report.changes.flags ?? {}), [stamp]: true }
+    if (!hasFlag(state, stamp)) {
+      report.changes.flags = { ...(report.changes.flags ?? {}), [flagKey(stamp)]: true }
       report.outcome.summary = `${report.outcome.summary ?? ''}在集章卡上蓋了${locationById(combat.location).name}的章。`
       report.outcome.tags = [...(report.outcome.tags ?? []), '集章']
     }

@@ -186,8 +186,16 @@ function doReset() {
           <Hint text="有一部分成人向內容限定陰柔、中性體型的主角：17 條打工、儀式的特殊任務線，地下城事件（全部），部分城鎮、旅途事件與地標的場景；連帶兩種主要的寄生物也只能從那裡得到。勾選後陽剛體型的主角也會遇到。看的是體型（陽剛、陰柔、中性），不是性別；體型在建立角色或角色設定裡可以改。" />
         </label>
         <p v-if="settings.mascBodyContent" class="small body-warn"><GameIcon name="caution" :size="16" class="warn-icon" />這些內容是照陰柔、中性的主角寫的：角色的身分不會變（陽剛體型的主角一樣會當兔女郎、女僕、新娘），固定的事件文字也可能寫到不符合主角身體的部位。AI 寫經過時會照主角的身體改寫，但不保證每次都自然。</p>
+        <label>
+          <span class="lab">魔物娘 <Hint text="交給 AI 的怪物換成魔物娘的樣子：成年女性的身體，保留原本種族的耳朵、尾巴、鱗片、觸手這些特徵（每種怪物各有一段描述，怪物編輯器裡可以改）。戰鬥、戰敗事件與插圖的分鏡都套用；畫面上的名字、圖鑑不變。「只在陽剛體型時」看的是這段經過的主角：戰敗時被圍住的人、親密場景的主角，其他時候是主角。沒有魔物娘形態的怪物（不死、節肢、群體、幼體、沒有形體的……）照原本的樣子。主題園區的怪物不套用。" /></span>
+          <select v-model="settings.monsterGirl">
+            <option value="off">關閉</option>
+            <option value="masc">只在陽剛體型時</option>
+            <option value="all">一律</option>
+          </select>
+        </label>
         <label v-if="settings.defeatAdult !== 'off' || settings.defeatCompanion !== 'off'" class="check">
-          <input v-model="settings.defeatAlways" type="checkbox" /> 戰敗色情事件一定發生 <Hint text="不擲「敵人起意」的魅力檢定：戰敗、沒有救兵，而且還站著的敵人裡有會起意的（惡人、發情的怪物……），就一定進入戰敗事件。不死、構裝這類不會起意的敵人照樣不會。" />
+          <input v-model="settings.defeatAlways" type="checkbox" /> 戰敗色情事件一定發生 <Hint text="不擲「敵人起意」的魅力檢定：戰敗、沒有救兵，而且還站著的敵人裡有會起意的（惡人、發情的怪物……），就一定進入戰敗事件。不死這類不會發情的怪物照樣不會。" />
         </label>
       </div>
     </section>

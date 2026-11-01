@@ -5,7 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { buildWorkflow, newPreset, type ComfyPreset } from '@/narrator/comfy'
 import { IMAGE_SERVICES, type ImageServiceConfig, type ImageServiceId } from '@/narrator/imageInfo'
 import { novelAIBody, openAIEditForm, renderImage } from '@/narrator/imageProviders'
-import { composeScene, parseScenePlan, sceneCast, scenePrompt } from '@/narrator/sceneInfo'
+import { composeScene, parseScenePlan, sceneCast, sceneMulti, scenePrompt } from '@/narrator/sceneInfo'
 import { enterLocation } from '@/engine/grid'
 import { newGame } from '@/engine/state'
 import { useImageSettings } from '@/stores/image'
@@ -97,6 +97,12 @@ describe('img2img requests', () => {
     expect(v4.use_coords).toBe(true)
     expect(v4.caption.char_captions.map((c) => [c.char_caption, c.centers[0]!.x])).toEqual([['girl, red hair', 0.3], ['girl, black hair', 0.7]])
     expect((scene.parameters.v4_negative_prompt as { caption: { char_captions: unknown[] } }).caption.char_captions).toHaveLength(2)
+
+    // V5 也用 v4_prompt 的格式（沒有時 NovelAI 回 500）；V3 以前的不帶
+    const v5 = novelAIBody({ ...cfg('novelai'), model: 'nai-diffusion-5-full' }, { prompt: '1girl', seed: 1 }) as typeof i2i
+    expect(v5.parameters.v4_prompt).toBeTruthy()
+    const v3 = novelAIBody({ ...cfg('novelai'), model: 'nai-diffusion-3' }, { prompt: '1girl', seed: 1 }) as typeof i2i
+    expect(v3.parameters.v4_prompt).toBeUndefined()
   })
 
   it('sends OpenAI edits as multipart with the base, references and mask', async () => {
@@ -141,6 +147,11 @@ describe('log illustrations', () => {
     const p = scenePrompt(state, report as never, cast, { format: image.preprocessorFor('novelai'), multi: true })
     expect(p.system).toContain('Danbooru')
     expect(p.system).toContain('rating 一律 general')
+    // 登場的怪物只能寫在 scene 裡：要寫出種族特徵
+    expect(p.system).toContain('登場的怪物寫在 scene 裡，要寫出牠們的種族特徵')
+    // 有設定畫風時，叫 AI 不要自己寫畫風（程式另外接上）
+    expect(scenePrompt(state, report as never, cast, { multi: true, style: '@artistname' }).system).toContain('由程式另外接在最後')
+    expect(p.system).toContain('、畫風。')
     expect(p.user).toContain(cast[0]!.id)
   })
 
@@ -158,6 +169,21 @@ describe('log illustrations', () => {
     expect(nai.characters?.map((c) => c.x)).toEqual([0.3, 0.7])
     expect(composeScene(plan, 'comfyui', true).prompt).toBe('2girls, forest, girl, silver hair, girl, red hair')
     expect(composeScene(plan, 'openai', false).prompt).toContain('on the right: girl, red hair')
+    // V3 以前的 NovelAI 不能分開描述每個人：角色接進提示詞，不能被丟掉
+    expect(sceneMulti('novelai', 'nai-diffusion-4-5-full')).toBe(true)
+    expect(sceneMulti('novelai', 'nai-diffusion-5-full')).toBe(true)
+    expect(sceneMulti('novelai', 'nai-diffusion-3')).toBe(false)
+    expect(sceneMulti('comfyui', 'nai-diffusion-4-5-full')).toBe(false)
+    const v3 = composeScene(plan, 'novelai', true, sceneMulti('novelai', 'nai-diffusion-3'))
+    expect(v3.characters).toBeUndefined()
+    expect(v3.prompt).toBe('2girls, forest, girl, silver hair, girl, red hair')
+
+    // 設定的「畫風」照原樣接在最後（畫師名、權重寫法不經過 AI）；分鏡的規則叫 AI 不要自己寫畫風
+    const style = '0.88::artist:maccha::, @artistname, masterpiece'
+    expect(composeScene(plan, 'novelai', true, true, style).prompt).toBe(`2girls, forest, ${style}`)
+    expect(composeScene(plan, 'comfyui', true, false, style).prompt).toBe(`2girls, forest, girl, silver hair, girl, red hair, ${style}`)
+    expect(composeScene(plan, 'openai', false, false, style).prompt.endsWith(`Art style: ${style}`)).toBe(true)
+    expect(composeScene(plan, 'comfyui', true, false, '  ').prompt).toBe('2girls, forest, girl, silver hair, girl, red hair')
   })
 })
 

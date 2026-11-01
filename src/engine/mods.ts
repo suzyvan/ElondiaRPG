@@ -16,7 +16,7 @@ import {
   stories, type RecipeSpec, type SeedSpec, type StoryCond, type AbilityDef, type AbilityTarget, type AbilityType, type ApplyDef, type DamagePart, type PerkDef,
   type Control, type LuckRoll, type StatusDef, type ConditionDef, slaveryRules, lewdRules, type ContractDef, isKeeperShop, isCustomShopId, isLandmarkId, landmarks, specialMaps, shopRules, DUNGEON_LAYER_IDS, DUNGEON_LAYER_NAME, BOSS_LAYER_IDS, type DungeonLayerId, BIND_KINDS, type BindKind, LOCK_GRADES,
 } from './data'
-import { baseFits, baseSlots, gearName, gearPrice, gearRules, RARITY_ORDER, setCustomGear, type BaseDef, type MaterialDef, OUTFIT_KINDS } from './gear'
+import { baseFits, baseSlots, gearName, gearPrice, gearRules, RARITY_ORDER, setCustomGear, type BaseDef, type MaterialDef, OUTFIT_KINDS, MAX_TIER } from './gear'
 import { settlementArea, ZONES } from './grid'
 import { cleanFlag } from './storyFlags'
 import { TOOL_KINDS } from './tools'
@@ -739,7 +739,10 @@ export function sanitizeEnemy(id: string, raw: Partial<EnemyMod>, custom: boolea
   if (loot.length) out.loot = loot
   if (raw.kind && ENEMY_KINDS[raw.kind]) out.kind = raw.kind
   if (raw.armed) out.armed = true
-  if (raw.rut) out.rut = true
+  if (raw.rut) out.rut = raw.rut === 'field' ? 'field' : true
+  const girlName = str(raw.girl?.name, 20)
+  const girlDesc = str(raw.girl?.desc, 300)
+  if (girlName && girlDesc) out.girl = { name: girlName, desc: girlDesc }
   const traits = (raw.traits ?? []).filter((t) => !!monsterTraits.traits[t])
   if (traits.length) out.traits = traits
   if (str(raw.desc, 200)) out.desc = str(raw.desc, 200)
@@ -1026,6 +1029,8 @@ export function sanitizeBase(raw: Partial<BaseMod>, custom: boolean, id?: string
     out.bind = int(raw.bind, 1, 3, 1)
     out.bind_kind = raw.bind_kind
   }
+  // 地下城專屬的底材：內建的照原本，自建的可以勾
+  if (builtin ? builtin.exclusive : raw.exclusive) out.exclusive = true
   // 束縛用（主人強制裝備的項圈、鐐銬）：沒有加成，不能是武器或上身防具
   const restraint = builtin ? !!builtin.restraint : !!raw.restraint && out.slot !== 'main_hand' && out.slot !== 'body'
   if (restraint) {
@@ -1038,7 +1043,7 @@ export function sanitizeBase(raw: Partial<BaseMod>, custom: boolean, id?: string
 export function sanitizeMaterial(raw: Partial<MaterialMod>, custom: boolean, id?: string): MaterialMod {
   const kind = (['metal', 'leather', 'cloth', 'wood', 'jewel'] as const).includes(raw.kind as 'metal') ? raw.kind! : 'metal'
   const out: MaterialMod = {
-    kind, name: str(raw.name, 8) || '未命名', tier: int(raw.tier, 1, 5, 1), bonus: int(raw.bonus, 0, 10, 0),
+    kind, name: str(raw.name, 8) || '未命名', tier: int(raw.tier, 1, MAX_TIER, 1), bonus: int(raw.bonus, 0, 12, 0),
     rarity: RARITY_ORDER.includes(raw.rarity as string) ? raw.rarity! : 'common', level: int(raw.level, 1, 30, 1), price: Math.max(0.1, num(raw.price, 0.1, 1e5, 1)),
   }
   const armor = mods(raw.armor, -5, 5)
@@ -1046,6 +1051,7 @@ export function sanitizeMaterial(raw: Partial<MaterialMod>, custom: boolean, id?
   const res = affinity(raw.resist)
   if (res) out.resist = res
   if (str(raw.desc, 120)) out.desc = str(raw.desc, 120)
+  if (str(raw.series, 16)) out.series = str(raw.series, 16)
   if (custom) out.custom = true
   // 內建材料的類型與等級不能改：隨機裝備、起始裝備與 NPC 的配備依「類型 × 等級」找材料
   const builtin = !custom && id ? snapshot.materials[id] : undefined

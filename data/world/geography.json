@@ -75,7 +75,11 @@
     { "id": "park_insect", "name": "蟲之溫室", "region": "south", "type": "dungeon", "park": "sm_lust_park" },
     { "id": "park_aquarium", "name": "觸手水族館", "region": "south", "type": "dungeon", "park": "sm_lust_park" },
     { "id": "park_garden", "name": "淫植花園", "region": "south", "type": "dungeon", "park": "sm_lust_park" },
-    { "id": "park_theater", "name": "夢魔劇場", "region": "south", "type": "dungeon", "park": "sm_lust_park" }
+    { "id": "park_theater", "name": "夢魔劇場", "region": "south", "type": "dungeon", "park": "sm_lust_park" },
+    { "id": "history_rift", "name": "歷史裂縫", "region": "central", "type": "dungeon", "requires": {"flags": ["pol_start"]}, "note": "河谷鎮附近；政治史詩開始時出現（阿契隆睜眼之前的徵兆）" },
+    { "id": "history_corridor", "name": "歷史迴廊", "region": "central", "type": "dungeon", "requires": {"flags": ["pol_done"]}, "note": "河谷鎮附近；政治史詩完成時出現（阿契隆第一次睜眼之後的遺跡）" },
+    { "id": "forbidden_garden", "name": "禁果庭園", "region": "south", "type": "dungeon", "park": "sm_lust_park", "material_series": "pleasure" },
+    { "id": "pleasure_palace", "name": "歡愉秘宮", "region": "south", "type": "dungeon", "park": "sm_lust_park", "material_series": "pleasure" }
   ],
   "routes": [
     { "a": "soriel", "b": "rhineburg", "days": [5, 5], "mode": "road" },
@@ -132,6 +136,8 @@
     { "a": "sandcastle", "b": "stilltide_oasis", "days": [2, 3], "mode": "wild", "estimated": true },
     { "a": "sunscorch", "b": "stilltide_oasis", "days": [3, 3], "mode": "wild", "estimated": true },
     { "a": "sandcastle", "b": "echo_canyon", "days": [2, 2], "mode": "wild", "estimated": true },
-    { "a": "sandcastle", "b": "quicksand_temple", "days": [2, 2], "mode": "wild" }
+    { "a": "sandcastle", "b": "quicksand_temple", "days": [2, 2], "mode": "wild" },
+    { "a": "rivervale", "b": "history_rift", "days": [1, 1], "mode": "trail" },
+    { "a": "rivervale", "b": "history_corridor", "days": [1, 1], "mode": "trail" }
   ]
 }

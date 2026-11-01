@@ -22,7 +22,7 @@ API key 與參數只存在這個瀏覽器（localStorage 的 `elondia.image`）�
 | 模板 | 請求 | 預設 | 注意 |
 |---|---|---|---|
 | ChatGPT（OpenAI 圖片 API） | `POST {網址}/images/generations`，回傳 base64 或網址 | `gpt-image-1`、1024 × 1536 | 看得懂一般句子；不支援負面提示詞；也可以填相容的服務網址 |
-| NovelAI | `POST {網址}/ai/generate-image`，回傳 ZIP（裡面是 PNG） | `nai-diffusion-4-5-full`、832 × 1216、28 步、CFG 5、`k_euler_ancestral` | key 是 Persistent API Token；只看得懂 Danbooru 標籤（預設用「Danbooru 標籤」預處理）；瀏覽器被擋（CORS）時換成自己的轉送代理 |
+| NovelAI | `POST {網址}/ai/generate-image`，回傳 ZIP（裡面是 PNG） | `nai-diffusion-4-5-full`、832 × 1216、28 步、CFG 5、`k_euler_ancestral` | key 是 Persistent API Token；模型可以自己填（欄位會提示 4.5、5 的 full、curated），V4 以後的模型（名稱有 `diffusion-4`、`-5`……）都用 `v4_prompt` 的格式；只看得懂 Danbooru 標籤（預設用「Danbooru 標籤」預處理）；瀏覽器被擋（CORS）時換成自己的轉送代理 |
 | ComfyUI（自架） | `POST {網址}/prompt` 送出工作流程 → 輪詢 `/history/{id}` → `GET /view` 下載 | `http://127.0.0.1:8188`、832 × 1216 | 啟動時加 `--enable-cors-header`；模型與參數放在「設定組合」，見下方第 5 節 |
 
 - **參數**：尺寸、步數、CFG、取樣器、負面提示詞（OpenAI 以外）。**額外參數**是一個 JSON 物件，合併進請求（NovelAI 合併進 `parameters`），例如 OpenAI 的 `{"quality": "high"}`。
@@ -173,12 +173,13 @@ API key 與參數只存在這個瀏覽器（localStorage 的 `elondia.image`）�
 
 手動或自動生成的流程相同：
 
-1. **整理分鏡**：用「插圖提示詞預處理」的模型來源，把日誌（摘要、行動、玩家描述的做法、已經寫出的正文、地點與時段）和可以登場的人（日誌裡的隊伍與其他人，附外貌、裝備、刺青）交給模型，回傳 JSON：`rating`（general、suggestive、explicit）、`scene`（整體畫面：人數、地點、時段、光線、構圖，不含各角色外貌）、`characters`（最多 4 人：id、位置 left／center／right、這個角色的提示詞）。各欄位照這個服務的預處理指示的寫法寫（例如 Danbooru 標籤）；沒有預處理時寫英文句子。日誌不是成人場景（沒有 `adult_scene`）時一律 general、不畫裸露與血腥。用量記在那則日誌。
+1. **整理分鏡**：用「插圖提示詞預處理」的模型來源，把日誌（摘要、行動、玩家描述的做法、已經寫出的正文、地點與時段）和可以登場的人（日誌裡的隊伍與其他人，附外貌、裝備、刺青）交給模型，回傳 JSON：`rating`（general、suggestive、explicit）、`scene`（整體畫面：人數、地點、時段、光線、構圖，不含各角色外貌；登場的怪物寫在這裡，要寫出種族特徵，例如 green skin、wolf ears、tail）、`characters`（最多 4 人：id、位置 left／center／right、這個角色的提示詞）。各欄位照這個服務的預處理指示的寫法寫（例如 Danbooru 標籤）；沒有預處理時寫英文句子。日誌不是成人場景（沒有 `adult_scene`）時一律 general、不畫裸露與血腥。用量記在那則日誌。
 2. **選服務**：日誌是成人場景（有 `adult_scene`）時，用「⚙️ 設定 → 圖像 → 日誌插圖」的「成人場景改用」；其他用目前的服務。分鏡判定是 explicit、服務卻是 ChatGPT 時，換成成人場景用的服務再整理一次；沒有指定時告訴玩家要指定 NovelAI 或 ComfyUI。
 3. **組成請求**（`composeScene`）：
-   - **NovelAI**（V4 模型）：`scene` 當整體提示詞，每個角色放進 `v4_prompt.caption.char_captions`，位置寫在 `centers`（左 0.3、中 0.5、右 0.7）。
+   - **NovelAI**（V4 以後的模型，含 4.5、5）：`scene` 當整體提示詞，每個角色放進 `v4_prompt.caption.char_captions`，位置寫在 `centers`（左 0.3、中 0.5、右 0.7）。V3 以前的模型不能分開描述每個人：分鏡照 ComfyUI 的寫法整理，角色接在 `scene` 後面。
    - **ChatGPT**：一段英文（整體畫面＋「on the left: …」）；登場角色有形象圖時當參考圖一起送（`/images/edits`，最多 4 張），人物長得比較一致。
    - **ComfyUI**：接成一段提示詞（標籤用逗號）。三人以上外貌容易混在一起；需要時改用自己的區域提示工作流程。
+   - **畫風**：設定的「畫風」（和形象圖的 `{style}` 同一個）由程式照原樣接在最後：標籤格式用逗號接、句子格式另起一行「Art style: …」。畫師名、`0.8::tag::` 這類權重寫法不經過 AI，不會被改掉；整理分鏡時也告訴 AI 不要自己寫畫風。畫風清空時不接。
 4. 尺寸用橫的：長邊當寬（ComfyUI、NovelAI），ChatGPT 是 1536 × 1024。
 
 插圖和形象圖存在同一個資料庫（`種子:@scene:日誌id`），匯出存檔時勾「形象圖與插圖」一起帶。

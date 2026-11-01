@@ -4,7 +4,7 @@
 // 名稱以 ai: 開頭時直接讀 AI 判定寫下的旗標（例如 ai:答應幫忙），讓劇情可以接上 AI 的判定。
 
 import { charmLevel } from './charm'
-import { storyCounters, TRAP_LOCK, type StoryCond } from './data'
+import { locationById, PARK_STAMP_PREFIX, storyCounters, TRAP_LOCK, type StoryCond } from './data'
 import { gearRules } from './gear'
 import { currentRegion, exposureAt, lewdOf } from './lewd'
 import { PARASITE_LOCK } from './parasites'
@@ -19,7 +19,8 @@ export function flagKey(name: string): string {
 }
 
 export function hasFlag(state: GameState, name: string): boolean {
-  const v = state.flags[flagKey(name)]
+  // 舊存檔的集章旗標沒有 story: 前綴（0.4.3 之前引擎直接寫 park_stamp_<園區>），照樣算
+  const v = state.flags[flagKey(name)] ?? (name.startsWith(PARK_STAMP_PREFIX) ? state.flags[name] : undefined)
   return v !== undefined && v !== false && v !== 0 && v !== ''
 }
 
@@ -157,4 +158,14 @@ export function storyFlags(state: GameState): string[] {
 export function cleanFlag(name: unknown): string {
   if (typeof name !== 'string') return ''
   return name.trim().replace(/^story:/, '').replace(/\s+/g, '_').slice(0, 40)
+}
+
+/** 地點的劇情條件成立了沒有（寫了 requires 的地點，例如政治史詩開始才出現的歷史裂縫；docs/DUNGEON_DESIGN.md 第 1 節） */
+export function locationOpen(state: GameState, id: string): boolean {
+  return condMet(state, locationById(id)?.requires)
+}
+
+/** 給路徑規劃用的篩選（world.ts 的 shortestPath、reachable） */
+export function openFor(state: GameState): (id: string) => boolean {
+  return (id) => locationOpen(state, id)
 }

@@ -34,9 +34,13 @@ export function neighbors(id: string): Edge[] {
   return adjacency.get(id) ?? []
 }
 
-/** 以最少天數為準的最短路徑（Dijkstra）；到不了回傳 null。 */
-export function shortestPath(from: string, to: string): Path | null {
+/** 這個地點現在存不存在（劇情條件還沒成立的地點不能經過、也不能抵達）；沒給時每個地點都算 */
+export type LocationOpen = (id: string) => boolean
+
+/** 以最少天數為準的最短路徑（Dijkstra）；到不了回傳 null。open 給了時，還沒開放的地點不能經過、也不能抵達。 */
+export function shortestPath(from: string, to: string, open?: LocationOpen): Path | null {
   if (from === to) return { legs: [], days: [0, 0] }
+  if (open && !open(to)) return null
   const best = new Map<string, number>([[from, 0]])
   const prev = new Map<string, Edge & { from: string }>()
   const queue: [number, string][] = [[0, from]]
@@ -46,6 +50,7 @@ export function shortestPath(from: string, to: string): Path | null {
     if (node === to) break
     if (dist > (best.get(node) ?? Infinity)) continue
     for (const edge of neighbors(node)) {
+      if (open && !open(edge.to)) continue
       const next = dist + edge.route.days[0]
       if (next < (best.get(edge.to) ?? Infinity)) {
         best.set(edge.to, next)
@@ -68,11 +73,11 @@ export function shortestPath(from: string, to: string): Path | null {
   return { legs, days }
 }
 
-/** 從某地出發可以到達的所有地點與預估天數，依天數排序。 */
-export function reachable(from: string): { id: string; path: Path }[] {
+/** 從某地出發可以到達的所有地點與預估天數，依天數排序（open 給了時不列還沒開放的地點）。 */
+export function reachable(from: string, open?: LocationOpen): { id: string; path: Path }[] {
   return geography.locations
     .filter((l) => l.id !== from)
-    .map((l) => ({ id: l.id, path: shortestPath(from, l.id) }))
+    .map((l) => ({ id: l.id, path: shortestPath(from, l.id, open) }))
     .filter((r): r is { id: string; path: Path } => r.path !== null)
     .sort((a, b) => a.path.days[0] - b.path.days[0])
 }

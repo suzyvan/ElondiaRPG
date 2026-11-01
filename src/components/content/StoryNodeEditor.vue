@@ -182,6 +182,7 @@ function toggleCheck(o: StoryOption, on: boolean) {
         <MonsterPick :entry="g" @remove="node.enemies!.splice(i, 1)" />
       </div>
       <button class="small" @click="(node.enemies ??= []).push(['bandit', 1])">＋ 怪物</button>
+      <label class="check small"><input type="checkbox" :checked="!!node.rut" @change="($event.target as HTMLInputElement).checked ? (node.rut = true) : delete node.rut" /> 怪物也可能發情（只在野外發情的怪物）</label>
       <NpcPicker v-model="node.foes" label="敵對的固定 NPC：" :exclude="node.allies" />
       <OutcomeEditor v-model="node.success" label="勝利" />
       <OutcomeEditor v-model="node.fail" label="落敗或撤退" optional />

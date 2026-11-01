@@ -6,7 +6,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { GameState, Report } from '@/engine/types'
 import { extractJson } from '@/narrator/judge'
-import { composeScene, parseScenePlan, sceneCast, scenePrompt, type ScenePlan } from '@/narrator/sceneInfo'
+import { composeScene, parseScenePlan, sceneCast, sceneMulti, scenePrompt, type ScenePlan } from '@/narrator/sceneInfo'
 import { useGame } from './game'
 import { useImageSettings } from './image'
 import { currentPortraitBlob, idbDelete, idbGet, idbKeys, idbPut, portraitKey, usePortraits, type PortraitRecord } from './portraits'
@@ -94,7 +94,7 @@ export const useScenes = defineStore('scenes', () => {
         const format = image.preprocessorFor(service)
         const collector = game.usageCollector(game.originOf('tags', src))
         const text = await completeText(src.provider, src.config, scenePrompt(state, report, cast, {
-          ...(format ? { format } : {}), multi: service === 'novelai', ...(narration ? { narration } : {}),
+          ...(format ? { format } : {}), multi: sceneMulti(service, image.configs[service].model), ...(narration ? { narration } : {}), style: image.style,
         }), controller.signal, collector.onUsage)
         collector.flush(report.report_id)
         return parseScenePlan(extractJson(text), cast, adult)
@@ -113,7 +113,7 @@ export const useScenes = defineStore('scenes', () => {
 
       jobs.value[key] = { stage: 'image' }
       const tags = image.preprocessorFor(service)?.output === 'tags'
-      const composed = composeScene(p, service, tags)
+      const composed = composeScene(p, service, tags, sceneMulti(service, image.configs[service].model), image.style)
       // ChatGPT：登場角色有形象圖時當參考圖，人物長得比較一致
       let references: Blob[] = []
       if (service === 'openai') {

@@ -36,7 +36,7 @@ describe('點地圖上的格子走過去：找路', () => {
     const target = far.find((f) => pathTo(state, f.x, f.y))!
     const path = pathTo(state, target.x, target.y)!
     expect(path.at(-1)).toEqual({ x: target.x, y: target.y })
-    let p = from
+    let p: { x: number; y: number } = from
     for (const step of path) {
       expect(Math.abs(step.x - p.x) + Math.abs(step.y - p.y)).toBe(1)
       p = step

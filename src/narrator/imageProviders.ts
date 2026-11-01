@@ -154,14 +154,22 @@ async function openAIImage(cfg: ImageServiceConfig, req: ImageRequest): Promise<
 // ---- NovelAI ----
 
 /**
+ * V4 以後的 NovelAI 模型（nai-diffusion-4-5-full、nai-diffusion-5-full……）：用 v4_prompt 的格式（沒有時 NovelAI 回 500），
+ * 可以分開描述每個角色（char_captions）。V3 以前的不行，多人場景要把角色接進提示詞
+ */
+export function novelAIV4(model: string): boolean {
+  return /diffusion-(?:[4-9]|\d{2,})/.test(model)
+}
+
+/**
  * NovelAI 的請求。enc：以圖生圖的底圖與遮罩（base64，已經是要的尺寸）。
  * 有底圖是 img2img，再有遮罩是 infill（局部重繪，用模型的 -inpainting 版）；
- * V4 模型的多人場景把每個角色放進 char_captions，位置寫在 centers
+ * V4 以後的模型（4、4.5、5……）用 v4_prompt 的格式，多人場景把每個角色放進 char_captions，位置寫在 centers
  */
 export function novelAIBody(cfg: ImageServiceConfig, req: ImageRequest, enc: { image?: string; mask?: string } = {}): Record<string, unknown> {
   const negative = req.negative ?? cfg.negative
   const seed = req.seed ?? randomSeed()
-  const v4 = /diffusion-4/.test(cfg.model)
+  const v4 = novelAIV4(cfg.model)
   const chars = v4 ? req.characters ?? [] : []
   const action = enc.image ? (enc.mask ? 'infill' : 'img2img') : 'generate'
   const model = action === 'infill' && !/-inpainting$/.test(cfg.model) ? `${cfg.model}-inpainting` : cfg.model

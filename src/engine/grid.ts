@@ -1407,13 +1407,15 @@ function openChest(state: GameState, area: Area, level: number): Report {
     else items.push({ name, qty: 1, owner: 'pc' })
   }
   const extra = parkPlaza(area.location) ? parkRules().chest_items : []
+  // 地點指定的材料系列（緋夢樂園底下的遺跡開歡愉系列）
+  const series = geography.locations.find((l) => l.id === area.location)?.material_series
   const money = withRng(state, (rng) => {
     for (const [name, p] of [...t.items, ...extra]) if (itemDef(name) && rng.chance(p)) add(name)
-    if (rng.chance(t.gear)) add(registerGear(state, randomGear(rng, level)))
-    if (t.gear_extra && rng.chance(t.gear_extra)) add(registerGear(state, randomGear(rng, level)))
+    if (rng.chance(t.gear)) add(registerGear(state, randomGear(rng, level, undefined, series)))
+    if (t.gear_extra && rng.chance(t.gear_extra)) add(registerGear(state, randomGear(rng, level, undefined, series)))
     for (const [tier, p] of t.forge) {
       if (!rng.chance(p)) continue
-      const name = forgeItemFor(rng.pick(MATERIAL_KINDS), tier)
+      const name = forgeItemFor(rng.pick(MATERIAL_KINDS), tier, series)
       if (name) add(name)
     }
     return rng.int(t.money[0], t.money[1]) * level

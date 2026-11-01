@@ -116,6 +116,9 @@ const category = ref('')
 const enemyKind = ref('')
 const enemyPlace = ref('')
 const enemyLevel = ref('')
+// 怪物：發情（不會、在哪裡都可能、只在野外）、魔物娘形態（有、沒有）
+const enemyRut = ref('')
+const enemyGirl = ref('')
 const itemSource = ref('')
 const LEVEL_BANDS: Record<string, [number, number]> = { '1-2': [1, 2], '3-4': [3, 4], '5-6': [5, 6], '7-8': [7, 8], '9-10': [9, 10], '11+': [11, 99] }
 const placeOptions = enemyPlaceOptions()
@@ -280,6 +283,8 @@ const FILTERS: Record<Sub, FilterDef[]> = {
     { model: enemyKind, name: '種類', all: '所有種類', options: () => entries(ENEMY_KINDS) },
     { model: enemyLevel, name: '等級', all: '所有等級', options: () => Object.keys(LEVEL_BANDS).map((k) => [k, `${k} 級`]) },
     { model: enemyPlace, name: '出現地點', all: '所有出現地點', options: () => [...placeOptions.map((p) => [p.key, p.label] as Opt), ['none', '沒有出現地點']] },
+    { model: enemyRut, name: '發情', all: '發情（不限）', options: () => [['yes', '會發情'], ['any', '在哪裡都可能'], ['field', '只在野外'], ['no', '不會發情']] },
+    { model: enemyGirl, name: '魔物娘', all: '魔物娘（不限）', options: () => [['yes', '有魔物娘形態'], ['no', '沒有魔物娘形態']] },
   ],
   items: [
     { model: category, name: '類別', all: '所有類別', options: () => entries(itemRules.categories) },
@@ -384,8 +389,12 @@ const rows = computed<Row[]>(() => {
       .filter((e) => !enemyKind.value || (e.kind ?? '') === enemyKind.value)
       .filter((e) => !band || (e.level >= band[0] && e.level <= band[1]))
       .filter((e) => !enemyPlace.value || (enemyPlace.value === 'none' ? !places.value.get(e.id)?.size : !!places.value.get(e.id)?.has(enemyPlace.value)))
+      .filter((e) => !enemyRut.value || {
+        yes: !!e.rut, any: e.rut === true, field: e.rut === 'field', no: !e.rut,
+      }[enemyRut.value])
+      .filter((e) => !enemyGirl.value || (enemyGirl.value === 'yes') === !!e.girl)
       .sort((a, b) => (m.enemies[a.id]?.custom ? -1 : 0) - (m.enemies[b.id]?.custom ? -1 : 0) || a.level - b.level)
-      .map((e) => ({ key: e.id, name: e.name, note: `${e.level} 級・${ENEMY_KINDS[e.kind ?? ''] ?? ''}`, status: st(!!m.enemies[e.id], !builtinEnemy(e.id)) }))
+      .map((e) => ({ key: e.id, name: e.name, note: `${e.level} 級・${ENEMY_KINDS[e.kind ?? ''] ?? ''}${e.rut ? '・發情' : ''}${e.girl ? '・魔物娘' : ''}`, status: st(!!m.enemies[e.id], !builtinEnemy(e.id)) }))
   } else if (sub.value === 'items') {
     list = itemRules.items
       .filter((i) => !category.value || i.category === category.value)
@@ -945,7 +954,7 @@ function resetAll() {
           <span class="muted">只有自建或修改過的項目可以選。</span>
         </div>
         <ul class="plain rows">
-          <li v-for="r in rows" :key="r.key" :class="{ active: current === r.key }" @click="select(r.key)">
+          <li v-for="r in rows" :key="r.key" :class="{ active: current === r.key }" tabindex="0" @click="select(r.key)" @keydown.enter.self.prevent="select(r.key)">
             <input
               v-if="picking && r.status" type="checkbox" :checked="pickedKeys.has(refOf(r.key))" title="匯出這一項"
               @click.stop @change="togglePick(r.key, ($event.target as HTMLInputElement).checked)"
@@ -1067,6 +1076,10 @@ function resetAll() {
 .rows .name { flex: 1; min-width: 5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 說明讓位給名字：放不下時說明先縮（選取匯出多了勾選框時名字不會只剩一個字） */
 .note-r { white-space: nowrap; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* 選到（focus）或正在編輯的那一列顯示完整的名字與說明：放不下時換行，不截斷 */
+.rows li:is(:focus, :focus-within, .active) { flex-wrap: wrap; }
+.rows li:is(:focus, :focus-within, .active) :is(.name, .note-r) { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.rows li:focus-visible { outline: 2px solid var(--accent); }
 .rows li > input, .rows li > .tag { flex: none; }
 .row-ic { color: var(--accent); }
 .persist-warn { margin: 0; padding: 6px 10px; border: 1px solid var(--danger); border-radius: var(--radius); color: var(--danger); }

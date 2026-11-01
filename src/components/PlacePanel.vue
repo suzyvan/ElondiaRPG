@@ -15,6 +15,7 @@ import { canTurnIn, deliverable, isCollectQuest, isMaterialQuest, layerName, que
 import { bestTool } from '@/engine/tools'
 import type { Quest } from '@/engine/types'
 import { reachable } from '@/engine/world'
+import { openFor } from '@/engine/storyFlags'
 import { useGame } from '@/stores/game'
 import { sideNodesOpen, storyDef } from '@/engine/story'
 import { useContent } from '@/stores/content'
@@ -97,19 +98,30 @@ const AREA_NAME: Record<Quest['area'], string> = { town: '城內', outskirts: '�
 
 // ---- 公會委託（走進公會時才產生） ----
 const quests = ref<Quest[]>([])
+// 比較字串（值），不是每次都是新的陣列：動作失敗時 state 會還原成新的物件，
+// 用陣列的話 watch 會重新觸發、再跑一次 visitGuild，把剛顯示的錯誤訊息清掉
 watch(
-  () => [cell.value.kind, area.value.key] as const,
-  ([kind]) => {
-    if (kind === 'guild') quests.value = examsFirst(game.visitGuild())
+  () => `${cell.value.kind}|${area.value.key}`,
+  (now, before) => {
+    if (cell.value.kind !== 'guild') return
+    // 走進公會：產生委託板（一個動作）；同一格只是 state 換了（回退、讀檔、動作失敗）：只重新讀清單
+    if (now !== before) quests.value = examsFirst(game.visitGuild())
+    else refreshQuests()
   },
   { immediate: true },
 )
+// 同一格、state 換成新的物件（回退、動作失敗還原）：清單重新讀，不清掉錯誤訊息
+watch(s, () => {
+  if (cell.value.kind === 'guild') refreshQuests()
+})
 function refreshQuests() {
   quests.value = examsFirst(guildQuests(s.value))
 }
 
 const promo = computed(() => promotionStatus(s.value))
 const exam = computed(() => examQuest(s.value))
+/** 已經接了別的晉升考核：這個考核不能接（同時只能接一個） */
+const examTaken = (q: Quest) => isExam(q) && !!exam.value && exam.value.id !== q.id
 // 這座城的公會發的、還沒接的晉升考核（各城鎮的公會各有一個）
 const offer = computed(() => {
   void quests.value
@@ -153,7 +165,7 @@ const rations = computed(() => s.value.inventory.find((i) => i.name === '乾糧'
 // ---- 旅行：目的地在對話框裡（TravelDialog） ----
 const showTravel = ref(false)
 const travelMenu = computed<MenuItem[]>(() => {
-  const list = reachable(s.value.location)
+  const list = reachable(s.value.location, openFor(s.value))
   const near = list.filter((d) => locationById(d.id).region === here.value.region).length
   return [{ id: 'travel', icon: 'compass', label: '啟程旅行', detail: `這個地區 ${near} 個・其他地區 ${list.length - near} 個`, badge: list.length }]
 })
@@ -287,7 +299,7 @@ const shopDesc = computed(() => {
             <div>
               <GameIcon name="trophy" :size="14" /> 你是 <strong>{{ promo.rank }} 級</strong>冒險者・功績 {{ promo.merit }}<template v-if="promo.next">・升 {{ promo.next }} 級需要功績 {{ promo.needMerit }}、等級 {{ promo.needLevel }}</template>
             </div>
-            <div v-if="exam" class="hot"><GameIcon name="scroll" :size="14" /> 晉升考核：{{ exam.title }}（{{ exam.status === 'ready' ? '完成了，在任何一座公會都可以交付' : '進行中' }}）</div>
+            <div v-if="exam" class="hot"><GameIcon name="scroll" :size="14" /> 晉升考核：{{ exam.title }}（<template v-if="exam.giver !== s.location">在{{ locationById(exam.giver).name }}接的・</template>{{ exam.status === 'ready' ? '完成了，在任何一座公會都可以交付' : '進行中' }}）</div>
             <div v-else-if="offer" class="hot"><GameIcon name="scroll" :size="14" /> 這裡的公會發了晉升考核：{{ offer.title }}（在委託板上）<Hint text="冒險者的階級各地通用：每座城鎮的公會各發一個考核，目標在各自附近，挑方便的一個接（同時只能接一個）；在任何一座公會都可以交付。" /></div>
             <div v-else-if="promo.next" class="muted">功績與等級都夠了，各城鎮的公會都會發晉升考核（目標在各自附近，挑一個接）；通過才升階。交付委託（依委託階級）、打倒地下城層主、完成特殊任務都有功績。</div>
           </div>
@@ -297,7 +309,7 @@ const shopDesc = computed(() => {
           <ul class="plain board">
             <li v-if="quests.length === 0" class="muted small">目前沒有委託。</li>
             <li v-for="q in quests" :key="q.id">
-              <div><span class="tag" :class="{ hot: isExam(q) }">{{ isExam(q) ? `晉升 ${q.rank}` : q.rank }}</span> <span class="tag">{{ AREA_NAME[q.area] }}</span> {{ q.title }}</div>
+              <div><span class="tag" :class="{ hot: isExam(q) }">{{ isExam(q) ? `晉升 ${q.rank}` : q.rank }}</span> <span class="tag">{{ AREA_NAME[q.area] }}</span> {{ q.title }}<span v-if="isExam(q) && q.giver !== s.location" class="small muted">（{{ locationById(q.giver).name }}公會）</span></div>
               <div class="small muted">
                 報酬 {{ formatMoney(q.reward_cc) }}<template v-if="isMaterialQuest(q) && (q.max ?? q.goal) > q.goal">（可以過量交付到 {{ q.max }}{{ isCollectQuest(q) ? ' 份' : ' 次' }}，報酬依比例增加）</template>
                 <span v-if="q.status === 'available' && questDeadlineDays(q, s) !== undefined">・期限 {{ questDeadlineDays(q, s) }} 天</span>
@@ -307,9 +319,10 @@ const shopDesc = computed(() => {
               <button
                 v-if="q.status === 'available'"
                 class="small"
-                :disabled="!canAcceptRank(s, q.rank, q)"
+                :disabled="!canAcceptRank(s, q.rank, q) || examTaken(q)"
+                :title="examTaken(q) ? `同時只能接一個晉升考核；要改接這個，先放棄「${exam!.title}」` : ''"
                 @click="game.acceptQuest(q.id); refreshQuests()"
-              >{{ canAcceptRank(s, q.rank, q) ? '接取' : '階級不足' }}</button>
+              >{{ examTaken(q) ? '已接了別處的考核' : canAcceptRank(s, q.rank, q) ? '接取' : '階級不足' }}</button>
               <template v-else-if="canTurnIn(s, q)">
                 <input
                   v-if="isMaterialQuest(q) && deliverable(s, q) > q.goal"

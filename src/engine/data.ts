@@ -55,6 +55,10 @@ export interface Location {
   note?: string
   /** 主題地下城的園區：從這張特殊地圖（入口廣場）的通道進出，沒有周邊、不能直接旅行到（docs/LUST_PARK.md） */
   park?: string
+  /** 劇情條件成立前不存在：旅行的目的地、委託、情報與給 AI 的地點都不列出（docs/DUNGEON_DESIGN.md 第 1 節） */
+  requires?: StoryCond
+  /** 這裡的寶箱與人形怪物掉的隨機裝備優先用這一套材料（gear.json 材料的 series；例如緋夢樂園底下的遺跡是 pleasure） */
+  material_series?: string
 }
 export interface Route {
   a: string
@@ -333,6 +337,8 @@ export interface StoryNode {
   check?: StoryCheck
   /** 戰鬥：怪物（遭遇表的格式）與固定 NPC */
   enemies?: EncounterGroup
+  /** 戰鬥：怪物裡「只在野外發情」（rut: field）的也可以擲到發情（任務需要時才寫） */
+  rut?: boolean
   foes?: string[]
   /** 在場的友方固定 NPC：站在任務點旁邊、戰鬥時站在隊伍這邊、判定與敘事時列為在場的人 */
   allies?: string[]
@@ -377,8 +383,29 @@ export function bumpContentRevision() {
   contentRev++
 }
 
+/**
+ * 依 id 查清單的索引（每走一步會查上千次，線性搜尋太慢）。記下每個 id 的位置，取用時確認那個位置還是同一個 id：
+ * 自訂內容增刪、換掉某一筆時對不上就重建，所以不必跟著內容的版本走，直接改陣列也不會拿到舊的
+ */
+export function indexById<T extends { id: string }>(list: T[]): (id: string) => T | undefined {
+  let pos = new Map<string, number>()
+  const rebuild = () => {
+    pos = new Map()
+    list.forEach((x, i) => { if (!pos.has(x.id)) pos.set(x.id, i) })
+  }
+  return (id) => {
+    const i = pos.get(id)
+    if (i !== undefined && list[i]?.id === id) return list[i]
+    rebuild()
+    const j = pos.get(id)
+    return j === undefined ? undefined : list[j]
+  }
+}
+
 /** 內建的特殊任務；內容頁籤的修改套用在這份清單上 */
 export const stories = (storiesJson as unknown as { stories: StoryDef[] }).stories
+/** 依 id 找特殊任務（索引，見 indexById） */
+export const storyById = indexById(stories)
 
 export type NpcKind = 'commoner' | 'adventurer'
 
@@ -389,6 +416,8 @@ export interface Haunt {
   weight: number
 }
 export const npcs = (npcsJson as unknown as { npcs: NpcDef[] }).npcs
+/** 依 id 找固定 NPC（索引，見 indexById） */
+export const namedNpcById = indexById(npcs)
 
 // ---- 城鎮的特色地標（docs/LANDMARKS.md） ----
 
@@ -1021,14 +1050,24 @@ export interface EnemyDef {
   kind?: string
   /** 持有裝備的人形怪物：打倒時有機會掉落裝備（gear.json 的 drops.armed） */
   armed?: boolean
-  /** 可以擲到「發情」特徵（monster_traits.json 的 requires） */
-  rut?: boolean
+  /**
+   * 可以擲到「發情」特徵（monster_traits.json 的 requires）：true 是在哪裡都可能；
+   * field 是只在近郊、旅途、地下城的遭遇（特殊任務的戰鬥任務點要寫 rut 才擲，淫鬥場不擲）
+   */
+  rut?: boolean | 'field'
+  /** 魔物娘的樣子（設定「魔物娘」打開時，交給 AI 的名字與外觀換成這個；docs/MONSTERS.md 的「魔物娘」） */
+  girl?: MonsterGirl
   /** 一定帶著的特徵（例如層主天生巨大） */
   traits?: string[]
   /** 給 AI 的一句描述（外觀與習性） */
   desc?: string
   /** 上傳的圖示（data URL，只給這一隻怪物）；沒有時依種類與等級用內建的圖 */
   icon?: string
+}
+/** 怪物的魔物娘形態：name 是給 AI 的稱呼（例如「狼娘」），desc 是外觀與習性（成年女性的身體，保留原本種族的特徵） */
+export interface MonsterGirl {
+  name: string
+  desc: string
 }
 export type EncounterGroup = [string, number][]
 export type DungeonLayerId = 'outskirts' | 'shallow' | 'middle' | 'deep' | 'abyss'
@@ -2281,6 +2320,10 @@ export interface ParkRules {
   /** 園區的寶箱有這個機率是擬態寶箱（打開時變成戰鬥）；mimics 依層（1 淺層、2 中層、3 深層）的怪物 */
   mimic_chance: number
   mimics: Record<string, string>
+  /** 個別園區自己的擬態寶箱（地點 id → 依層的怪物），覆蓋 mimics；例如緋夢樂園底下的遺跡（docs/LUST_PARK.md 第 8 節） */
+  mimics_at?: Record<string, Record<string, string>>
+  /** 不蓋集章卡的園區（地點 id）：打倒最終層主不立 park_stamp_ 旗標 */
+  unstamped?: string[]
   /** 園區的寶箱另外擲的物品 [名稱, 機率] */
   chest_items: [string, number][]
   /** 每個園區（地點 id）的專屬戰敗：AI 的成人場景、摘要、效果、經過的時間 */

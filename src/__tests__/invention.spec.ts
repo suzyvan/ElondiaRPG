@@ -41,7 +41,8 @@ describe('invention caps', () => {
     expect(caps.price).toBe(itemDef('微弱治療藥劑')!.price_cc)
     // 第 4 級可以參考到第 5 級：復甦
     expect(inventCaps('alchemy', 4, 'consumable')!.revive).toBe(0.3)
-    expect(inventCaps('alchemy', 5, 'consumable')!.top).toBe(craftRules.max_level)
+    expect(inventCaps('alchemy', 5, 'consumable')!.top).toBe(6)
+    expect(inventCaps('alchemy', craftRules.max_level, 'consumable')!.top).toBe(craftRules.max_level)
     expect(capsText(caps).join('\n')).toContain('2d4+2')
   })
 

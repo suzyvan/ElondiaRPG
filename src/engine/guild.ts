@@ -4,6 +4,7 @@
 import { guildRankFor } from './character'
 import { dungeonEncounters, enemies, locationById, parkPlaza, progression, questXpRules, BOSS_LAYER_IDS, type BossLayerId } from './data'
 import { layerName, layerRanks, RANK_ORDER, rewardRange } from './materialQuests'
+import { locationOpen } from './storyFlags'
 import { shortestPath } from './world'
 import type { GameState, GuildRank, GuildState, Quest } from './types'
 
@@ -95,7 +96,7 @@ export function postExam(state: GameState): Quest | undefined {
   const want = RANK_ORDER.indexOf(target)
   const distance = (id: string) => shortestPath(state.location, id)?.days[1] ?? 999
   // 園區（主題地下城）不出考核：不能直接旅行到
-  const bosses = Object.entries(dungeonEncounters).filter(([loc]) => !parkPlaza(loc)).flatMap(([loc, enc]) =>
+  const bosses = Object.entries(dungeonEncounters).filter(([loc]) => !parkPlaza(loc) && locationOpen(state, loc)).flatMap(([loc, enc]) =>
     BOSS_LAYER_IDS.map((layer) => {
       const id = (enc.bosses?.[layer] ?? (layer === 'deep' ? enc.boss : undefined))?.[0]?.[0]
       return id && enemies[id] ? { loc, layer, id, gap: Math.abs(RANK_ORDER.indexOf(guildRankFor(enemies[id]!.level)) - want) } : undefined
@@ -113,7 +114,7 @@ export function postExam(state: GameState): Quest | undefined {
     }
   } else {
     // 沒有相符的層主：清剿階級最接近的某座地下城的某一層
-    const layers = Object.keys(dungeonEncounters).filter((loc) => !parkPlaza(loc))
+    const layers = Object.keys(dungeonEncounters).filter((loc) => !parkPlaza(loc) && locationOpen(state, loc))
       .flatMap((loc) => layerRanks(loc).map((r) => ({ loc, layer: r.layer, gap: Math.abs(RANK_ORDER.indexOf(r.rank) - want) })))
       .sort((a, b) => a.gap - b.gap || distance(a.loc) - distance(b.loc))
     const pick = layers[0]

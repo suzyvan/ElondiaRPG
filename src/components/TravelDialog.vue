@@ -6,6 +6,7 @@ import { layerName, layerRanks } from '@/engine/materialQuests'
 import { formatMoney } from '@/engine/money'
 import { legFare, MODE_NAME } from '@/engine/travel'
 import { reachable, type Path } from '@/engine/world'
+import { openFor } from '@/engine/storyFlags'
 import { useGame } from '@/stores/game'
 import { RANK_COLOR } from './ui/cellIcons'
 
@@ -15,7 +16,7 @@ const s = computed(() => game.state!)
 const here = computed(() => locationById(s.value.location))
 
 const groups = computed(() => {
-  const list = reachable(s.value.location)
+  const list = reachable(s.value.location, openFor(s.value))
   return geography.regions
     .map((r) => ({ region: r, items: list.filter((d) => locationById(d.id).region === r.id) }))
     .filter((g) => g.items.length > 0)
