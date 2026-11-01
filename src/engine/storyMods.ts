@@ -374,6 +374,7 @@ function node(v: unknown, i: number, used: Set<string>): StoryNode {
   if (kind === 'combat') {
     const g = group(n.enemies)
     if (g) out.enemies = g
+    if (g && n.rut === true) out.rut = true
     const foes = (n.foes ?? []).map((f) => str(f, 60)).filter(Boolean)
     if (foes.length) out.foes = [...new Set(foes)]
   }

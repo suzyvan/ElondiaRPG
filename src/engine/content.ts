@@ -64,6 +64,22 @@ export function pcBodyAllowed(list: readonly string[] | undefined, body: 'masc' 
   return !list?.length || list.includes(body) || (body === 'masc' && mascBodyContent)
 }
 
+/**
+ * 魔物娘：交給 AI 的怪物換成魔物娘的名字與外觀（怪物資料的 girl；沒有魔物娘形態的照原本的描述）。
+ * off 關閉、masc 只在這段經過的主角（被圍住的人、親密場景的主角，沒有時是主角）是陽剛體型時、all 一律。預設關閉；介面上的名字不變
+ */
+export type MonsterGirlMode = 'off' | 'masc' | 'all'
+let monsterGirlMode: MonsterGirlMode = 'off'
+
+export function setMonsterGirl(m: MonsterGirlMode) {
+  monsterGirlMode = m
+}
+
+/** 這位角色（體型）在場時，怪物要不要以魔物娘的樣子交給 AI */
+export function monsterGirlsFor(body: 'masc' | 'fem' | 'andro'): boolean {
+  return monsterGirlMode === 'all' || (monsterGirlMode === 'masc' && body === 'masc')
+}
+
 /** 隊友的戰敗色情事件（主角不會遇到時，改由隊友遇到）：全部的隊友、男性形象的隊友不發生、關閉 */
 let defeatCompanionMode: DefeatAdultMode = 'not_masc'
 

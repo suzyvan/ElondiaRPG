@@ -24,7 +24,7 @@ import { addCondition, isNoncombatant, pcOf } from './party'
 import { roll, withBonus, type Rng } from './rng'
 import type { Character, GameState, LewdStat, Report, TimelineEntry } from './types'
 
-type Foe = { name: string; npcId?: string; traits?: string[]; hp: number; fled?: boolean; side: string }
+type Foe = { name: string; npcId?: string; defId?: string; traits?: string[]; hp: number; fled?: boolean; side: string }
 
 function rules() {
   return combatRules.defeat_event
@@ -118,7 +118,7 @@ export function rollDefeatEvent(state: GameState, rng: Rng, report: Report, foes
   const villain = villainOf(state, eligible)
   const willing = report.outcome.tags?.includes('主動認輸')
   state.pendingDefeat = {
-    foes: eligible.map((f) => ({ name: f.name, ...(f.npcId ? { npc: f.npcId } : {}) })),
+    foes: eligible.map((f) => ({ name: f.name, ...(f.npcId ? { npc: f.npcId } : f.defId ? { monster: f.defId } : {}) })),
     location: report.location.at, scene: report.location.scene ?? locationById(report.location.at).name, report: report.report_id,
     ...(villain ? { villain } : {}),
     ...(willing ? { willing } : {}),
@@ -191,6 +191,9 @@ export function applyDefeatResponse(state: GameState, report: Report, degree: De
   // 隊友：親密場景的主角是那位隊友（淫亂的成長記在隊友身上）
   report.narration = { ...report.narration, mode: 'defeat_event', length: 'medium', ...(mate ? { defeat_victim: mate.id, adult_actor: mate.id } : {}) }
   report.lore_keys = [...new Set([...(report.lore_keys ?? []), ...ev.foes.map((f) => f.name), regionById(locationById(ev.location).region).name])]
+  // 圍上來的怪物記在報告的其他人裡（敘事附上怪物的外觀，魔物娘的設定也照這裡）
+  const monsters = ev.foes.filter((f) => f.monster && !(report.others ?? []).some((o) => o.monster === f.monster && o.name === f.name))
+  if (monsters.length) report.others = [...(report.others ?? []), ...monsters.map((f, i) => ({ id: `defeat-foe-${i + 1}`, name: f.name, monster: f.monster! }))]
   delete state.pendingDefeat
   afterDefeat(state)
   return lost > 0 ? `被搜走了 ${formatMoney(lost)}。` : ''

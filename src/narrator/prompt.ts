@@ -45,6 +45,8 @@ export interface PromptOptions {
   continuity?: Continuity
   /** 開啟「變化正文的寫法」時：這次的切入方式與收尾（見 varietyHint） */
   variety?: string
+  /** 登場的怪物的外觀（<monsters>，narrator/monsters.ts 組好的；魔物娘的設定打開時是魔物娘） */
+  monsters?: string
 }
 
 /** 提示詞的一個區塊；預覽畫面依此顯示順序與大小 */
@@ -355,6 +357,7 @@ export function buildPrompt(report: Report, lore: LoreLike[] | { constant: LoreL
     { key: 'context', title: '人際關係與冒險記憶', part: 'user', text: opts.context ?? '' },
     ...continuity.sections,
     { key: 'bystanders', title: '旁邊的人', part: 'user', text: bystandersText(report) },
+    { key: 'monsters', title: '登場的怪物', part: 'user', text: opts.monsters ?? '' },
     { key: 'report', title: '報告', part: 'user', text: `<report>\n${JSON.stringify(humanizeReport(report), null, 2)}\n</report>` },
     endNotesSection(opts.endNotes),
     {

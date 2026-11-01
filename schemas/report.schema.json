@@ -334,6 +334,7 @@
         "equipment": { "type": "array", "items": { "type": "string" } },
         "gender": { "type": "string", "description": "性別（顯示名稱）" },
         "personality": { "type": "string", "description": "NPC 性格摘要，供 AI 演繹（角色扮演指導第三層）" },
+        "monster": { "type": "string", "description": "怪物資料的 id（只有怪物有）：敘事另外附上這種怪物的外觀，送給 AI 的報告裡拿掉" },
         "attitude": { "type": "string", "description": "引擎依實力差、立場、親密值算出的態度，AI 據此演繹" }
       }
     },

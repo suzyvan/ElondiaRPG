@@ -131,6 +131,8 @@ export function humanizeReport(report: Report) {
   const names = actorNames(report)
   const actor = (a: Report['party'][number]) => ({
     ...a,
+    // 怪物的外觀另外放在 <monsters>
+    monster: undefined,
     ...(a.class ? { class: className(a.class) } : {}),
     ...(a.race ? { race: raceName(a.race) } : {}),
   })

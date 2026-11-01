@@ -38,6 +38,21 @@ const iconFallback = computed<DrawSource>(() => {
   const band = monsterBand(draft.value.level)
   return { kind: 'path', path: monsterArtPath(draft.value.kind, band), color: MONSTER_BAND_COLOR[band] }
 })
+// 發情：不會、在哪裡都可能、只在近郊・旅途・地下城
+const rutMode = computed<'' | 'any' | 'field'>({
+  get: () => (draft.value.rut === 'field' ? 'field' : draft.value.rut ? 'any' : ''),
+  set: (v) => {
+    if (v === 'field') draft.value.rut = 'field'
+    else if (v === 'any') draft.value.rut = true
+    else delete draft.value.rut
+  },
+})
+// 魔物娘的名字與外觀：兩欄都寫了才算（儲存時其中一欄空白就拿掉）
+function setGirl(k: 'name' | 'desc', v: string) {
+  const g = { name: draft.value.girl?.name ?? '', desc: draft.value.girl?.desc ?? '', [k]: v }
+  if (!g.name && !g.desc) delete draft.value.girl
+  else draft.value.girl = g
+}
 const builtin = computed(() => !!builtinEnemy(props.id))
 const edited = computed(() => builtin.value && !!content.mods.enemies[props.id])
 
@@ -190,9 +205,23 @@ function remove() {
       </div>
       <div class="row checks">
         <label class="check"><input v-model="draft.armed" type="checkbox" /> 持有裝備 <Hint text="打倒時可能掉裝備。" /></label>
-        <label class="check"><input v-model="draft.rut" type="checkbox" /> 可能擲到「發情」</label>
+        <label>發情 <Hint text="開戰時可能擲到「發情」特徵：比較想用慾望攻擊，戰敗後可能起意（戰敗事件）。「只在野外」是只在近郊、旅途與地下城的遭遇擲；特殊任務的戰鬥要那個任務點勾選才擲，淫鬥場不擲。會發情的怪物最好寫好魔物娘的樣子。" />
+          <select v-model="rutMode">
+            <option value="">不會</option>
+            <option value="any">在哪裡都可能</option>
+            <option value="field">只在野外（近郊、旅途、地下城）</option>
+          </select>
+        </label>
       </div>
-      <label class="block"><span>描述 <Hint text="給 AI 的外觀與習性。" /></span><textarea v-model="draft.desc" rows="2" maxlength="200" /></label>
+      <label class="block"><span>描述 <Hint text="給 AI 的外觀與習性。戰鬥與戰敗事件的敘事會附上。" /></span><textarea v-model="draft.desc" rows="2" maxlength="200" /></label>
+      <div class="grid">
+        <label>魔物娘的名字 <Hint text="設定「魔物娘」打開時，交給 AI 的稱呼（例如「狼娘」）。畫面上的名字不變。名字和外觀都寫了才算；都不寫就沒有魔物娘形態，照原本的樣子。" />
+          <input :value="draft.girl?.name ?? ''" maxlength="20" @input="setGirl('name', ($event.target as HTMLInputElement).value)" />
+        </label>
+      </div>
+      <label class="block"><span>魔物娘的外觀 <Hint text="成年女性的身體，保留原本種族的特徵（耳朵、尾巴、鱗片、觸手……）與習性。不要寫成未成年的樣子。" /></span>
+        <textarea :value="draft.girl?.desc ?? ''" rows="2" maxlength="300" @input="setGirl('desc', ($event.target as HTMLTextAreaElement).value)" />
+      </label>
     </FoldSet>
 
     <FoldSet>

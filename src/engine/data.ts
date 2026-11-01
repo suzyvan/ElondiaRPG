@@ -333,6 +333,8 @@ export interface StoryNode {
   check?: StoryCheck
   /** 戰鬥：怪物（遭遇表的格式）與固定 NPC */
   enemies?: EncounterGroup
+  /** 戰鬥：怪物裡「只在野外發情」（rut: field）的也可以擲到發情（任務需要時才寫） */
+  rut?: boolean
   foes?: string[]
   /** 在場的友方固定 NPC：站在任務點旁邊、戰鬥時站在隊伍這邊、判定與敘事時列為在場的人 */
   allies?: string[]
@@ -1021,14 +1023,24 @@ export interface EnemyDef {
   kind?: string
   /** 持有裝備的人形怪物：打倒時有機會掉落裝備（gear.json 的 drops.armed） */
   armed?: boolean
-  /** 可以擲到「發情」特徵（monster_traits.json 的 requires） */
-  rut?: boolean
+  /**
+   * 可以擲到「發情」特徵（monster_traits.json 的 requires）：true 是在哪裡都可能；
+   * field 是只在近郊、旅途、地下城的遭遇（特殊任務的戰鬥任務點要寫 rut 才擲，淫鬥場不擲）
+   */
+  rut?: boolean | 'field'
+  /** 魔物娘的樣子（設定「魔物娘」打開時，交給 AI 的名字與外觀換成這個；docs/MONSTERS.md 的「魔物娘」） */
+  girl?: MonsterGirl
   /** 一定帶著的特徵（例如層主天生巨大） */
   traits?: string[]
   /** 給 AI 的一句描述（外觀與習性） */
   desc?: string
   /** 上傳的圖示（data URL，只給這一隻怪物）；沒有時依種類與等級用內建的圖 */
   icon?: string
+}
+/** 怪物的魔物娘形態：name 是給 AI 的稱呼（例如「狼娘」），desc 是外觀與習性（成年女性的身體，保留原本種族的特徵） */
+export interface MonsterGirl {
+  name: string
+  desc: string
 }
 export type EncounterGroup = [string, number][]
 export type DungeonLayerId = 'outskirts' | 'shallow' | 'middle' | 'deep' | 'abyss'

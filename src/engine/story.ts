@@ -380,6 +380,7 @@ export function playNode(state: GameState, ref: string, option?: number, intent?
     }
     return startCombat(state, node.enemies ?? [], {
       story: { id: def.id, node: node.id }, scene: `${currentArea(state).name}・${node.title}`,
+      ...(node.rut ? { fieldRut: true } : {}),
       ...(foes.length ? { npcs: foes } : {}),
       ...(allies.length ? { allies } : {}),
       ...(intent ? { intent } : {}),

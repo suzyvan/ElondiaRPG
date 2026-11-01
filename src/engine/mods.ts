@@ -739,7 +739,10 @@ export function sanitizeEnemy(id: string, raw: Partial<EnemyMod>, custom: boolea
   if (loot.length) out.loot = loot
   if (raw.kind && ENEMY_KINDS[raw.kind]) out.kind = raw.kind
   if (raw.armed) out.armed = true
-  if (raw.rut) out.rut = true
+  if (raw.rut) out.rut = raw.rut === 'field' ? 'field' : true
+  const girlName = str(raw.girl?.name, 20)
+  const girlDesc = str(raw.girl?.desc, 300)
+  if (girlName && girlDesc) out.girl = { name: girlName, desc: girlDesc }
   const traits = (raw.traits ?? []).filter((t) => !!monsterTraits.traits[t])
   if (traits.length) out.traits = traits
   if (str(raw.desc, 200)) out.desc = str(raw.desc, 200)

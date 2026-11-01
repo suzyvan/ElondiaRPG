@@ -16,7 +16,7 @@
 | [roadmap/](roadmap/) | ROADMAP 項目的細節計畫，以及[已完成](roadmap/COMPLETED.md)的紀錄 | 計畫內自己的編號（S、M、E……） | 一個 R 項目細節太多時另開一份，只寫還沒做的部分 |
 | [ideas/](ideas/README.md) | 點子庫（依來源分成不同文件） | I | **還沒決定要不要做**的構想 |
 
-`roadmap/` 目前有：[LUST_COMBAT_PLAN](roadmap/LUST_COMBAT_PLAN.md)（R8）、[CHARACTER_LINES_PLAN](roadmap/CHARACTER_LINES_PLAN.md)（R9）、[MOBILE_UI_PLAN](roadmap/MOBILE_UI_PLAN.md)（R10）、[WORLD_EDITOR_PLAN](roadmap/WORLD_EDITOR_PLAN.md)（R11）、[HIGH_DUNGEONS_PLAN](roadmap/HIGH_DUNGEONS_PLAN.md)（R12）、[STORY_TIME_PLAN](roadmap/STORY_TIME_PLAN.md)（R13，附 `story_time_audit.json`）、[MONSTER_GIRL_PLAN](roadmap/MONSTER_GIRL_PLAN.md)（R14）、[COMPLETED](roadmap/COMPLETED.md)（已完成）。
+`roadmap/` 目前有：[LUST_COMBAT_PLAN](roadmap/LUST_COMBAT_PLAN.md)（R8）、[CHARACTER_LINES_PLAN](roadmap/CHARACTER_LINES_PLAN.md)（R9）、[MOBILE_UI_PLAN](roadmap/MOBILE_UI_PLAN.md)（R10）、[WORLD_EDITOR_PLAN](roadmap/WORLD_EDITOR_PLAN.md)（R11）、[HIGH_DUNGEONS_PLAN](roadmap/HIGH_DUNGEONS_PLAN.md)（R12）、[STORY_TIME_PLAN](roadmap/STORY_TIME_PLAN.md)（R13，附 `story_time_audit.json`）、[COMPLETED](roadmap/COMPLETED.md)（已完成）。
 
 ## 2. 流程
 
