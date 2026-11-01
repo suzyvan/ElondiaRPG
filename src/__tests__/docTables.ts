@@ -135,10 +135,10 @@ function monsterRow(m: EnemyDef, where: string): (string | number)[] {
     return `${abilities[id]?.name ?? id}${below !== undefined ? `（生命 ≤${below}%）` : ''}`
   }).join('、') || '—'
   const loot = [...new Set((m.loot ?? []).map((l) => `${l.item}${l.qty && l.qty > 1 ? `×${l.qty}` : ''}`))].join('、') || '—'
-  return [m.name, where, m.level, m.hp, attack, skills, resistText(m.resist), m.rut ? '✓' : '', `${loot}${m.armed ? '；可能掉裝備' : ''}`, m.desc ?? '']
+  return [m.name, where, m.level, m.hp, attack, skills, resistText(m.resist), m.rut === 'field' ? '野外' : m.rut ? '✓' : '', m.girl?.name ?? '', `${loot}${m.armed ? '；可能掉裝備' : ''}`, m.desc ?? '']
 }
 
-const MONSTER_HEAD = ['怪物', '位置', '等級', '生命', '普通攻擊', '技能', '抗性', '發情', '掉落', '描述']
+const MONSTER_HEAD = ['怪物', '位置', '等級', '生命', '普通攻擊', '技能', '抗性', '發情', '魔物娘', '掉落', '描述']
 const LAYERS = ['outskirts', 'shallow', 'middle', 'deep', 'abyss'] as const
 const BOSS_LAYERS = ['shallow', 'middle', 'deep', 'abyss'] as const
 const LAYER_NAME: Record<string, string> = { outskirts: '周邊', shallow: '淺層', middle: '中層', deep: '深層', abyss: '底層' }

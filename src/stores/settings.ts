@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { setContentFilters, setDefeatAdult, setDefeatAlways, setDefeatCompanion, setMascBodyContent, type DefeatAdultMode, type FilterTag } from '@/engine/content'
+import { setContentFilters, setDefeatAdult, setDefeatAlways, setDefeatCompanion, setMascBodyContent, setMonsterGirl, type DefeatAdultMode, type MonsterGirlMode, type FilterTag } from '@/engine/content'
 import { companionRules, progression } from '@/engine/data'
 import { gearRules } from '@/engine/gear'
 import { setLongRestGap } from '@/engine/rest'
@@ -123,6 +123,8 @@ interface SavedSettings {
   defeatCompanion: DefeatAdultMode
   /** 陽剛體型也能遇到「只給陰柔、中性」的成人內容（預設關） */
   mascBodyContent: boolean
+  /** 魔物娘：交給 AI 的怪物換成魔物娘（關閉、只在陽剛體型時、一律；預設關） */
+  monsterGirl: MonsterGirlMode
   /** 戰敗色情事件一定發生（不擲「敵人起意」） */
   defeatAlways: boolean
   /** 讀檔、開新遊戲前，先把目前（或還沒繼續）的進度存進自動存檔欄位 */
@@ -178,6 +180,7 @@ function defaults(): SavedSettings {
     defeatAdult: 'all',
     defeatCompanion: 'not_masc',
     mascBodyContent: false,
+    monsterGirl: 'off',
     defeatAlways: false,
     backupBeforeSwitch: true,
     language: 'zh-Hant',
@@ -218,10 +221,11 @@ function load(): SavedSettings {
     const { autoNarrate: _a, provider: _p, configs: _c, adult: _adult, ...rest } = saved
     const defeatAdult = (['all', 'not_masc', 'off'] as const).includes(saved.defeatAdult as DefeatAdultMode) ? saved.defeatAdult! : base.defeatAdult
     const defeatCompanion = (['all', 'not_masc', 'off'] as const).includes(saved.defeatCompanion as DefeatAdultMode) ? saved.defeatCompanion! : base.defeatCompanion
+    const monsterGirl = (['off', 'masc', 'all'] as const).includes(saved.monsterGirl as MonsterGirlMode) ? saved.monsterGirl! : base.monsterGirl
     // 舊版的居民、商店清單、談判方式跟著「AI 判定」一起開關：沿用當時的狀態
     const designWas = saved.aiJudge ?? false
     const aiDesign = Object.fromEntries(AI_DESIGNS.map((d) => [d.id, typeof saved.aiDesign?.[d.id] === 'boolean' ? saved.aiDesign[d.id] : designWas])) as Record<AiDesign, boolean>
-    return { ...base, ...rest, aiNarration, aiDesign, sources, routes, defeatAdult, defeatCompanion, contentFilters: { ...base.contentFilters, ...saved.contentFilters }, narrateKinds: { ...base.narrateKinds, ...saved.narrateKinds }, stepMinutes: { ...base.stepMinutes, ...saved.stepMinutes } }
+    return { ...base, ...rest, aiNarration, aiDesign, sources, routes, defeatAdult, defeatCompanion, monsterGirl, contentFilters: { ...base.contentFilters, ...saved.contentFilters }, narrateKinds: { ...base.narrateKinds, ...saved.narrateKinds }, stepMinutes: { ...base.stepMinutes, ...saved.stepMinutes } }
   } catch {
     return base
   }
@@ -254,6 +258,8 @@ export const useSettings = defineStore('settings', () => {
   watch(defeatCompanion, setDefeatCompanion, { immediate: true })
   const mascBodyContent = ref(initial.mascBodyContent === true)
   watch(mascBodyContent, setMascBodyContent, { immediate: true })
+  const monsterGirl = ref(initial.monsterGirl)
+  watch(monsterGirl, setMonsterGirl, { immediate: true })
   const defeatAlways = ref(initial.defeatAlways === true)
   watch(defeatAlways, setDefeatAlways, { immediate: true })
   const backupBeforeSwitch = ref(initial.backupBeforeSwitch !== false)
@@ -273,7 +279,7 @@ export const useSettings = defineStore('settings', () => {
   const panelOpacity = ref(initial.panelOpacity)
 
   watch(
-    [sources, routes, judgeWritesNarrative, narrateKinds, aiNarration, aiJudge, aiDesign, abilityRerolls, longRestGap, stepMinutes, creationGearBudget, logKeep, contentFilters, defeatAdult, defeatCompanion, mascBodyContent, defeatAlways, backupBeforeSwitch, language, uiLanguage, loreBudget, effects, background, backgroundBrightness, panelOpacity],
+    [sources, routes, judgeWritesNarrative, narrateKinds, aiNarration, aiJudge, aiDesign, abilityRerolls, longRestGap, stepMinutes, creationGearBudget, logKeep, contentFilters, defeatAdult, defeatCompanion, mascBodyContent, monsterGirl, defeatAlways, backupBeforeSwitch, language, uiLanguage, loreBudget, effects, background, backgroundBrightness, panelOpacity],
     () => {
       const data: SavedSettings = {
         sources: sources.value,
@@ -297,6 +303,7 @@ export const useSettings = defineStore('settings', () => {
         defeatAdult: defeatAdult.value,
         defeatCompanion: defeatCompanion.value,
         mascBodyContent: mascBodyContent.value,
+        monsterGirl: monsterGirl.value,
         defeatAlways: defeatAlways.value,
         backupBeforeSwitch: backupBeforeSwitch.value,
         language: language.value,
@@ -400,7 +407,7 @@ export const useSettings = defineStore('settings', () => {
   const logKeepLimit = () => Math.max(50, Math.min(5000, Math.floor(Number(logKeep.value) || 200)))
 
   return {
-    sources, routes, judgeWritesNarrative, narrateKinds, autoNarrates, aiNarration, aiJudge, aiDesign, judgesWithAi, designs, abilityRerolls, rerollLimit, longRestGap, stepMinutes, creationGearBudget, gearBudget, logKeep, logKeepLimit, contentFilters, defeatAdult, defeatCompanion, mascBodyContent, defeatAlways, backupBeforeSwitch, language, uiLanguage, loreBudget, effects, effectsLevel, background, backgroundBrightness, panelOpacity,
+    sources, routes, judgeWritesNarrative, narrateKinds, autoNarrates, aiNarration, aiJudge, aiDesign, judgesWithAi, designs, abilityRerolls, rerollLimit, longRestGap, stepMinutes, creationGearBudget, gearBudget, logKeep, logKeepLimit, contentFilters, defeatAdult, defeatCompanion, mascBodyContent, monsterGirl, defeatAlways, backupBeforeSwitch, language, uiLanguage, loreBudget, effects, effectsLevel, background, backgroundBrightness, panelOpacity,
     sourceReady, sourceIndex, sourceFor, ready, splitJudgeNarrative, narrationFeature, copySource, addSource, removeSource,
   }
 })

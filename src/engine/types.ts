@@ -37,6 +37,8 @@ export interface ActorState {
   personality?: string
   attitude?: string
   gender?: string
+  /** 怪物資料的 id（只有怪物有）：敘事附上這種怪物的外觀（narrator/monsters.ts），送出的報告裡拿掉 */
+  monster?: string
 }
 
 export interface Effect {
@@ -535,8 +537,8 @@ export interface StoryProgress {
 }
 
 export interface PendingDefeat {
-  /** 圍上來的敵人（名字與 NPC id） */
-  foes: { name: string; npc?: string }[]
+  /** 圍上來的敵人（名字與 NPC id；怪物是怪物資料的 id） */
+  foes: { name: string; npc?: string; monster?: string }[]
   /** 戰敗的地點與場景 */
   location: string
   scene: string

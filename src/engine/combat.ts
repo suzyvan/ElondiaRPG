@@ -228,6 +228,8 @@ export interface CombatOptions {
   intent?: string
   questId?: string
   story?: CombatState['story']
+  /** 特殊任務的戰鬥：「只在野外發情」（rut: field）的怪物也可以擲到發情（任務點寫了 rut） */
+  fieldRut?: boolean
   scene?: string
   cell?: CombatState['cell']
   /** 和 NPC（冒險者）戰鬥：他們的 id */
@@ -291,8 +293,9 @@ export function startCombat(state: GameState, group?: EncounterGroup, opts: Comb
       for (let i = 0; i < n; i++) {
         seen[defId] = (seen[defId] ?? 0) + 1
         const suffix = counts[defId]! > 1 ? ` ${String.fromCharCode(64 + seen[defId]!)}` : ''
-        // 淫鬥場的對手不會是年幼的
-        const f = fromEnemy(`e${idx++}`, defId, suffix, rng, bonus, diff, charmRutMult(state.location), opts.arena ? ['young'] : [])
+        // 淫鬥場的對手不會是年幼的；「只在野外發情」的怪物在淫鬥場、特殊任務的戰鬥（任務沒寫 rut 時）不擲發情
+        const fieldRut = enemies[defId]?.rut === 'field' && (!!opts.arena || (!!opts.story && !opts.fieldRut))
+        const f = fromEnemy(`e${idx++}`, defId, suffix, rng, bonus, diff, charmRutMult(state.location), [...(opts.arena ? ['young'] : []), ...(fieldRut ? ['rut'] : [])])
         if (g === 0 && defId === headliner) f.headliner = true
         fighters.push(f)
       }
@@ -2229,6 +2232,7 @@ export function finishCombat(state: GameState): Report {
   }))
   const others: ActorState[] = [...allies, ...foes.map((f): ActorState => ({
     id: f.id, name: f.name, level: f.level,
+    ...(f.defId && !f.npcId ? { monster: f.defId } : {}),
     hp: [combat.startHp[f.id] ?? f.maxHp, f.hp, f.maxHp],
     status: f.hp === 0 ? [capturing && f.npcId ? '被制伏' : f.lustDefeated ? (f.npcId ? '在高潮中屈服、被制伏' : '在高潮中屈服') : '死亡'] : f.fled ? ['逃走'] : f.statuses.map((s) => statusDef(s.id).name),
   }))]

@@ -15,6 +15,7 @@ import { characterBody } from '@/engine/look'
 import { continuityBefore, continuityForReport, type NarrationLike } from './continuity'
 import { activeEntries, type PromptConfig, type PromptTarget } from './promptConfig'
 import { toOutputScript } from './script'
+import { monsterGirlsIn, monstersText, reportFocus, reportMonsters } from './monsters'
 
 export interface ComposeOptions {
   config: PromptConfig
@@ -77,6 +78,8 @@ export function composeNarration(state: GameState | null, report: Report, o: Com
   const context = narrationContext(state, report)
   // 成人場景的敘事用套用到「成人場景」的條目
   const target = narrationTarget(report)
+  // 登場的怪物：外觀與習性（魔物娘的設定打開、這段經過的主角符合時換成魔物娘）
+  const monsters = monstersText(reportMonsters(report), monsterGirlsIn(state, reportFocus(report)))
   const prompt = buildPrompt(report, lore, {
     playerName: name,
     language: o.language,
@@ -89,6 +92,7 @@ export function composeNarration(state: GameState | null, report: Report, o: Com
     ...(o.config.defeatRules ? { defeatRules: o.config.defeatRules } : {}),
     ...(o.config.sceneRules ? { sceneRules: o.config.sceneRules } : {}),
     ...(bodyNote ? { bodyNote } : {}),
+    ...(monsters ? { monsters } : {}),
     lengthScale: o.config.lengthScale,
     ...(state && narrations && o.config.continuity ? { continuity: continuityForReport(state, narrations, report) } : {}),
     ...(o.config.variety ? { variety: varietyHint(report.report_id, report.narration?.mode === 'defeat_cliffhanger') } : {}),
@@ -104,6 +108,10 @@ export function composeJudge(state: GameState, p: ActionPending, o: ComposeOptio
   const lore = o.config.loreInJudge
     ? pickLore(o.lore, { text: actionLoreText(state, p), travel: false }, { adult, budgetChars: o.budgetChars, playerName: name })
     : undefined
+  // 戰敗事件的回應：圍上來的怪物的外觀（魔物娘的設定看被圍住的人）
+  const monsters = p.kind === 'defeat_event'
+    ? monstersText([...new Set((state.pendingDefeat?.foes ?? []).map((f) => f.monster).filter((m): m is string => !!m))], monsterGirlsIn(state, p.actor))
+    : ''
   const prompt = buildActionPrompt(state, p, judgeContext(state, p), {
     language: o.language,
     narrative: !o.splitNarrative,
@@ -113,6 +121,7 @@ export function composeJudge(state: GameState, p: ActionPending, o: ComposeOptio
     ...(o.config.defeatRules ? { defeatRules: o.config.defeatRules } : {}),
     ...(o.config.sceneRules ? { sceneRules: o.config.sceneRules } : {}),
     ...(bodyNote ? { bodyNote } : {}),
+    ...(monsters ? { monsters } : {}),
     ...(lore ? { lore } : {}),
     lengthScale: o.config.lengthScale,
     ...(narrations && o.config.continuity ? { continuity: continuityBefore(state, narrations, state.reports.length, p.time, adult) } : {}),

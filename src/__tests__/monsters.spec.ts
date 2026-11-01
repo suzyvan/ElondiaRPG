@@ -65,7 +65,7 @@ describe('monster traits', () => {
     const rng = new Rng(3)
     let ruts = 0
     for (let i = 0; i < 300; i++) {
-      expect(rollTraits(rng, enemies.goblin!, 1)).not.toContain('rut')
+      expect(rollTraits(rng, enemies.skeleton!, 1)).not.toContain('rut')
       if (rollTraits(rng, enemies.wolf!, 1).includes('rut')) ruts++
     }
     expect(enemies.wolf!.rut).toBe(true)
