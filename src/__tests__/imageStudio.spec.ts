@@ -97,6 +97,12 @@ describe('img2img requests', () => {
     expect(v4.use_coords).toBe(true)
     expect(v4.caption.char_captions.map((c) => [c.char_caption, c.centers[0]!.x])).toEqual([['girl, red hair', 0.3], ['girl, black hair', 0.7]])
     expect((scene.parameters.v4_negative_prompt as { caption: { char_captions: unknown[] } }).caption.char_captions).toHaveLength(2)
+
+    // V5 也用 v4_prompt 的格式（沒有時 NovelAI 回 500）；V3 以前的不帶
+    const v5 = novelAIBody({ ...cfg('novelai'), model: 'nai-diffusion-5-full' }, { prompt: '1girl', seed: 1 }) as typeof i2i
+    expect(v5.parameters.v4_prompt).toBeTruthy()
+    const v3 = novelAIBody({ ...cfg('novelai'), model: 'nai-diffusion-3' }, { prompt: '1girl', seed: 1 }) as typeof i2i
+    expect(v3.parameters.v4_prompt).toBeUndefined()
   })
 
   it('sends OpenAI edits as multipart with the base, references and mask', async () => {

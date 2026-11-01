@@ -58,7 +58,13 @@ function resetService() {
       </label>
       <label>服務網址 <input v-model="cfg.baseURL" /></label>
       <ComfySettings v-if="image.service === 'comfyui'" />
-      <label v-else>模型 <input v-model="cfg.model" /></label>
+      <label v-else>模型 <input v-model="cfg.model" :list="image.service === 'novelai' ? 'nai-models' : undefined" /></label>
+      <datalist id="nai-models">
+        <option value="nai-diffusion-4-5-full" />
+        <option value="nai-diffusion-4-5-curated" />
+        <option value="nai-diffusion-5-full" />
+        <option value="nai-diffusion-5-curated" />
+      </datalist>
       <div v-if="image.service !== 'comfyui'" class="grid">
         <label>尺寸
           <select v-model="sizeKey">
