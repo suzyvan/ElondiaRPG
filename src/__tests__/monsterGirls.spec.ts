@@ -34,7 +34,7 @@ describe('monster girl data', () => {
   it('gives every monster that can be in rut a monster girl form (theme parks aside)', () => {
     const missing = all.filter((e) => e.rut && !park(e.id) && !e.girl).map((e) => e.id)
     expect(missing).toEqual([])
-    expect(all.filter((e) => e.girl).length).toBeGreaterThanOrEqual(140)
+    expect(all.filter((e) => e.girl).length).toBeGreaterThanOrEqual(145)
   })
 
   it('writes every monster girl as an adult woman', () => {
