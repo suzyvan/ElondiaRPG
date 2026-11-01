@@ -372,6 +372,9 @@ export const useGame = defineStore('game', () => {
       recordTurn(before, lastReport)
       saveSoon()
       const settings = useSettings()
+      // 第一次產生關係的人：插圖設定開了自動畫時，排隊畫他的形象圖（已經有的不畫）
+      const met = Object.keys(state.value.relationships ?? {}).filter((id) => !before.relationships?.[id])
+      if (met.length) usePortraits().autoPortraits(state.value, met)
       // 近況交給 AI 寫：每次擲骰時（這次有變化的人），或重逢時（身邊有還沒寫的人）
       if (settings.npcLife && settings.npcLifeAi === 'roll' && lived.length) void polishNews(lived)
       else if (settings.npcLife && settings.npcLifeAi === 'reunion') polishReunions()
