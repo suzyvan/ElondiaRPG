@@ -115,7 +115,7 @@ BASES = {
     'banner_spear': {"slot": "main_hand", "name": "戰旗長槍", "kind": "wood", "weapon": "banner_spear", "two_handed": True, "price": 500, "stats": {"save": 1}, "scale": W, "exclusive": True,
                      "desc": "旗手那面斷旗的旗桿，裝上了槍尖。舉起來的時候，身後的人就不會退。"},
     'echo_mail': {"slot": "body", "name": "回響鱗鎧", "kind": "metal", "armor": "echo_mail", "price": 7000, "scale": {"dr": "half"}, "exclusive": True,
-                  "desc": "守城將軍穿了兩百年的鎧甲，每一片甲葉上都留著一道不同時代的刀痕。"},
+                  "desc": "那一戰裡最後一個守軍穿了兩百年的鎧甲，戰役每重演一次，甲葉上就多一道不同時代的刀痕。"},
     'glance_bow': {"slot": "main_hand", "name": "殘光長弓", "kind": "wood", "weapon": "glance_bow", "two_handed": True, "price": 800, "scale": W, "exclusive": True,
                    "desc": "用「那一眼」照過的木頭做的長弓，射出去的箭帶著一道冷光。"},
     'chronicle_tome': {"slot": "off_hand", "name": "編年之書", "kind": "cloth", "price": 600, "stats": {"save": 1, "hit": 1}, "scale": {"save": "half", "hit": "half"}, "exclusive": True,

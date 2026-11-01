@@ -16,7 +16,7 @@ import {
 import { applyEffects, type RewardEffect } from './effects'
 import { formatMoney } from './money'
 import { findKind } from './grid'
-import { gearName, gearPrice, gearRules, randomGear, registerGear, sanitizeGearSpec, shiftRarity } from './gear'
+import { gearName, gearPrice, gearRules, gearSellCap, gearSpecOf, randomGear, registerGear, sanitizeGearSpec, shiftRarity } from './gear'
 import { askingPrice, generateNpc, npcRecord, slavePrice, weightedPick } from './npcs'
 import { addAffinity, pcOf } from './party'
 import { ensureRelationship } from './social'
@@ -315,7 +315,14 @@ export function sellPrice(state: GameState, key: string, name: string): number |
   const value = itemValue(state, name)
   if (!cat || value === undefined || !shopDef(type).buys.includes(cat) || isUniqueItem(state, name)) return null
   const ratio = cat === 'material' ? itemRules.material_sell_ratio : itemRules.sell_ratio
-  return Math.max(1, Math.floor(value * ratio * locationMult(state) * (1 + discount(state, key) / 2) * (1 + reputationBand(state).sell) * pcTagMult(pcOf(state), 'sell_mult')))
+  const price = Math.max(1, Math.floor(value * ratio * locationMult(state) * (1 + discount(state, key) / 2) * (1 + reputationBand(state).sell) * pcTagMult(pcOf(state), 'sell_mult')))
+  return capSale(state, name, price)
+}
+
+/** 裝備賣出（收購、拿來抵價、寄賣）最多拿到成本的 10 倍（gear.ts 的 gearCost）：打造品與高等地下城的掉落不會變成印鈔機 */
+export function capSale(state: GameState, name: string, price: number): number {
+  const cap = gearSellCap(gearSpecOf(state, name))
+  return cap === undefined ? price : Math.min(price, cap)
 }
 
 // ---- 交易 ----
@@ -562,7 +569,7 @@ export function applyAiDeals(state: GameState, type: ShopType, raw: unknown): nu
         const name = clip(x.name, 20)
         const qty = Math.max(1, Math.min(10, Math.round(num(x.qty) || 1)))
         gives.push({ type: 'item', name, qty })
-        itemsGiven += (itemValue(state, name) ?? 0) * itemRules.sell_ratio * qty
+        itemsGiven += capSale(state, name, (itemValue(state, name) ?? 0) * itemRules.sell_ratio) * qty
       } else if (x.type === 'hours') {
         const h = Math.max(0.5, Math.min(4, num(x.amount) || 1))
         gives.push({ type: 'hours', amount: h })

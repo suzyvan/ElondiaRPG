@@ -185,6 +185,9 @@ export function rarityName(r: string): string {
   return gearRules.rarities[r]?.name ?? r
 }
 
+/** 底材抗性（scale 的 res）的上限，和附魔的抗性上限一樣 */
+export const RES_CAP = 0.5
+
 function scaled(s: Scale, bonus: number): number {
   switch (s) {
     case 'full': return bonus
@@ -192,7 +195,8 @@ function scaled(s: Scale, bonus: number): number {
     case 'up': return Math.ceil(bonus / 2)
     case 'third': return Math.floor(bonus / 3)
     case 'third_up': return Math.ceil(bonus / 3)
-    case 'res': return -Math.round(0.15 * bonus * 100) / 100
+    // 和附魔一樣最多 -0.5（第 5 級以上的寶石不再更高）
+    case 'res': return -Math.min(RES_CAP, Math.round(0.15 * bonus * 100) / 100)
   }
 }
 
@@ -277,6 +281,40 @@ export function gearPrice(spec: GearSpec): number {
   if (!base || !material) return 0
   const points = enchantPoints(spec.enchants)
   return Math.round(base.price * material.price * (1 + 0.5 * points))
+}
+
+/** 收購價的上限是成本的幾倍（成本見 gearCost） */
+export const SELL_COST_CAP = 10
+
+/** 一份打造材料最便宜的價格（items.json 有 forge 的物品）；沒有物品做得成這種材料時是 undefined */
+function forgeUnitPrice(material: string): number | undefined {
+  let best: number | undefined
+  for (const i of itemRules.items) {
+    if (!i.forge?.materials.includes(material) || !i.price_cc) continue
+    if (best === undefined || i.price_cc < best) best = i.price_cc
+  }
+  return best
+}
+
+/**
+ * 一件裝備的成本：照委託打造算，工錢（底材價格 × craft.fee）＋打造材料（份數 × 最便宜的打造材料）。
+ * 第一級材料由工匠提供，只算工錢。底材或材料不在目錄時回傳 undefined（不封頂）。
+ */
+export function gearCost(spec: Pick<GearSpec, 'base' | 'material'>): number | undefined {
+  const base = gearRules.bases[spec.base]
+  const material = gearRules.materials[spec.material]
+  if (!base || !material) return undefined
+  const craft = (gearRules as unknown as { craft: { fee: number[]; units: Record<string, number> } }).craft
+  const fee = base.price * (craft.fee[material.tier - 1] ?? material.tier)
+  if (material.tier <= 1) return fee
+  const units = base.two_handed ? craft.units.two_handed ?? 3 : craft.units[base.slot] ?? 1
+  return fee + units * (forgeUnitPrice(spec.material) ?? 0)
+}
+
+/** 賣出的價值上限（成本 × SELL_COST_CAP）；不是裝備或算不出成本時回傳 undefined */
+export function gearSellCap(spec: Pick<GearSpec, 'base' | 'material'> | undefined): number | undefined {
+  const cost = spec ? gearCost(spec) : undefined
+  return cost === undefined ? undefined : cost * SELL_COST_CAP
 }
 
 /** 附魔用掉的點數（gear.json 的 enchant_costs） */

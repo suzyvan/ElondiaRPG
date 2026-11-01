@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { finishCombat, startCombat } from '@/engine/combat'
 import { craftRules, dungeonEncounters, enemies, geography, itemDef, itemRules, lewdRules, specialMaps, stories } from '@/engine/data'
-import { forgeItemFor, gearName, gearRules, MATERIAL_KINDS, MAX_TIER, ordinaryBases, randomBases, randomGear, sanitizeGearSpec } from '@/engine/gear'
+import { forgeItemFor, gearCost, gearSellCap, gearStats, gearName, gearRules, MATERIAL_KINDS, MAX_TIER, ordinaryBases, randomBases, randomGear, sanitizeGearSpec } from '@/engine/gear'
 import { craftTarget, parseCraftTarget } from '@/engine/craft'
 import { GEAR_SHOP } from '@/engine/mods'
 import { Rng } from '@/engine/rng'
-import { crossLink, currentArea, currentCell, enterLocation, findKind, generateLayer, layerKey, moveTo, placeAt, storeArea } from '@/engine/grid'
+import { crossLink, currentArea, currentCell, enterLocation, findKind, generateLayer, layerKey, moveTo, placeAt, standOn, storeArea } from '@/engine/grid'
 import { mimicFor, PARK_LINK } from '@/engine/park'
 import { startJourney } from '@/engine/road'
 import { connectionOpen, enterSpecial } from '@/engine/specialMaps'
-import { newGame, withRng } from '@/engine/state'
+import { addItem, newGame, withRng } from '@/engine/state'
+import { sellPrice, shopKey } from '@/engine/trade'
 import { condMet, hasFlag, locationOpen, openFor, setFlag } from '@/engine/storyFlags'
 import { guildQuests } from '@/engine/town'
 import { reachable, shortestPath } from '@/engine/world'
@@ -335,5 +336,39 @@ describe('緋夢樂園底下的寶箱開歡愉系列', () => {
     }
     expect(found.length).toBeGreaterThan(0)
     for (const name of found) expect(seriesOf(name)!.series, name).toBe('pleasure')
+  })
+})
+
+describe('高等地下城實測的修正（2026-11-01）', () => {
+  it('禁果庭園、歡愉秘宮的怪（fg_、pp_）和緋夢樂園一樣不會擲到年幼', () => {
+    const ids = ['fg_fruit_eater', 'fg_boss_forbidden_tree', 'fg_drowned_knight', 'pp_endless_guest', 'pp_ascetic', 'pp_lonely_fancy']
+    for (let seed = 1; seed <= 150; seed++) {
+      const state = newGame({ name: '莉雅', race: 'human', classId: 'fighter', seed, birthplace: 'bloodplume' })
+      const combat = startCombat(state, ids.map((id) => [id, 1]) as never)
+      for (const c of combat.combatants.filter((x) => x.side === 'enemy')) expect(c.traits ?? [], c.defId).not.toContain('young')
+    }
+  })
+
+  it('底材的抗性（res）和附魔一樣最多 -0.5：第 6、7 級寶石不會讓單件到 ×0.25、×0.1', () => {
+    expect(gearStats({ base: 'pendant_fire', material: 'dragon_eye' }).resist.fire).toBe(-0.5)
+    expect(gearStats({ base: 'pendant_fire', material: 'chrono_crystal' }).resist.fire).toBe(-0.5)
+    expect(gearStats({ base: 'pendant_fire', material: 'mithril_jewel' }).resist.fire).toBe(-0.45)
+    expect(gearStats(itemDef('初啼耳墜')!.gear!).resist.lust).toBe(-0.5)
+  })
+
+  it('裝備最多賣到成本的 10 倍：成本＝工錢＋打造材料', () => {
+    expect(gearCost({ base: 'longsword', material: 'riftsteel' })).toBe(gearRules.bases.longsword!.price * 6 + 2 * itemDef('時隙鋼塊')!.price_cc!)
+    expect(gearCost({ base: 'longsword', material: 'iron' })).toBe(gearRules.bases.longsword!.price)
+    const state = game('soriel')
+    standOn(state, 'smithy')
+    const key = shopKey(state, 'smithy')
+    addItem(state.inventory, '回響鱗鎧', 1)
+    const cap = gearSellCap(itemDef('回響鱗鎧')!.gear!)!
+    expect(cap).toBe(10 * gearCost(itemDef('回響鱗鎧')!.gear!)!)
+    expect(sellPrice(state, key, '回響鱗鎧')).toBe(cap)
+    expect(sellPrice(state, key, '回響鱗鎧')!).toBeLessThan(itemDef('回響鱗鎧')!.price_cc! / 5)
+    // 便宜的裝備不受影響：照原本的收購價
+    addItem(state.inventory, '鐵長劍', 1)
+    expect(sellPrice(state, key, '鐵長劍')!).toBeLessThan(gearSellCap({ base: 'longsword', material: 'iron' })!)
   })
 })

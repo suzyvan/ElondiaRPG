@@ -671,8 +671,8 @@ function fromEnemy(id: string, defId: string, suffix: string, rng: Rng, bonus = 
     ...(isLayerBoss(defId) ? { boss: true } : {}),
     ...(coef.damage !== 1 ? { dmgMult: coef.damage } : {}),
   }
-  // 緋夢樂園的怪（lp_）與魔族不會是年幼的（和淫鬥場的對手一樣）
-  const noYoung = defId.startsWith('lp_') || def.kind === 'demon'
+  // 緋夢樂園與底下兩座遺跡的怪（lp_、禁果庭園 fg_、歡愉秘宮 pp_）與魔族不會是年幼的（和淫鬥場的對手一樣）
+  const noYoung = /^(lp|fg|pp)_/.test(defId) || def.kind === 'demon'
   applyTraits(c, rollTraits(rng, def, bonus, rutMult, noYoung && !exclude.includes('young') ? [...exclude, 'young'] : exclude))
   return c
 }

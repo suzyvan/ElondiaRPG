@@ -51,7 +51,7 @@ LIGHTING = {
 }
 # 入口廣場：西南、東南角往下的鐵柵（條件成立才打開，關著時是普通的地板）
 GATES = {'forbidden_garden': ((1, 6), {"flags": STAMPS}), 'pleasure_palace': ((9, 6), {"flags": [PARK_EPIC_DONE]})}
-PLAZA_DESC_EXTRA = '廣場南邊的兩個角落各有一道上了鎖的鐵柵，底下的石階一路往地底延伸——蜜菈說那是「員工通道」，可是從來沒有人看過員工從那裡進出。'
+PLAZA_DESC_EXTRA = '廣場南邊的兩個角落各有一道鐵柵，底下的石階一路往地底延伸——蜜菈說那是「員工通道」，可是從來沒有人看過員工從那裡進出。'
 
 # ---------------- 新的怪物技能 ----------------
 L = lambda dice='1d6', per=3: {"dice": dice, "type": "lust", "scale": {"dice": "1d6", "per": per}}
