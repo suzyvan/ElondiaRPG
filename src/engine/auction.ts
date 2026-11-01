@@ -11,7 +11,7 @@ import { commitReport, withRng } from './state'
 import { flagKey } from './storyFlags'
 import { baseReport } from './town'
 import { itemValue } from './interactions'
-import { isUniqueItem } from './trade'
+import { capSale, isUniqueItem } from './trade'
 import type { GameState, Report } from './types'
 
 export const auctionRules = () => lewdRules.auction
@@ -103,7 +103,7 @@ export function consign(state: GameState, name: string): Report {
   if (why) throw new Error(why)
   if (!consignable(state).includes(name)) throw new Error(`拍賣會不收「${name}」`)
   const r = auctionRules()
-  const price = itemValue(state, name)
+  const price = capSale(state, name, itemValue(state, name))
   const sold = withRng(state, (rng) => Math.round(price * (r.consign_ratio[0] + rng.next() * (r.consign_ratio[1] - r.consign_ratio[0]))))
   const fee = Math.round(sold * r.consign_fee)
   const report = baseReport(state, 'trade', 1)

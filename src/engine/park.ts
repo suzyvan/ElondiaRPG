@@ -112,7 +112,13 @@ export function parkDefeat(state: GameState, report: Report): boolean {
 
 /** 擬態寶箱：園區的寶箱打開時變成戰鬥的那一隻（依層） */
 export function mimicFor(area: Area): string | undefined {
-  return parkRules().mimics[String(area.layer ?? 1)]
+  const layer = String(area.layer ?? 1)
+  return parkRules().mimics_at?.[area.location]?.[layer] ?? parkRules().mimics[layer]
+}
+
+/** 打倒這個園區的最終層主會不會蓋集章卡（緋夢樂園底下的遺跡不蓋） */
+export function parkStamps(location: string): boolean {
+  return !parkRules().unstamped?.includes(location)
 }
 
 /** 地圖上這一格是不是園區的出口（畫面用） */

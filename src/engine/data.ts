@@ -55,6 +55,10 @@ export interface Location {
   note?: string
   /** 主題地下城的園區：從這張特殊地圖（入口廣場）的通道進出，沒有周邊、不能直接旅行到（docs/LUST_PARK.md） */
   park?: string
+  /** 劇情條件成立前不存在：旅行的目的地、委託、情報與給 AI 的地點都不列出（docs/DUNGEON_DESIGN.md 第 1 節） */
+  requires?: StoryCond
+  /** 這裡的寶箱與人形怪物掉的隨機裝備優先用這一套材料（gear.json 材料的 series；例如緋夢樂園底下的遺跡是 pleasure） */
+  material_series?: string
 }
 export interface Route {
   a: string
@@ -2293,6 +2297,10 @@ export interface ParkRules {
   /** 園區的寶箱有這個機率是擬態寶箱（打開時變成戰鬥）；mimics 依層（1 淺層、2 中層、3 深層）的怪物 */
   mimic_chance: number
   mimics: Record<string, string>
+  /** 個別園區自己的擬態寶箱（地點 id → 依層的怪物），覆蓋 mimics；例如緋夢樂園底下的遺跡（docs/LUST_PARK.md 第 8 節） */
+  mimics_at?: Record<string, Record<string, string>>
+  /** 不蓋集章卡的園區（地點 id）：打倒最終層主不立 park_stamp_ 旗標 */
+  unstamped?: string[]
   /** 園區的寶箱另外擲的物品 [名稱, 機率] */
   chest_items: [string, number][]
   /** 每個園區（地點 id）的專屬戰敗：AI 的成人場景、摘要、效果、經過的時間 */

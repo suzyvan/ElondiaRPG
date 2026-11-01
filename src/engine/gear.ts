@@ -26,6 +26,8 @@ export interface MaterialDef {
   armor?: Mods
   resist?: AffinityMap
   desc?: string
+  /** 材料的系列（第 6、7 級有 history 歷史、pleasure 歡愉兩套）：同一級有好幾種時，隨機裝備優先用地點的 material_series 那一套，沒有指定時用排在前面的 */
+  series?: string
 }
 
 /** 底材放的位置：一個欄位，或一組欄位（ring 兩個戒指、piercing 兩個穿孔飾品，見 gear.json 的 slot_groups） */
@@ -46,6 +48,8 @@ export interface BaseDef {
   desc?: string
   /** 束縛用的底材（主人強制裝備的項圈、鐐銬）：沒有加成，不能打造，不會出現在寶箱、掉落、建角與 AI 生成的裝備裡 */
   restraint?: boolean
+  /** 地下城專屬的底材（例如歷史裂縫的錯時刃）：只靠層主掉落取得，不能打造，不會出現在寶箱、商店、建角與 AI 生成的裝備裡（docs/ITEMS.md 第 4.5 節） */
+  exclusive?: boolean
   /** 玩家在世界裡上傳的圖示（data URL，見 itemIcons.ts）；沒有時用內建的底材圖 */
   icon?: string
   /** 服裝（regular 常規、anime 二次元、adult 成人向）：不出現在寶箱與掉落的隨機裝備；裁縫店每天另外上架 */
@@ -84,9 +88,9 @@ export function baseShown(id: string): boolean {
   return !!gearRules.bases[id]
 }
 
-/** 可以打造、隨機生成的底材（不含束縛用的） */
+/** 可以打造、隨機生成的底材（不含束縛用的、地下城專屬的） */
 export function ordinaryBases(): string[] {
-  return Object.entries(gearRules.bases).filter(([id, b]) => !b.restraint && baseShown(id)).map(([id]) => id)
+  return Object.entries(gearRules.bases).filter(([id, b]) => !b.restraint && !b.exclusive && baseShown(id)).map(([id]) => id)
 }
 
 /** 寶箱與掉落的隨機裝備用的底材（再去掉服裝） */
@@ -181,6 +185,9 @@ export function rarityName(r: string): string {
   return gearRules.rarities[r]?.name ?? r
 }
 
+/** 底材抗性（scale 的 res）的上限，和附魔的抗性上限一樣 */
+export const RES_CAP = 0.5
+
 function scaled(s: Scale, bonus: number): number {
   switch (s) {
     case 'full': return bonus
@@ -188,7 +195,8 @@ function scaled(s: Scale, bonus: number): number {
     case 'up': return Math.ceil(bonus / 2)
     case 'third': return Math.floor(bonus / 3)
     case 'third_up': return Math.ceil(bonus / 3)
-    case 'res': return -Math.round(0.15 * bonus * 100) / 100
+    // 和附魔一樣最多 -0.5（第 5 級以上的寶石不再更高）
+    case 'res': return -Math.min(RES_CAP, Math.round(0.15 * bonus * 100) / 100)
   }
 }
 
@@ -275,6 +283,40 @@ export function gearPrice(spec: GearSpec): number {
   return Math.round(base.price * material.price * (1 + 0.5 * points))
 }
 
+/** 收購價的上限是成本的幾倍（成本見 gearCost） */
+export const SELL_COST_CAP = 10
+
+/** 一份打造材料最便宜的價格（items.json 有 forge 的物品）；沒有物品做得成這種材料時是 undefined */
+function forgeUnitPrice(material: string): number | undefined {
+  let best: number | undefined
+  for (const i of itemRules.items) {
+    if (!i.forge?.materials.includes(material) || !i.price_cc) continue
+    if (best === undefined || i.price_cc < best) best = i.price_cc
+  }
+  return best
+}
+
+/**
+ * 一件裝備的成本：照委託打造算，工錢（底材價格 × craft.fee）＋打造材料（份數 × 最便宜的打造材料）。
+ * 第一級材料由工匠提供，只算工錢。底材或材料不在目錄時回傳 undefined（不封頂）。
+ */
+export function gearCost(spec: Pick<GearSpec, 'base' | 'material'>): number | undefined {
+  const base = gearRules.bases[spec.base]
+  const material = gearRules.materials[spec.material]
+  if (!base || !material) return undefined
+  const craft = (gearRules as unknown as { craft: { fee: number[]; units: Record<string, number> } }).craft
+  const fee = base.price * (craft.fee[material.tier - 1] ?? material.tier)
+  if (material.tier <= 1) return fee
+  const units = base.two_handed ? craft.units.two_handed ?? 3 : craft.units[base.slot] ?? 1
+  return fee + units * (forgeUnitPrice(spec.material) ?? 0)
+}
+
+/** 賣出的價值上限（成本 × SELL_COST_CAP）；不是裝備或算不出成本時回傳 undefined */
+export function gearSellCap(spec: Pick<GearSpec, 'base' | 'material'> | undefined): number | undefined {
+  const cost = spec ? gearCost(spec) : undefined
+  return cost === undefined ? undefined : cost * SELL_COST_CAP
+}
+
 /** 附魔用掉的點數（gear.json 的 enchant_costs） */
 export function enchantPoints(e?: GearSpec['enchants']): number {
   if (!e) return 0
@@ -359,11 +401,12 @@ export function equipped(name: string, spec: GearSpec): EquippedGear {
   return { name, spec }
 }
 
-/** 材料類型裡指定等級的材料（tier 1～5） */
-function materialOf(kind: MaterialKind, tier: number): string {
+/** 材料類型裡指定等級的材料（tier 1～7）；series 給了時，同一級優先用那一套 */
+function materialOf(kind: MaterialKind, tier: number, series?: string): string {
   const list = Object.entries(gearRules.materials).filter(([, m]) => m.kind === kind)
-  // 沒有剛好這一級的材料時，用最接近的（同樣接近時取低的）
-  const best = list.sort(([, a], [, b]) => Math.abs(a.tier - tier) - Math.abs(b.tier - tier) || a.tier - b.tier)[0]
+  // 沒有剛好這一級的材料時，用最接近的（同樣接近時取低的）；同一級好幾種時，地點指定的系列優先，其他照排列順序
+  const pref = (m: MaterialDef) => (series && m.series === series ? 0 : 1)
+  const best = list.sort(([, a], [, b]) => Math.abs(a.tier - tier) - Math.abs(b.tier - tier) || a.tier - b.tier || pref(a) - pref(b))[0]
   if (!best) throw new Error(`沒有${kind}類的材料`)
   return best[0]
 }
@@ -465,7 +508,7 @@ export function creationSlots(classId: string, race?: string): CreationSlot[] {
       const custom = fromClass.length
         ? [...customGear.bases].filter((id) => {
           const b = gearRules.bases[id]
-          return !!b && !b.restraint && baseFits(b.slot, slot, b) && (slot !== 'body' || !(b.kind in ARMOR_WEIGHT) || ARMOR_WEIGHT[b.kind]! <= (ARMOR_WEIGHT[t.pieces] ?? 2))
+          return !!b && !b.restraint && !b.exclusive && baseFits(b.slot, slot, b) && (slot !== 'body' || !(b.kind in ARMOR_WEIGHT) || ARMOR_WEIGHT[b.kind]! <= (ARMOR_WEIGHT[t.pieces] ?? 2))
         })
         : []
       // 上身另外可以選服裝（不能比職業的護甲類型重：比基尼鎧甲是金屬、皮革緊身衣是皮革）
@@ -478,7 +521,7 @@ export function creationSlots(classId: string, race?: string): CreationSlot[] {
     }
     // 頭、腿等護具：不能比職業的護甲類型重（布 < 皮革 < 金屬）；飾品不限
     const bases = Object.entries(gearRules.bases)
-      .filter(([id, b]) => !b.restraint && baseShown(id) && baseFits(b.slot, slot, b) && (!(b.kind in ARMOR_WEIGHT) || ARMOR_WEIGHT[b.kind]! <= (ARMOR_WEIGHT[t.pieces] ?? 2)))
+      .filter(([id, b]) => !b.restraint && !b.exclusive && baseShown(id) && baseFits(b.slot, slot, b) && (!(b.kind in ARMOR_WEIGHT) || ARMOR_WEIGHT[b.kind]! <= (ARMOR_WEIGHT[t.pieces] ?? 2)))
       .map(([id]) => id)
     if (bases.length) out.push({ slot, template: false, bases })
   }
@@ -587,7 +630,8 @@ function rollTier(rng: Rng, kind: MaterialKind, level: number): number {
   const r = rng.next()
   let tier = r < l.top ? top : r < l.top + l.below ? top - 1 : top - 2
   tier = Math.max(1, tier)
-  if (tier === 5 && !rng.chance(l.legendary)) tier = 4
+  // 第 5 級以上是傳說材料：大多降回第 4 級
+  if (tier >= 5 && !rng.chance(l.legendary)) tier = 4
   return tier
 }
 
@@ -759,7 +803,7 @@ export function sanitizeGearSpec(raw: unknown, limits: GearLimits): GearSpec | u
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
   const base = limits.base ?? findBase(r.base ?? r.slot)
   // 束縛用的底材不給 AI 用
-  if (!base || gearRules.bases[base]!.restraint) return undefined
+  if (!base || gearRules.bases[base]!.restraint || gearRules.bases[base]!.exclusive) return undefined
   const kind = gearRules.bases[base]!.kind
   let material = limits.material ?? findMaterial(r.material, kind) ?? materialOf(kind, 1)
   if (gearRules.materials[material]!.level > limits.maxLevel) {
@@ -866,10 +910,10 @@ export function rollEnchants(base: string, points: number, rng: Rng, elements: s
 // ---- 寶箱與掉落 ----
 
 /** 依等級隨機生成一件裝備（寶箱、人形怪物的掉落）：底材平均挑，材料依等級，有機會高一級稀有度並附魔 */
-export function randomGear(rng: Rng, level: number, bases = randomBases()): GearSpec {
+export function randomGear(rng: Rng, level: number, bases = randomBases(), series?: string): GearSpec {
   const base = rng.pick(bases)
   const kind = gearRules.bases[base]!.kind
-  const material = materialOf(kind, rollTier(rng, kind, level))
+  const material = materialOf(kind, rollTier(rng, kind, level), series)
   const spec: GearSpec = { base, material }
   if (rng.chance(gearRules.drops.bump)) {
     const rarity = shiftRarity(gearRules.materials[material]!.rarity, 1)
@@ -881,11 +925,14 @@ export function randomGear(rng: Rng, level: number, bases = randomBases()): Gear
 }
 
 /** 某一類型、某一級的打造材料（items.json 有 forge 的物品，挑最便宜的） */
-export function forgeItemFor(kind: MaterialKind, tier: number): string | undefined {
-  const material = materialOf(kind, tier)
+export function forgeItemFor(kind: MaterialKind, tier: number, series?: string): string | undefined {
+  const material = materialOf(kind, tier, series)
   return itemRules.items
     .filter((i) => i.forge?.materials.includes(material))
     .sort((a, b) => a.price_cc - b.price_cc)[0]?.name
 }
 
 export const MATERIAL_KINDS: MaterialKind[] = ['metal', 'leather', 'cloth', 'wood', 'jewel']
+
+/** 材料等級的上限（第 6、7 級只從 Lv.13～20 的地下城取得；打造的工錢、DC 與工藝等級都到這一級） */
+export const MAX_TIER = 7

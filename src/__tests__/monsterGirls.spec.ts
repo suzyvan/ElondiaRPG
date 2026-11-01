@@ -20,7 +20,7 @@ afterEach(() => {
 })
 
 const all = Object.values(enemies)
-const park = (id: string) => id.startsWith('lp_')
+const park = (id: string) => /^(lp|fg|pp)_/.test(id)
 const options = () => ({ config: defaultPromptConfig(), lore: loreItems(worldbook as unknown as Worldbook, {}, []), budgetChars: 20000, language: 'zh-Hant' as const })
 
 function game(body?: 'masc' | 'fem'): GameState {

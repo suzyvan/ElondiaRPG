@@ -9,6 +9,7 @@ import { nearbyPlaces } from '@/engine/intel'
 import { ENEMY_KINDS } from '@/engine/mods'
 import type { GameState } from '@/engine/types'
 import { shortestPath } from '@/engine/world'
+import { openFor } from '@/engine/storyFlags'
 
 const TYPE_NAME: Record<string, string> = {
   capital: '王都', city: '城市', town: '城鎮', village: '村莊', port: '港口', outpost: '哨站', fortress: '要塞', dungeon: '地下城',
@@ -32,7 +33,7 @@ export function worldFacts(state: GameState): string {
   const region = regionById(here.region)
   const places = geography.locations
     .filter((l) => l.id !== here.id)
-    .map((l) => ({ l, path: shortestPath(here.id, l.id) }))
+    .map((l) => ({ l, path: shortestPath(here.id, l.id, openFor(state)) }))
     .filter((x): x is { l: typeof x.l; path: NonNullable<typeof x.path> } => !!x.path && (x.l.region === here.region || x.path.days[1] <= 7))
     .sort((a, b) => a.path.days[0] - b.path.days[0])
     .slice(0, MAX_PLACES)
@@ -41,7 +42,7 @@ export function worldFacts(state: GameState): string {
 
   // 怪物：附近（這裡的近郊、7 天內的地下城）每一層的遭遇表；淺的先列（各地下城的周邊、淺層比某一座的底層常被問到）
   const where = new Map<string, string[]>()
-  for (const p of [...nearbyPlaces(here.id)].sort((a, b) => a.tier - b.tier)) {
+  for (const p of [...nearbyPlaces(here.id, openFor(state))].sort((a, b) => a.tier - b.tier)) {
     const label = p.layer ? `${locationById(p.location).name}・${DUNGEON_LAYER_NAME[p.layer]}` : `${locationById(p.location).name}近郊`
     for (const [m] of p.table.flat()) {
       const list = where.get(m) ?? []

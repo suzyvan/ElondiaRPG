@@ -86,7 +86,7 @@ export function parseCraftTarget(target?: string): { base: string; material: str
   const [base, material] = (head ?? '').split(':')
   if (!base || !material || !gearRules.bases[base] || !gearRules.materials[material]) throw new Error('請選擇要打造的裝備與材料')
   if (gearRules.bases[base]!.kind !== gearRules.materials[material]!.kind) throw new Error('這種材料不能拿來做這件裝備')
-  if (gearRules.bases[base]!.restraint) throw new Error(`${gearRules.bases[base]!.name}不能打造`)
+  if (gearRules.bases[base]!.restraint || gearRules.bases[base]!.exclusive) throw new Error(`${gearRules.bases[base]!.name}不能打造`)
   const aux = rest.map((x) => {
     const i = x.lastIndexOf('*')
     return { name: i >= 0 ? x.slice(0, i) : x, qty: Math.max(1, Math.round(Number(i >= 0 ? x.slice(i + 1) : 1)) || 1) }

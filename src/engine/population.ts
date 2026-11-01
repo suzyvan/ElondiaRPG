@@ -88,7 +88,8 @@ export function buildHaunts(rng: Rng, kind: NpcKind, tags: string[], loc: Locati
   }
 
   const dungeonWeight = weights.dungeon ?? 0
-  const dungeons = neighbors(loc.id).filter((id) => !isSettlement(id))
+  // 劇情條件成立才出現的地下城（requires）不算：還沒開放就有冒險者在裡面出沒會說不通
+  const dungeons = neighbors(loc.id).filter((id) => !isSettlement(id) && !locationById(id).requires)
   if (kind === 'adventurer' && dungeonWeight > 0 && dungeons.length) {
     const [lo, hi] = kindDef.dungeon_haunts ?? [1, 1]
     const pool = [...dungeons]

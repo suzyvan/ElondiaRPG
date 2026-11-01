@@ -10,6 +10,7 @@ import {
 } from './data'
 import { gearKnown, gearRules, gearSpecOf, gearStats, missingWear, slotName, slotsFor, syncGear, wearName } from './gear'
 import { addIntel, intelPlace, makePoint, nearbyPlaces, placesAt } from './intel'
+import { openFor } from './storyFlags'
 import { gainCondition, pcOf } from './party'
 import { toolDef } from './tools'
 import { roll } from './rng'
@@ -91,7 +92,7 @@ export function readIntelItem(state: GameState, name: string): Report {
     q.flags = { ...(q.flags ?? {}), lead: true }
     text = `找到委託「${q.title}」的線索（委託的檢定 +5）`
   } else {
-    const places = spec.location ? placesAt(spec.location, spec.layer) : nearbyPlaces(state.location)
+    const places = spec.location ? placesAt(spec.location, spec.layer) : nearbyPlaces(state.location, openFor(state))
     if (!places.length) throw new Error('看不出這份情報說的是哪裡')
     const it = withRng(state, (rng) => {
       const p = rng.pick(places)

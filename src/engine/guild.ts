@@ -4,6 +4,7 @@
 import { guildRankFor } from './character'
 import { dungeonEncounters, enemies, locationById, parkPlaza, progression, questXpRules, BOSS_LAYER_IDS, type BossLayerId } from './data'
 import { layerName, layerRanks, RANK_ORDER, rewardRange } from './materialQuests'
+import { locationOpen } from './storyFlags'
 import { shortestPath } from './world'
 import type { GameState, GuildRank, GuildState, Quest } from './types'
 
@@ -69,26 +70,33 @@ export function promotionStatus(state: GameState): PromotionStatus {
   }
 }
 
-/** 晉升考核的委託（已發出、還沒完成的） */
+/** 接下的晉升考核（進行中或完成了、還沒交付的；同時只能接一個） */
 export function examQuest(state: GameState): Quest | undefined {
   const id = guildOf(state).exam
-  return id ? state.quests.find((q) => q.id === id && q.status !== 'completed') : undefined
+  return id ? state.quests.find((q) => q.id === id && (q.status === 'accepted' || q.status === 'ready')) : undefined
+}
+
+/** 這座城的公會發出、還沒接的晉升考核（目前要考的階級） */
+export function examOffer(state: GameState, location = state.location): Quest | undefined {
+  const next = promotionStatus(state).next
+  return state.quests.find((q) => isExam(q) && q.giver === location && q.rank === next && q.status === 'available')
 }
 
 /**
- * 在公會發晉升考核（符合資格、還沒有考核時）：討伐階級相符的層主，優先找近的地下城；
- * 找不到時改成清剿階級最接近的某座地下城的某一層
+ * 在這座城的公會發晉升考核（符合資格、這裡還沒有時）：討伐階級相符的層主，優先找離這座城近的地下城；
+ * 找不到時改成清剿階級最接近的某座地下城的某一層。
+ * 冒險者的階級各地通用：每座城的公會各發一個（目標在各自附近），玩家選一個接；交付在任何一座公會都可以
  */
 export function postExam(state: GameState): Quest | undefined {
-  const g = guildOf(state)
-  if (examQuest(state)) return examQuest(state)
   const status = promotionStatus(state)
   if (!status.eligible || !status.next) return undefined
+  const here = examOffer(state) ?? state.quests.find((q) => isExam(q) && q.giver === state.location && q.rank === status.next && q.status !== 'completed')
+  if (here) return here
   const target = status.next
   const want = RANK_ORDER.indexOf(target)
   const distance = (id: string) => shortestPath(state.location, id)?.days[1] ?? 999
   // 園區（主題地下城）不出考核：不能直接旅行到
-  const bosses = Object.entries(dungeonEncounters).filter(([loc]) => !parkPlaza(loc)).flatMap(([loc, enc]) =>
+  const bosses = Object.entries(dungeonEncounters).filter(([loc]) => !parkPlaza(loc) && locationOpen(state, loc)).flatMap(([loc, enc]) =>
     BOSS_LAYER_IDS.map((layer) => {
       const id = (enc.bosses?.[layer] ?? (layer === 'deep' ? enc.boss : undefined))?.[0]?.[0]
       return id && enemies[id] ? { loc, layer, id, gap: Math.abs(RANK_ORDER.indexOf(guildRankFor(enemies[id]!.level)) - want) } : undefined
@@ -106,7 +114,7 @@ export function postExam(state: GameState): Quest | undefined {
     }
   } else {
     // 沒有相符的層主：清剿階級最接近的某座地下城的某一層
-    const layers = Object.keys(dungeonEncounters).filter((loc) => !parkPlaza(loc))
+    const layers = Object.keys(dungeonEncounters).filter((loc) => !parkPlaza(loc) && locationOpen(state, loc))
       .flatMap((loc) => layerRanks(loc).map((r) => ({ loc, layer: r.layer, gap: Math.abs(RANK_ORDER.indexOf(r.rank) - want) })))
       .sort((a, b) => a.gap - b.gap || distance(a.loc) - distance(b.loc))
     const pick = layers[0]
@@ -117,8 +125,14 @@ export function postExam(state: GameState): Quest | undefined {
     }
   }
   state.quests.push(quest)
-  g.exam = quest.id
   return quest
+}
+
+/** 接下晉升考核：同時只能接一個（換一個要先放棄原本的） */
+export function acceptExam(state: GameState, quest: Quest) {
+  const current = examQuest(state)
+  if (current && current.id !== quest.id) throw new Error(`已經接了「${current.title}」，要換一個先放棄原本的考核`)
+  guildOf(state).exam = quest.id
 }
 
 export const isExam = (q: Pick<Quest, 'flags'>) => !!q.flags?.exam
@@ -134,11 +148,12 @@ export function addMerit(state: GameState, n: number) {
   guildOf(state).merit = Math.max(0, guildOf(state).merit + n)
 }
 
-/** 通過考核：升階（commitReport 時） */
+/** 通過考核：升階（commitReport 時）；各地還沒接的舊考核撤下 */
 export function applyRankUp(state: GameState, to: GuildRank) {
   const g = guildOf(state)
   if (RANK_ORDER.indexOf(to) > RANK_ORDER.indexOf(g.rank)) g.rank = to
   delete g.exam
+  state.quests = state.quests.filter((q) => !(isExam(q) && q.status === 'available' && RANK_ORDER.indexOf(q.rank) <= RANK_ORDER.indexOf(g.rank)))
 }
 
 /** 放棄考核：之後回公會可以再考 */

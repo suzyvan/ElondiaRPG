@@ -18,9 +18,9 @@ describe('piercing and leg accessory slots', () => {
     expect(of('leg_accessory').some((n) => n.includes('腿環'))).toBe(true)
     expect(baseFits('piercing', 'piercing_2')).toBe(true)
     expect(baseFits('piercing', 'ring_1')).toBe(false)
-    // 每種底材都有五個材料等級的制式品，第四級以下在珠寶店賣
-    for (const [id, b] of Object.entries(gearRules.bases).filter(([, x]) => !x.restraint && !x.outfit && (x.slot === 'piercing' || x.slot === 'leg_accessory'))) {
-      const items = ['銅製', '銀製', '金製', '秘銀', '星辰石'].map((m) => itemDef(`${m}${b.name}`))
+    // 每種底材都有七個材料等級（第 6、7 級有歷史、歡愉兩套）的制式品，第四級以下在珠寶店賣（地下城專屬的底材沒有制式品）
+    for (const [id, b] of Object.entries(gearRules.bases).filter(([, x]) => !x.restraint && !x.outfit && !x.exclusive && (x.slot === 'piercing' || x.slot === 'leg_accessory'))) {
+      const items = ['銅製', '銀製', '金製', '秘銀', '星辰石', '時晶', '龍瞳石', '蜜晶', '魅瞳石'].map((m) => itemDef(`${m}${b.name}`))
       expect(items.every((i) => i?.gear?.base === id), b.name).toBe(true)
       expect(items[0]!.tags).toContain('jeweler')
     }

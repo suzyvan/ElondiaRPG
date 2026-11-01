@@ -67,7 +67,7 @@ const TRAVEL_ONLY = [46]
 // 改由引擎實作或與遊戲 UI 衝突的條目：預設停用
 const EXCLUDED = new Set([1, 2, 3, 4, 8, 10, 11, 29, 30, 31])
 // 成人向條目：只在成人場景注入；其中 38、39 是敘事法則，成人場景時常駐
-const ADULT = new Set([16, 17, 18, 38, 39])
+const ADULT = new Set([16, 17, 18, 38, 39, 54])
 const ADULT_CONSTANT = new Set([38, 39])
 // 巨龍條目沒有關鍵字，以「龍」觸發
 const DRAGON = 45

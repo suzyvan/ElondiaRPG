@@ -13,7 +13,16 @@
     "scimitar": { "name": "彎刀", "dice": "1d6", "type": "slashing", "attr": "dex" },
     "dagger": { "name": "匕首", "dice": "1d4", "type": "piercing", "attr": "dex", "threat": -0.1 },
     "longbow": { "name": "長弓", "dice": "1d8", "type": "piercing", "attr": "dex", "threat": -0.15 },
-    "monk_fists": { "name": "武僧拳腳", "dice": "1d6", "type": "bludgeoning", "attr": "dex", "scale": { "5": "1d8", "11": "1d10", "17": "1d12" }, "natural": true }
+    "monk_fists": { "name": "武僧拳腳", "dice": "1d6", "type": "bludgeoning", "attr": "dex", "scale": { "5": "1d8", "11": "1d10", "17": "1d12" }, "natural": true },
+    "greatsword": { "name": "雙手劍", "dice": "2d6", "type": "slashing", "attr": "str", "threat": 0.1 },
+    "halberd": { "name": "長戟", "dice": "1d10", "type": "slashing", "attr": "str", "threat": 0.05 },
+    "spear": { "name": "長槍", "dice": "1d8", "type": "piercing", "attr": "str" },
+    "crossbow": { "name": "弩", "dice": "1d10", "type": "piercing", "attr": "dex", "threat": -0.15 },
+    "whip": { "name": "長鞭", "dice": "1d6", "type": "slashing", "attr": "dex", "threat": -0.05 },
+    "rift_blade": { "name": "錯時刃", "dice": "1d8", "type": "force", "attr": "dex", "threat": -0.05 },
+    "banner_spear": { "name": "戰旗長槍", "dice": "1d10", "type": "piercing", "attr": "str", "threat": 0.15 },
+    "glance_bow": { "name": "殘光長弓", "dice": "1d10", "type": "radiant", "attr": "dex", "threat": -0.1 },
+    "vine_whip": { "name": "禁果藤鞭", "dice": "1d6", "type": "slashing", "attr": "dex" }
   },
   "armors": {
     "none": { "name": "無", "evade": 0, "dr": 0, "threat": -0.1 },
@@ -23,6 +32,10 @@
     "bikini": { "name": "比基尼鎧甲", "evade": 2, "dr": 1, "threat": 0.05 },
     "chain": { "name": "鍊甲", "evade": -1, "dr": 2, "resist": { "slashing": -0.25 }, "threat": 0.05 },
     "chain_shield": { "name": "鍊甲與盾", "evade": -1, "dr": 3, "resist": { "slashing": -0.25 }, "threat": 0.15 },
-    "plate": { "name": "板甲", "evade": -3, "dr": 4, "resist": { "slashing": -0.25, "piercing": -0.25, "lightning": 0.25 }, "threat": 0.25 }
+    "plate": { "name": "板甲", "evade": -3, "dr": 4, "resist": { "slashing": -0.25, "piercing": -0.25, "lightning": 0.25 }, "threat": 0.25 },
+    "scale": { "name": "鱗甲", "evade": -2, "dr": 3, "resist": {"slashing": -0.25}, "threat": 0.15 },
+    "echo_mail": { "name": "回響鱗鎧", "evade": -1, "dr": 3, "resist": {"slashing": -0.25, "necrotic": -0.25}, "threat": 0.1 },
+    "fruit_corset": { "name": "禁果束衣", "evade": 1, "dr": 1, "resist": {"lust": -0.25} },
+    "glimmer_veil": { "name": "鱗光薄紗", "evade": 2, "dr": 0, "resist": {"lust": -0.25, "psychic": -0.25}, "threat": -0.1 }
   }
 }
