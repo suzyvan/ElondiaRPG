@@ -75,6 +75,37 @@ describe('npc activity table', () => {
     expect(hostileLines).toContain(npcActivity(state, p))
   })
 
+  it('keeps street lines in towns: no buying dinner at a stall in a dungeon or the outskirts', () => {
+    const state = game(6)
+    const town = currentArea(state)
+    const rec = withRng(state, (rng) => generateNpc(state, rng, { spot: 'tavern' }))
+    rec.tags = [...(rec.tags ?? []), 'traveler']
+    const i = town.cells.findIndex((c) => c.kind === 'floor')
+    const p = { ...peopleHere(state).find((x) => x.rec.id === rec.id)!, x: i % town.width, y: Math.floor(i / town.width) }
+    // 街上的活動（站在路上的規則）與只寫了城鎮的規則
+    const townOnly = new Set(npcActivities.rules.filter((r) => r.at?.includes('floor') || (r.area?.length === 1 && r.area[0] === 'settlement')).flatMap((r) => r.list))
+    for (const kind of ['dungeon', 'wild', 'road'] as const) {
+      const area = { ...town, key: `test/${kind}`, kind }
+      for (let d = 0; d < 6; d++) {
+        for (let h = 0; h < 24; h += 2) {
+          state.time.day = 1 + d
+          state.time.hour = h
+          const text = npcActivity(state, p, area)
+          expect(text, `${kind} ${h}h`).toBeTruthy()
+          expect(townOnly.has(text), `${kind} ${h}h：${text}`).toBe(false)
+        }
+      }
+    }
+    // 城裡照舊有街上的活動
+    const seen = new Set<string>()
+    for (let d = 0; d < 6; d++) for (let h = 0; h < 24; h += 2) {
+      state.time.day = 1 + d
+      state.time.hour = h
+      seen.add(npcActivity(state, p, town))
+    }
+    expect([...seen].some((t) => townOnly.has(t))).toBe(true)
+  })
+
   it('fills {place} with the name of the landmark or cell', () => {
     const state = game(3)
     const area = currentArea(state)
