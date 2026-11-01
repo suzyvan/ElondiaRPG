@@ -411,6 +411,29 @@ export const usePortraits = defineStore('portraits', () => {
     })
   }
 
+  // ---- 第一次產生關係時自動畫（插圖設定的 portraitAuto）：一張一張排隊 ----
+  let autoQueue: Promise<void> = Promise.resolve()
+  const autoQueued = new Set<string>()
+
+  /** 這些人第一次出現在人際關係裡：沒有形象圖（內建的或畫過的）就排隊畫一張 */
+  function autoPortraits(state: GameState, ids: string[]) {
+    const image = useImageSettings()
+    if (!image.portraitAuto || !image.ready()) return
+    for (const id of ids) {
+      const key = portraitKey(state, id)
+      if (autoQueued.has(key) || builtinPortrait(id)) continue
+      autoQueued.add(key)
+      autoQueue = autoQueue.then(async () => {
+        try {
+          if (await currentPortraitBlob(key)) return
+          await generate(state, id)
+        } finally {
+          autoQueued.delete(key)
+        }
+      })
+    }
+  }
+
   /** 以圖生圖的底圖：縮放成這個服務的尺寸 */
   async function initFrom(blob: Blob, service: ImageServiceId, strength: number, mask?: Blob): Promise<ImageInit> {
     const { width, height } = useImageSettings().sizeFor(service)
@@ -546,7 +569,7 @@ export const usePortraits = defineStore('portraits', () => {
 
   return {
     urls, records, jobs, versions, versionUrls, descs, imported,
-    load, upload, remove, describe, baseDescription, setDescription, generate, tweak, preprocessOnly, studioGenerate,
+    load, upload, remove, describe, baseDescription, setDescription, generate, autoPortraits, tweak, preprocessOnly, studioGenerate,
     loadVersions, useVersion, removeVersion, versionBlob, preprocess, render, withJob,
     cancel, clearError, countFor, exportFor, importFor, pruneExcept,
   }

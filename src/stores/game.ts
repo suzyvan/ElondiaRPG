@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { toSimplifiedText } from '@/engine/script'
 import { consign, placeBid } from '@/engine/auction'
 import { orderOutfit } from '@/engine/outfitTailor'
 import { fuseGear, splitGear } from '@/engine/fusion'
@@ -42,6 +43,7 @@ import * as slavery from '@/engine/slavery'
 import * as defeat from '@/engine/defeat'
 import * as social from '@/engine/social'
 import * as story from '@/engine/story'
+import * as npcLife from '@/engine/npcLife'
 import { editProfile, spendAttrPoint, type ProfilePatch } from '@/engine/character'
 import type { Attrs, AttrId } from '@/engine/data'
 import type { NewGameOptions } from '@/engine/state'
@@ -56,7 +58,7 @@ import * as garden from '@/engine/garden'
 import * as invention from '@/engine/invention'
 import type { DefeatLoot, Difficulty, GameState, GearSlot, LewdStat, Report, TattooPlace } from '@/engine/types'
 import {
-  buildNegotiationPrompt, buildRosterPrompt, buildShopPrompt, extractJson, splitSuggestions,
+  buildNegotiationPrompt, buildNewsPrompt, buildRosterPrompt, buildShopPrompt, extractJson, splitSuggestions,
 } from '@/narrator/judge'
 import type { Prompt } from '@/narrator/prompt'
 import { providerInfo, type ProviderId, type TokenUsage } from '@/narrator/providerInfo'
@@ -361,6 +363,8 @@ export const useGame = defineStore('game', () => {
       const result = fn(state.value)
       // 期限：逾期的委託與特殊任務（各自產生報告）
       deadlines.expireDeadlines(state.value)
+      // NPC 自己的日子：每 X 天替在乎的冒險者擲一次（npcLife.ts）
+      const lived = npcLife.tickNpcLife(state.value)
       // 離開了按過「稍候」的任務點：之後再來會再觸發
       story.forgetStoryWaits(state.value)
       // 日誌太長時把舊的封存（token 用量另外合計，見 logArchive.ts）
@@ -368,6 +372,12 @@ export const useGame = defineStore('game', () => {
       recordTurn(before, lastReport)
       saveSoon()
       const settings = useSettings()
+      // 第一次產生關係的人：插圖設定開了自動畫時，排隊畫他的形象圖（已經有的不畫）
+      const met = Object.keys(state.value.relationships ?? {}).filter((id) => !before.relationships?.[id])
+      if (met.length) usePortraits().autoPortraits(state.value, met)
+      // 近況交給 AI 寫：每次擲骰時（這次有變化的人），或重逢時（身邊有還沒寫的人）
+      if (settings.npcLife && settings.npcLifeAi === 'roll' && lived.length) void polishNews(lived)
+      else if (settings.npcLife && settings.npcLifeAi === 'reunion') polishReunions()
       const report = isReport(result) ? result : hasReport(result) ? result.report : undefined
       // 旁邊的人在做什麼：交給敘事當背景（不用 AI，見 activities.ts）
       if (report) noteBystanders(state.value, report)
@@ -454,6 +464,46 @@ export const useGame = defineStore('game', () => {
     if (!input) return
     redoInput.value = null
     await perform(input)
+  }
+
+  // ---- NPC 自己的日子（npcLife.ts）：近況交給 AI 寫 ----
+  const polishing = new Set<string>()
+
+  /** 請 AI 把這些人還沒寫的近況寫成一段（失敗時保留規則寫的短句） */
+  async function polishNews(ids: string[]) {
+    const s = state.value
+    const settings = useSettings()
+    if (!s || !settings.ready('life')) return
+    const items = ids.filter((id) => !polishing.has(id))
+      .map((id) => ({ id, news: npcLife.newsOf(s, id).filter((n) => !n.story) }))
+      .filter((x) => x.news.length)
+    const built = buildNewsPrompt(s, items)
+    if (!built) return
+    // 近況是給玩家看的正文：輸出簡體時整份提示詞轉成簡體（和敘事一樣，docs/I18N.md 第 4 節）
+    const prompt = settings.language === 'zh-Hans' ? { system: toSimplifiedText(built.system), user: toSimplifiedText(built.user) } : built
+    for (const x of items) polishing.add(x.id)
+    const src = settings.sourceFor('life')
+    try {
+      const { completeText } = await import('@/narrator/providers')
+      const raw = extractJson(await completeText(src.provider, src.config, prompt, undefined, (u) => addUsage(OTHER_USAGE, u, originOf('life', src)))) as { news?: { id: string; day: number; story: string }[] }
+      // 等 AI 的時候讀了別的檔：不要寫進去
+      if (state.value !== s) return
+      npcLife.applyNewsStories(s, Array.isArray(raw.news) ? raw.news : [])
+      save()
+    } catch (e) {
+      error.value = `AI 寫 NPC 近況失敗：${e instanceof Error ? e.message : String(e)}（先用簡短的近況）`
+    } finally {
+      for (const x of items) polishing.delete(x.id)
+    }
+  }
+
+  /** 重逢時才寫：身邊（含隊上）有還沒寫近況的人 */
+  function polishReunions() {
+    const s = state.value
+    if (!s?.npcLife || !Object.values(s.npcLife.news).some((list) => list.some((n) => !n.story))) return
+    const near = new Set([...s.party.map((m) => m.id), ...population.nearbyPeople(s).map((p) => p.rec.id)])
+    const ids = Object.keys(s.npcLife.news).filter((id) => near.has(id) && npcLife.newsOf(s, id).some((n) => !n.story))
+    if (ids.length) void polishNews(ids)
   }
 
   /** 動作前的一份複本（裡面混進響應式物件時改用 JSON） */
@@ -1248,6 +1298,9 @@ export const useGame = defineStore('game', () => {
       return move(dx, dy)
     },
     walkTo, stopWalk, walkTarget,
+    // NPC 自己的日子：關注、手動請 AI 寫近況
+    setFollowed: (id: string, on: boolean) => run((s) => npcLife.setFollowed(s, id, on)),
+    polishNews,
     goOutskirts: () => run((s) => grid.goOutskirts(s) ?? encounters.checkHostiles(s), { onMap: true }),
     returnToTown: () => run(grid.returnToTown, { onMap: true }),
     // 房子（homes.ts）

@@ -45,13 +45,24 @@ export function outfitRule(def: Pick<NpcDef, 'race' | 'gender' | 'tags' | 'occup
 const FIRST_MATERIAL: Record<MaterialKind, string> = { cloth: 'linen', leather: 'leather', metal: 'iron', jewel: 'copper', wood: 'oak' }
 
 /** 依規則替這個人挑的服裝（每個欄位一件，第一級材料） */
-export function npcOutfit(def: Pick<NpcDef, 'id' | 'race' | 'gender' | 'tags' | 'occupation'>): Partial<Record<GearSlot, EquippedGear>> {
+/** 第幾週（普通人每週換一套衣服；第 0 週和以前一樣，不加鹽） */
+export function outfitWeek(day: number): number {
+  return Math.max(0, Math.floor((day - 1) / 7))
+}
+
+/**
+ * day：給了時每週換一套（普通人用；冒險者的服裝生成時就存在角色資料裡，不換）。
+ * 照樣不用遊戲的亂數：同一個人同一週穿同一套
+ */
+export function npcOutfit(def: Pick<NpcDef, 'id' | 'race' | 'gender' | 'tags' | 'occupation'>, day?: number): Partial<Record<GearSlot, EquippedGear>> {
+  const week = day === undefined ? 0 : outfitWeek(day)
+  const salt = week > 0 ? `:w${week}` : ''
   const rule = outfitRule(def)
   const out: Partial<Record<GearSlot, EquippedGear>> = {}
   for (const [slot, list] of Object.entries(rule?.slots ?? {}) as [GearSlot, string[]][]) {
     const options = list.filter((b) => baseShown(b))
     if (!options.length) continue
-    const base = options[hash(`${def.id}:${slot}`) % options.length]!
+    const base = options[hash(`${def.id}:${slot}${salt}`) % options.length]!
     const material = FIRST_MATERIAL[gearRules.bases[base]!.kind]
     if (!gearRules.materials[material]) continue
     const spec = { base, material }

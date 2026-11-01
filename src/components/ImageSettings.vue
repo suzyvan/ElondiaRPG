@@ -131,6 +131,15 @@ function resetService() {
       </fieldset>
 
       <fieldset class="pre">
+        <legend class="small"><GameIcon name="user" :size="16" />形象插圖</legend>
+        <label class="check">
+          <input v-model="image.portraitAuto" type="checkbox" /> 第一次和 NPC 產生關係時自動畫他的形象圖
+          <Hint warn :width="320" text="人際關係裡第一次出現這個人時（認識、雇用、入隊、AI 判定認識了新的人……）畫一張形象圖，每個人只畫這一次；已經有形象圖（內建的或畫過的）就不畫。一次認識好幾個人時一張一張排隊畫。每一張都要花錢（選了預處理時另外花 token）；生圖服務沒設定好時不畫。開啟之前就認識的人不會補畫（在人際關係或角色詳情手動按「生成形象圖」）。" />
+        </label>
+        <p v-if="image.portraitAuto && !image.ready()" class="small warn-text">{{ info.name }} 還沒設定好：不會自動畫。</p>
+      </fieldset>
+
+      <fieldset class="pre">
         <legend class="small">
           <GameIcon name="notebook" :size="16" />日誌插圖
           <Hint text="冒險日誌每則底下的插圖按鈕（或下面的自動生成）：先用「插圖提示詞預處理」的模型來源把日誌整理成分鏡（誰在畫面上、站在哪、在做什麼），再照上面選的生圖服務與預處理的寫法出圖，掛在那則日誌下面。NovelAI 的 V4 模型可以分開描述每個人與位置；ChatGPT 會把登場角色的形象圖當參考圖；ComfyUI 接成一段提示詞，三人以上容易混在一起。" />

@@ -937,6 +937,8 @@ export interface GameState {
   intel?: Intel[]
   /** 怪物圖鑑：怪物 id → 聽說、遭遇、擊敗（bestiary.ts） */
   bestiary?: Record<string, BestiaryEntry>
+  /** NPC 自己的日子：上次擲骰的日子、近況、玩家關注的人（npcLife.ts） */
+  npcLife?: NpcLifeState
   /** 事件結果要求的移動（進入臨時地圖、改去別的地點），在報告提交之後執行 */
   pendingMove?: { side_map?: string; special_map?: string; travel_to?: string; /** 特殊任務的結果帶進臨時地圖 */ story?: string }
   /** 特殊任務按了「稍候」的任務點：任務點 → 當時的地方（離開那裡之後再來會再觸發） */
@@ -1035,4 +1037,28 @@ export interface Negotiation {
   result?: 'critical' | 'success' | 'partial' | 'fail' | 'fumble'
   /** 談判方式由 AI 生成 */
   ai?: boolean
+}
+
+/** NPC 自己的日子（npcLife.ts）：一則近況 */
+export interface NpcNews {
+  /** 擲骰的那一天 */
+  day: number
+  /** 規則寫的近況（一定有） */
+  text: string
+  /** AI 潤飾過的近況（有時優先顯示、交給 AI） */
+  story?: string
+  /** 這次升到的等級、換上的裝備、休養的地方（AI 潤飾時參考） */
+  level?: number
+  gear?: string
+  rest?: string
+  place?: string
+}
+
+export interface NpcLifeState {
+  /** 上一次擲骰的日子 */
+  last: number
+  /** 角色 id → 近況（新的在後） */
+  news: Record<string, NpcNews[]>
+  /** 玩家關注的人 */
+  followed?: string[]
 }
