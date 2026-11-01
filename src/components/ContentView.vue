@@ -954,7 +954,7 @@ function resetAll() {
           <span class="muted">只有自建或修改過的項目可以選。</span>
         </div>
         <ul class="plain rows">
-          <li v-for="r in rows" :key="r.key" :class="{ active: current === r.key }" @click="select(r.key)">
+          <li v-for="r in rows" :key="r.key" :class="{ active: current === r.key }" tabindex="0" @click="select(r.key)" @keydown.enter.self.prevent="select(r.key)">
             <input
               v-if="picking && r.status" type="checkbox" :checked="pickedKeys.has(refOf(r.key))" title="匯出這一項"
               @click.stop @change="togglePick(r.key, ($event.target as HTMLInputElement).checked)"
@@ -1076,6 +1076,10 @@ function resetAll() {
 .rows .name { flex: 1; min-width: 5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 說明讓位給名字：放不下時說明先縮（選取匯出多了勾選框時名字不會只剩一個字） */
 .note-r { white-space: nowrap; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* 選到（focus）或正在編輯的那一列顯示完整的名字與說明：放不下時換行，不截斷 */
+.rows li:is(:focus, :focus-within, .active) { flex-wrap: wrap; }
+.rows li:is(:focus, :focus-within, .active) :is(.name, .note-r) { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.rows li:focus-visible { outline: 2px solid var(--accent); }
 .rows li > input, .rows li > .tag { flex: none; }
 .row-ic { color: var(--accent); }
 .persist-warn { margin: 0; padding: 6px 10px; border: 1px solid var(--danger); border-radius: var(--radius); color: var(--danger); }

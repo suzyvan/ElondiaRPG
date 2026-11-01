@@ -93,7 +93,7 @@ watch([line, showFlags], () => void nextTick(measure))
       <div class="lines">
         <input v-model="search" placeholder="搜尋故事線、任務名稱或旗標" />
         <ul class="plain">
-          <li v-for="(l, i) in shown" :key="l.ids[0]" :class="{ active: line === l }" @click="pick = i">
+          <li v-for="(l, i) in shown" :key="l.ids[0]" :class="{ active: line === l }" tabindex="0" @click="pick = i" @keydown.enter.self.prevent="pick = i">
             <span class="name">{{ l.name }}</span><span class="muted small">{{ l.ids.length }}</span>
           </li>
           <li v-if="!shown.length" class="muted small">沒有符合的故事線。</li>
@@ -147,6 +147,9 @@ watch([line, showFlags], () => void nextTick(measure))
 .lines li:hover, .lines li.active { background: var(--panel-2); }
 .lines li.active { outline: 1px solid var(--accent); }
 .lines .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 選到（focus）或正在看的那一條顯示完整的名字 */
+.lines li:is(:focus, .active) .name { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.lines li:focus-visible { outline: 2px solid var(--accent); }
 .pane { display: grid; gap: 6px; min-width: 0; max-width: 100%; }
 .graph-bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
 .check { display: inline-flex; gap: 4px; align-items: center; }

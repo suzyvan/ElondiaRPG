@@ -5,7 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { buildWorkflow, newPreset, type ComfyPreset } from '@/narrator/comfy'
 import { IMAGE_SERVICES, type ImageServiceConfig, type ImageServiceId } from '@/narrator/imageInfo'
 import { novelAIBody, openAIEditForm, renderImage } from '@/narrator/imageProviders'
-import { composeScene, parseScenePlan, sceneCast, scenePrompt } from '@/narrator/sceneInfo'
+import { composeScene, parseScenePlan, sceneCast, sceneMulti, scenePrompt } from '@/narrator/sceneInfo'
 import { enterLocation } from '@/engine/grid'
 import { newGame } from '@/engine/state'
 import { useImageSettings } from '@/stores/image'
@@ -147,6 +147,8 @@ describe('log illustrations', () => {
     const p = scenePrompt(state, report as never, cast, { format: image.preprocessorFor('novelai'), multi: true })
     expect(p.system).toContain('Danbooru')
     expect(p.system).toContain('rating 一律 general')
+    // 登場的怪物只能寫在 scene 裡：要寫出種族特徵
+    expect(p.system).toContain('登場的怪物寫在 scene 裡，要寫出牠們的種族特徵')
     expect(p.user).toContain(cast[0]!.id)
   })
 
@@ -164,6 +166,14 @@ describe('log illustrations', () => {
     expect(nai.characters?.map((c) => c.x)).toEqual([0.3, 0.7])
     expect(composeScene(plan, 'comfyui', true).prompt).toBe('2girls, forest, girl, silver hair, girl, red hair')
     expect(composeScene(plan, 'openai', false).prompt).toContain('on the right: girl, red hair')
+    // V3 以前的 NovelAI 不能分開描述每個人：角色接進提示詞，不能被丟掉
+    expect(sceneMulti('novelai', 'nai-diffusion-4-5-full')).toBe(true)
+    expect(sceneMulti('novelai', 'nai-diffusion-5-full')).toBe(true)
+    expect(sceneMulti('novelai', 'nai-diffusion-3')).toBe(false)
+    expect(sceneMulti('comfyui', 'nai-diffusion-4-5-full')).toBe(false)
+    const v3 = composeScene(plan, 'novelai', true, sceneMulti('novelai', 'nai-diffusion-3'))
+    expect(v3.characters).toBeUndefined()
+    expect(v3.prompt).toBe('2girls, forest, girl, silver hair, girl, red hair')
   })
 })
 
