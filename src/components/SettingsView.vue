@@ -8,7 +8,7 @@ import { gearRules } from '@/engine/gear'
 import type { StepPlace } from '@/engine/grid'
 import mapsJson from '@data/world/maps.json'
 import { useGame } from '@/stores/game'
-import { AI_FEATURES, SOURCE_MAX, useSettings } from '@/stores/settings'
+import { AI_FEATURES, NPC_LIFE_AI, SOURCE_MAX, useSettings } from '@/stores/settings'
 import AiToggles from './AiToggles.vue'
 import ImageSettings from './ImageSettings.vue'
 import RuleFields from './RuleFields.vue'
@@ -265,6 +265,22 @@ function doReset() {
           <span class="lab">建角時挑裝備的預算（材料等級點數） <Hint :text="`0～${gearRules.creation.max_budget}，預設 ${gearRules.creation.default_budget}。職業的基本配備免費；把模板裝備換成更好的材料每升一級花 1 點，另外加的裝備花它的材料等級（第 ${gearRules.creation.max_tier} 級以內）。只影響之後建立的角色。`" /></span>
           <input v-model.number="settings.creationGearBudget" type="number" min="0" :max="gearRules.creation.max_budget" style="width: 100px" />
         </label>
+        <label class="check">
+          <input v-model="settings.npcLife" type="checkbox" /> NPC 會自己成長
+          <Hint text="你在乎的冒險者不在你身邊時也會過自己的日子：你在人際關係裡「關注」的人、留在家裡或寄放在酒館的夥伴、離隊的夥伴，以及親密度 30 以上的冒險者。每隔幾天擲一次：去了哪裡做什麼、升級（最多到主角的等級；固定 NPC 不升級）、換一件武器或護甲、受了點傷去休養（只是近況，隨時可以找他）。近況記在人際關係裡，AI 寫重逢的經過時也會知道。" />
+        </label>
+        <template v-if="settings.npcLife">
+          <label>
+            <span class="lab">每幾天擲一次 <Hint text="1～30，預設 3。間隔越長，每次的變化越多（升級、換裝的機率跟著提高）。" /></span>
+            <input v-model.number="settings.npcLifeDays" type="number" min="1" max="30" style="width: 100px" />
+          </label>
+          <label>
+            <span class="lab">近況交給 AI 寫 <Hint text="AI 依角色的性格、經歷與和你的共同記憶，把擲出來的近況寫成一段（數值照擲出來的，不會改）。每次擲骰時：一次寫完這次有變化的人；重逢時：見到他（或他回到隊上）時才寫，比較省；不用 AI：只有簡短的近況。用的是「模型」頁的「NPC 近況」來源。" /></span>
+            <select v-model="settings.npcLifeAi">
+              <option v-for="o in NPC_LIFE_AI" :key="o.id" :value="o.id">{{ o.name }}</option>
+            </select>
+          </label>
+        </template>
       </div>
     </section>
 

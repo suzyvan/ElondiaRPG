@@ -171,7 +171,7 @@ export function portraitSubject(state: GameState, id: string): PortraitSubject |
   const worn = wornGear(m ? m.gear : rec?.character?.gear)
   const gear = worn.names
   // 還沒有戰鬥資料的人（普通人、還沒登場的冒險者）：內容頁籤指定的裝備，沒有時依身分穿的服裝
-  const defGear = gear.length ? [] : rec?.gear ? Object.values(rec.gear).filter((g) => !!g).map((g) => gearName(g!)) : rec ? wornGear(npcOutfit(rec)).names : []
+  const defGear = gear.length ? [] : rec?.gear ? Object.values(rec.gear).filter((g) => !!g).map((g) => gearName(g!)) : rec ? wornGear(npcOutfit(rec, rec.class ? undefined : state.time.day)).names : []
   const tattoos = tattoosOf(m ?? rec?.character)
   return {
     id,
