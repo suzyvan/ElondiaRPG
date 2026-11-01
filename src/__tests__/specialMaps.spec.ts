@@ -186,13 +186,13 @@ describe('special maps', () => {
     const first = getArea(state, CISTERN)
     first.cells[0]!.done = true
     const def = specialMaps.sm_rhineburg_cistern!
-    const grid = def.grid!
-    def.grid = grid.map((r, y) => (y === 3 ? '#..R....#' : r))
+    // 和世界設定一樣換成一份新的定義（版本依定義記住，不會偵測原地修改）
+    specialMaps.sm_rhineburg_cistern = { ...def, grid: def.grid!.map((r, y) => (y === 3 ? '#..R....#' : r)) }
     try {
       expect(getArea(state, CISTERN).cells[0]?.done).toBeUndefined()
       expect(cellAt(getArea(state, CISTERN), 3, 3)?.kind).toBe('resource')
     } finally {
-      def.grid = grid
+      specialMaps.sm_rhineburg_cistern = def
     }
   })
 })

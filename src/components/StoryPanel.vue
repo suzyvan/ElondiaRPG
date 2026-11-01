@@ -2,7 +2,7 @@
 import ContentTagChips from './ContentTagChips.vue'
 import { computed } from 'vue'
 import { formatMoney } from '@/engine/money'
-import { nodesHere, nodesWaitingForTime, storyMaxCost, storyOffersHere, storyWearLocks } from '@/engine/story'
+import { activeNodes, nodesHere, nodesWaitingForTime, storyMaxCost, storyOffersHere, storyWearLocks } from '@/engine/story'
 import { DAY_PART_NAME, hoursUntil } from '@/engine/timeOfDay'
 import { useGame } from '@/stores/game'
 import StoryNodeCard from './StoryNodeCard.vue'
@@ -11,23 +11,27 @@ import GameIcon from './ui/GameIcon.vue'
 // 特殊任務：這裡可以接的任務（公會、身邊的固定 NPC），以及這裡的任務點
 const game = useGame()
 const s = computed(() => game.state!)
+// 「這裡的人」用畫面共用的那一份（game.here），進行中的任務點兩個清單共用一份：每走一步不用各自重算
 const offers = computed(() => {
   void s.value.time.minute
   void s.value.position
-  return storyOffersHere(s.value)
+  return storyOffersHere(s.value, game.here)
+})
+const active = computed(() => {
+  void s.value.time.minute
+  void s.value.flags
+  return activeNodes(s.value)
 })
 const nodes = computed(() => {
   void s.value.time.minute
   void s.value.position
-  void s.value.flags
-  return nodesHere(s.value)
+  return nodesHere(s.value, game.here, active.value)
 })
 // 站在任務點上、但時段不對的（只在白天或夜裡）：提醒要等，可以在原地等到那個時段
 const waiting = computed(() => {
   void s.value.time.minute
   void s.value.position
-  void s.value.flags
-  return nodesWaitingForTime(s.value)
+  return nodesWaitingForTime(s.value, game.here, active.value)
 })
 function waitHours(part: 'day' | 'night'): number {
   return Math.round(hoursUntil(s.value.time, part === 'night' ? 'night' : 'morning') * 10) / 10

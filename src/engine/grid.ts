@@ -816,8 +816,21 @@ export function generateSide(state: GameState, key: string, template: string, de
 
 // ---- 特殊地圖（special_maps.json，docs/SPECIAL_MAPS.md） ----
 
-/** 地圖定義的版本：版面與內容的設定改過時，存檔裡的地圖重新生成 */
+/**
+ * 地圖定義的版本：版面與內容的設定改過時，存檔裡的地圖重新生成。
+ * 站在特殊地圖裡時每次取得區域都要比一次，整份定義轉成文字很花時間：同一份定義在內容沒改過（contentRevision）時記住結果
+ */
+let versionCache: { rev: number; map: WeakMap<SpecialMapDef, string> } | undefined
 export function specialVersion(def: SpecialMapDef): string {
+  if (versionCache?.rev !== contentRevision()) versionCache = { rev: contentRevision(), map: new WeakMap() }
+  const known = versionCache.map.get(def)
+  if (known !== undefined) return known
+  const v = computeSpecialVersion(def)
+  versionCache.map.set(def, v)
+  return v
+}
+
+function computeSpecialVersion(def: SpecialMapDef): string {
   const { name: _n, desc: _d, location: _l, connections: _c, entry: _e, refresh: _r, ...layout } = def
   const text = JSON.stringify(layout)
   let h = 5381
