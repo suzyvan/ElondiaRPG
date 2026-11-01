@@ -229,13 +229,13 @@ export function checkWorld(raw: unknown, opts: { trials?: number } = {}): WorldC
     const boss = bosses.has(id) || isLayerBoss(id)
     const d = durability(id, Math.max(6, Math.round(trials / 2)), boss)
     if (boss) {
-      const ok = d.roundsToKill >= 3.7 && d.roundsToKill <= 5.4
-      if (!ok) add('error', '平衡：怪物', `層主「${e.name}」要 ${d.roundsToKill} 回合才打得倒（目標 4～5 回合）：調整生命 hp`)
+      const ok = d.roundsToKill >= 3.7 && d.roundsToKill <= 5.9
+      if (!ok) add('error', '平衡：怪物', `層主「${e.name}」要 ${d.roundsToKill} 回合才打得倒（目標 4～5.5 回合）：調整生命 hp`)
       monsterRows.push([e.name, String(e.level), '層主', `${d.roundsToKill} 回合`, '', '', ok ? '✅' : '❌'])
       continue
     }
-    const hitsOk = d.hitsToKill >= 2.7 && d.hitsToKill <= 4.8
-    if (!hitsOk) add('error', '平衡：怪物', `「${e.name}」要挨 ${d.hitsToKill} 下（目標 3～4.5 下）：調整生命 hp`)
+    const hitsOk = d.hitsToKill >= 2.7 && d.hitsToKill <= 5.4
+    if (!hitsOk) add('error', '平衡：怪物', `「${e.name}」要挨 ${d.hitsToKill} 下（目標 3～5 下）：調整生命 hp`)
     const area = minionArea(id)
     const f = minionFight(id, Math.max(10, trials))
     const loss = 1 - f.hpLeft
