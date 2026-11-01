@@ -4,7 +4,7 @@
 //   以及好感達到 AFFINITY_MIN 的冒險者。要有戰鬥職業；死了、敵對、被制伏、在隊上的不算。
 // - 什麼時候：每 X 天（設定，預設 3）擲一次；跨過幾次就擲幾次（最多 MAX_CATCH_UP 次，再久的直接跳過）。
 //   用「角色 id＋那一次的日子」的固定亂數：回退、重讀都一樣。
-// - 擲什麼：這段時間去了哪裡做什麼（一定有）；升級（上限是主角的等級；固定 NPC 不升級）、換一件武器或護甲、
+// - 擲什麼：這段時間去了哪裡做什麼（一定有）；升級（上限是主角的等級，落後越多越容易升：levelUpChance；固定 NPC 不升級）、換一件武器或護甲、
 //   受了點傷去休養（只是近況，不影響什麼，隨時可以找他）。
 // - 近況記在 state.npcLife.news（每人最多 NEWS_KEEP 則）：規則寫的短句，AI 開啟時另外潤飾成一段（story）。
 //   交給 AI 的人際關係裡附上最近的近況（social.ts 的 formatContext），重逢時 AI 會知道。
@@ -162,7 +162,8 @@ export function rollOnce(state: GameState, rec0: NpcRecord, day: number): boolea
     return c
   }
   // 升級：上限是主角的等級；固定 NPC 不升級（等級寫在資料裡，任務的戰鬥照那個設計）
-  if (!fixed && (rec0.character?.level ?? rec0.level) < pcLevel && rng.chance(Math.min(0.9, 0.35 * scale))) {
+  const level = rec0.character?.level ?? rec0.level
+  if (!fixed && level < pcLevel && rng.chance(levelUpChance(pcLevel - level, everyDays))) {
     const ch = character()
     gainXp(ch, Math.max(1, xpToNext(ch.level) - ch.xp), rng)
     settleLevelUp(ch)
@@ -195,6 +196,18 @@ export function rollOnce(state: GameState, rec0: NpcRecord, day: number): boolea
   list.push(news)
   if (list.length > NEWS_KEEP) list.splice(0, list.length - NEWS_KEEP)
   return true
+}
+
+/**
+ * 升級的機率：基本 LEVEL_BASE，間隔越長越高（每 3 天算一份，最多三份），再依落後主角幾級調整——
+ * 差一級 ×0.5、兩級 ×1、三級 ×1.5……最多 ×2.5：落後越多追得越快，快追上主角時很少升級。最高 50%。
+ * 每 3 天擲一次時：差 1 級 5%、2 級 10%、3 級 15%、4 級 20%、5 級以上 25%
+ */
+export const LEVEL_BASE = 0.1
+export function levelUpChance(gap: number, days: number): number {
+  if (gap <= 0) return 0
+  const scale = Math.min(3, days / 3)
+  return Math.min(0.5, LEVEL_BASE * scale * Math.min(2.5, gap * 0.5))
 }
 
 /** NPC 升級時自己做的選擇：能力挑第一個、屬性點加在職業的主屬性（和生成 NPC 一樣） */

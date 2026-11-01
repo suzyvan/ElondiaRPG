@@ -4,7 +4,7 @@ import { nextTick } from 'vue'
 import { enterLocation } from '@/engine/grid'
 import { generateNpc, npcRecord, registerNpc } from '@/engine/npcs'
 import {
-  AFFINITY_MIN, MAX_CATCH_UP, applyNewsStories, livingNpcs, newsOf, setFollowed, setNpcLife, tickNpcLife,
+  AFFINITY_MIN, MAX_CATCH_UP, applyNewsStories, levelUpChance, livingNpcs, newsOf, setFollowed, setNpcLife, tickNpcLife,
 } from '@/engine/npcLife'
 import { npcOutfit } from '@/engine/outfits'
 import { ensureRelationship, formatContext, selectContext, setAffinity } from '@/engine/social'
@@ -83,6 +83,18 @@ describe('NPC 自己的日子：擲骰', () => {
     expect(after.level).toBeLessThanOrEqual(state.party[0]!.level)
     expect(after.character!.level).toBe(after.level)
     expect(after.character!.pendingAbilityChoices).toBeUndefined()
+  })
+
+  it('levels up rarely, and faster the further behind the hero', () => {
+    expect(levelUpChance(0, 3)).toBe(0)
+    expect(levelUpChance(1, 3)).toBeCloseTo(0.05)
+    expect(levelUpChance(2, 3)).toBeCloseTo(0.1)
+    expect(levelUpChance(5, 3)).toBeCloseTo(0.25)
+    expect(levelUpChance(9, 3)).toBeCloseTo(0.25)
+    // 間隔越長越高，最多 50%
+    expect(levelUpChance(2, 9)).toBeGreaterThan(levelUpChance(2, 3))
+    expect(levelUpChance(9, 30)).toBe(0.5)
+    expect(levelUpChance(1, 1)).toBeLessThan(levelUpChance(1, 3))
   })
 
   it('never levels up fixed NPCs, but they still change gear and get news', () => {
