@@ -182,6 +182,8 @@ export interface Report {
     defeat_victim?: string
     /** 成人向的親密場景：這段經過是什麼，敘事會附上成人場景規則、在正文詳細描寫 */
     adult_scene?: string
+    /** 這段經過來自限定陰柔、中性主角的內容（特殊任務、事件、地標場景的 pc_body）：陽剛體型的主角玩到時，敘事附上照主角身體寫的說明（narrator 的 mascBodyNote） */
+    body_limited?: boolean
     /** 親密場景的主角不是主角本人時（派奴隸去娼館接客）：那個人的 id（慾望指標記在他身上） */
     adult_actor?: string
     /** 戰鬥中只有挑逗、剝衣（沒有人高潮或屈服）時的成人場景：一樣交給成人場景的寫手，但不算親密場景（淫亂不因此成長）。adult_scene 被別的場景換掉時就不再相同 */

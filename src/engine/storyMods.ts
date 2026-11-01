@@ -368,8 +368,8 @@ function node(v: unknown, i: number, used: Set<string>): StoryNode {
   const allies = (n.allies ?? []).map((a) => str(a, 60)).filter(Boolean)
   if (allies.length) out.allies = [...new Set(allies)]
   if (n.urgent) out.urgent = true
-  // 旅途上的任務點不限時段（旅途不能停下來等）
-  if ((n.hours === 'day' || n.hours === 'night') && out.at.where !== 'road') out.hours = n.hours
+  // 旅途上與臨時地圖裡的任務點不限時段（旅途不能停下來等、離開臨時地圖等於放棄）
+  if ((n.hours === 'day' || n.hours === 'night') && out.at.where !== 'road' && out.at.where !== 'side') out.hours = n.hours
   if (kind === 'check') out.check = check(n.check) ?? { attr: 'int', dc: 12 }
   if (kind === 'combat') {
     const g = group(n.enemies)

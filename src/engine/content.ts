@@ -45,6 +45,25 @@ export function defeatAlwaysOn(): boolean {
   return defeatAlways
 }
 
+/**
+ * 陽剛體型也能遇到「只給陰柔、中性」的成人內容（特殊任務、事件、地標場景的 pc_body）：預設關閉。
+ * 這些內容是照陰柔、中性的主角寫的；打開時敘事與判定另外提醒 AI 照主角的身體寫（narrator 的 mascBodyNote）
+ */
+let mascBodyContent = false
+
+export function setMascBodyContent(on: boolean) {
+  mascBodyContent = on
+}
+
+export function mascBodyContentOn(): boolean {
+  return mascBodyContent
+}
+
+/** 限定主角體型的內容（pc_body）現在給不給這位主角：沒有限定、體型在清單裡，或陽剛體型打開了上面的設定 */
+export function pcBodyAllowed(list: readonly string[] | undefined, body: 'masc' | 'fem' | 'andro'): boolean {
+  return !list?.length || list.includes(body) || (body === 'masc' && mascBodyContent)
+}
+
 /** 隊友的戰敗色情事件（主角不會遇到時，改由隊友遇到）：全部的隊友、男性形象的隊友不發生、關閉 */
 let defeatCompanionMode: DefeatAdultMode = 'not_masc'
 

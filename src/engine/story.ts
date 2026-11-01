@@ -22,14 +22,15 @@ import { wearLocks } from './inventory'
 import { formatMoney } from './money'
 import { npcRecord, registerNpc } from './npcs'
 import { joinParty, leaveParty, pcOf } from './party'
-import { presentHere } from './population'
+import { nearbyPeople, presentHere } from './population'
 import type { Rng } from './rng'
 import { addHours, commitReport, newReportId, withRng } from './state'
 import { applyTimeJump, dayPartOk, DAY_PART_NAME, hoursUntil } from './timeOfDay'
 import { addCounters, afterFrom, clampCounters, condMet, flagKey } from './storyFlags'
-import { tagsAllowed } from './content'
+import { pcBodyAllowed, tagsAllowed } from './content'
 import { characterBody } from './look'
 import { applyPendingMove, queueMove } from './road'
+import { restEventBlock } from './rest'
 import type { GameState, GameTime, NpcRecord, Report, StoryProgress } from './types'
 
 export function storyDef(id: string): StoryDef | undefined {
@@ -67,7 +68,7 @@ export function storyRankOk(state: GameState, def: Pick<StoryDef, 'rank'>): bool
 export function canStart(state: GameState, def: StoryDef): boolean {
   if (state.stories?.[def.id]) return false
   if (!tagsAllowed(def.tags)) return false
-  if (def.start.pc_body?.length && !def.start.pc_body.includes(characterBody(pcOf(state)))) return false
+  if (!pcBodyAllowed(def.start.pc_body, characterBody(pcOf(state)))) return false
   if (!storyRankOk(state, def)) return false
   if (def.start.min_level && pcOf(state).level < def.start.min_level) return false
   if (def.start.kind === 'npc' && def.start.npc && def.start.min_affinity !== undefined
@@ -81,11 +82,12 @@ export function canStart(state: GameState, def: StoryDef): boolean {
 export function storyOffersHere(state: GameState): StoryDef[] {
   const area = currentArea(state)
   const cell = currentCell(state)
+  const present = presence(state)
   return stories.filter((def) => {
     if (!canStart(state, def)) return false
     const s = def.start
     if (s.kind === 'guild') return area.kind === 'settlement' && cell.kind === 'guild' && (!s.location || s.location === area.location)
-    if (s.kind === 'npc') return !!s.npc && npcFree(state, s.npc) && !npcRecord(state, s.npc)!.hostile && presentHere(state, s.npc)
+    if (s.kind === 'npc') return !!s.npc && npcFree(state, s.npc) && !npcRecord(state, s.npc)!.hostile && present(s.npc)
     return false
   })
 }
@@ -99,7 +101,7 @@ export function storyNeedsLandmark(state: GameState, id: string): boolean {
   // 只看用到這個地標的任務（每走一步、每個地標都會問一次，掃全部任務太慢）
   return storiesAtLandmark(id).some((def) => {
     const p = state.stories?.[def.id]
-    if (p) return p.status === 'active' && !storyPaused(def) && def.nodes.some((n) => !p.done.includes(n.id) && atCell(n))
+    if (p) return p.status === 'active' && !storyPaused(state, def) && def.nodes.some((n) => !p.done.includes(n.id) && atCell(n))
     return canStart(state, def)
   })
 }
@@ -198,6 +200,7 @@ export function startStory(state: GameState, id: string, opts: { text?: string; 
   const locks = storyWearLocks(state, def)
   report.outcome = { result: 'success', summary: `接下特殊任務「${def.title}」：${def.summary}${locks ? `（${locks}）` : ''}`, tags: [...new Set([...(report.outcome.tags ?? []), '特殊任務'])] }
   report.narration = { ...report.narration, focus: [...(report.narration?.focus ?? []), text] }
+  if (def.start.pc_body?.length) report.narration = { ...report.narration, body_limited: true }
   if (opts.report) return report
   const committed = commitReport(state, report)
   refreshStoryMarkers(state)
@@ -208,9 +211,18 @@ export function startStory(state: GameState, id: string, opts: { text?: string; 
 
 export interface ActiveNode { def: StoryDef; node: StoryNode; ref: string }
 
-/** 任務的內容標籤在設定裡被關掉時暫停（成人向、NTR、男性對象……）：任務點不出現、不擋人，重新開啟後接著進行 */
-export function storyPaused(def: Pick<StoryDef, 'tags'>): boolean {
-  return !tagsAllowed(def.tags)
+/**
+ * 任務暫停的原因：內容標籤在設定裡被關掉（成人向、NTR、男性對象……），或主角的體型不符合任務的限定（pc_body：
+ * 「陽剛體型也能遇到」的設定關掉了，或在角色設定改了體型）。任務點不出現、不擋人，重新開啟（改回來）後接著進行
+ */
+export function storyPauseReason(state: GameState, def: Pick<StoryDef, 'tags' | 'start'>): 'tags' | 'body' | undefined {
+  if (!tagsAllowed(def.tags)) return 'tags'
+  if (!pcBodyAllowed(def.start.pc_body, characterBody(pcOf(state)))) return 'body'
+  return undefined
+}
+
+export function storyPaused(state: GameState, def: Pick<StoryDef, 'tags' | 'start'>): boolean {
+  return !!storyPauseReason(state, def)
 }
 
 /** 進行中的任務裡已經解鎖、還沒結束的任務點 */
@@ -219,7 +231,7 @@ export function activeNodes(state: GameState): ActiveNode[] {
   for (const p of Object.values(state.stories ?? {})) {
     if (p.status !== 'active') continue
     const def = storyDef(p.id)
-    if (!def || storyPaused(def)) continue
+    if (!def || storyPaused(state, def)) continue
     for (const node of def.nodes) {
       if (p.done.includes(node.id) || !condMet(state, node.requires)) continue
       out.push({ def, node, ref: nodeRef(def.id, node.id) })
@@ -237,7 +249,7 @@ export function nodesWaitingForDays(state: GameState): (ActiveNode & { from: Gam
   for (const p of Object.values(state.stories ?? {})) {
     if (p.status !== 'active') continue
     const def = storyDef(p.id)
-    if (!def || storyPaused(def)) continue
+    if (!def || storyPaused(state, def)) continue
     for (const node of def.nodes) {
       const after = node.requires?.after
       if (!after || p.done.includes(node.id) || condMet(state, node.requires)) continue
@@ -250,19 +262,36 @@ export function nodesWaitingForDays(state: GameState): (ActiveNode & { from: Gam
 }
 
 /** 主角現在所在的地方有沒有這個任務點 */
-export function nodeIsHere(state: GameState, n: ActiveNode): boolean {
+export function nodeIsHere(state: GameState, n: ActiveNode, present: Presence = (id) => presentHere(state, id)): boolean {
   // 只在白天或夜裡的任務點：時段不對時不算在這裡（不跳出、不擋路），到了那個時段再來
   if (!dayPartOk(state.time, nodeHours(n.node))) return false
-  return nodeIsHereAnyTime(state, n)
+  return nodeIsHereAnyTime(state, n, present)
 }
 
-/** 任務點的時段；旅途上的任務點不看時段（旅途不能停下來等，限定時段可能永遠遇不到） */
+/** 某個角色在不在主角身邊 */
+type Presence = (id: string) => boolean
+
+/**
+ * 一次查很多任務點時用：身邊的人只算一次（要用到時才算）。
+ * 「這裡的人」每算一次要好幾毫秒，進行中的任務一多、每個「找某人」的任務點各算一次，走一步就會卡（docs/plan 的效能紀錄）
+ */
+function presence(state: GameState): Presence {
+  let near: Set<string> | undefined
+  return (id) => {
+    if (state.party.some((m) => m.id === id)) return true
+    if (state.captives?.npcs.includes(id) && state.captives.area === currentArea(state).key) return true
+    near ??= new Set(nearbyPeople(state).map((p) => p.rec.id))
+    return near.has(id)
+  }
+}
+
+/** 任務點的時段；旅途上與臨時地圖裡的任務點不看時段（旅途不能停下來等、離開臨時地圖等於放棄，限定時段可能永遠遇不到） */
 export function nodeHours(node: Pick<StoryNode, 'hours' | 'at'>): StoryNode['hours'] {
-  return node.at.where === 'road' ? undefined : node.hours
+  return node.at.where === 'road' || node.at.where === 'side' ? undefined : node.hours
 }
 
 /** 主角在不在任務點上（不看時段） */
-function nodeIsHereAnyTime(state: GameState, n: ActiveNode): boolean {
+function nodeIsHereAnyTime(state: GameState, n: ActiveNode, present: Presence = (id) => presentHere(state, id)): boolean {
   const at = n.node.at
   // 檢定參考好感的角色被制伏了：等處置完再說
   const ref = n.node.check?.affinity?.npc
@@ -275,7 +304,8 @@ function nodeIsHereAnyTime(state: GameState, n: ActiveNode): boolean {
     case 'special': return currentCell(state).kind === 'quest' && currentCell(state).storyNode === n.ref
     case 'settlement': return area.kind === 'settlement'
     case 'cell': return area.kind === 'settlement' && currentCell(state).kind === at.cell
-    case 'npc': return !!at.npc && npcFree(state, at.npc) && presentHere(state, at.npc) && (!at.location || area.location === at.location)
+    // 先看地點（便宜），再看身邊的人（要算「這裡的人」）
+    case 'npc': return !!at.npc && (!at.location || area.location === at.location) && npcFree(state, at.npc) && present(at.npc)
     case 'outskirts':
     case 'dungeon': return currentCell(state).kind === 'quest' && currentCell(state).storyNode === n.ref
   }
@@ -283,12 +313,14 @@ function nodeIsHereAnyTime(state: GameState, n: ActiveNode): boolean {
 }
 
 export function nodesHere(state: GameState): ActiveNode[] {
-  return activeNodes(state).filter((n) => nodeIsHere(state, n))
+  const present = presence(state)
+  return activeNodes(state).filter((n) => nodeIsHere(state, n, present))
 }
 
 /** 站在任務點上、但時段不對的任務點（地點面板提醒要等到白天或夜裡） */
 export function nodesWaitingForTime(state: GameState): ActiveNode[] {
-  return activeNodes(state).filter((n) => !dayPartOk(state.time, nodeHours(n.node)) && nodeIsHereAnyTime(state, n))
+  const present = presence(state)
+  return activeNodes(state).filter((n) => !dayPartOk(state.time, nodeHours(n.node)) && nodeIsHereAnyTime(state, n, present))
 }
 
 /** 在原地等到這個任務點的時段（白天是早上 8 點，夜裡是 20 點）：記一則簡短的日誌 */
@@ -299,6 +331,9 @@ export function waitForNode(state: GameState, ref: string): Report {
   if (dayPartOk(state.time, part)) throw new Error('現在就可以進行')
   if (!nodeIsHereAnyTime(state, n)) throw new Error('要在任務點才能等')
   if (state.road) throw new Error('旅途中沒辦法停下來等')
+  // 和休息一樣：俘虜、對峙、事件……要先處理
+  const blocked = restEventBlock(state)
+  if (blocked) throw new Error(blocked)
   const hours = hoursUntil(state.time, part === 'night' ? 'night' : 'morning')
   const report = storyReport(state, n.def, 'progress', hours, n.node)
   const name = DAY_PART_NAME[part]
@@ -310,7 +345,7 @@ export function waitForNode(state: GameState, ref: string): Report {
 function active(state: GameState, ref: string): ActiveNode & { progress: StoryProgress } {
   const { def, node } = parseRef(ref)
   const progress = state.stories?.[def.id]
-  if (!progress || progress.status !== 'active' || storyPaused(def) || progress.done.includes(node.id) || !condMet(state, node.requires)) throw new Error('這個任務點現在沒辦法進行')
+  if (!progress || progress.status !== 'active' || storyPaused(state, def) || progress.done.includes(node.id) || !condMet(state, node.requires)) throw new Error('這個任務點現在沒辦法進行')
   return { def, node, ref, progress }
 }
 
@@ -563,6 +598,7 @@ function resolveOutcome(
   report.narration = { ...report.narration, focus: [...(report.narration?.focus ?? []), node.text, ...(outcome?.text ? [outcome.text] : [])] }
   // 親密場景：依成人場景規則詳細描寫（交給成人場景正文）
   if (outcome?.scene) report.narration = { ...report.narration, length: report.narration?.length === 'long' ? 'long' : 'medium', adult_scene: outcome.scene }
+  if (def.start.pc_body?.length) report.narration = { ...report.narration, body_limited: true }
   if (!outcome) {
     if (!success) {
       lines.push('這次沒有進展，之後可以再試一次。')

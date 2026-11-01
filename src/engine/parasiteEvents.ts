@@ -8,7 +8,7 @@
 // - 紋回來：刻印師把記下來的淫紋（被奴隸印記頂掉、或馴服後洗掉）與被淫紋蓋掉的刺青紋回去。
 
 import { attrOf, mod, proficiency, recalc } from './character'
-import { tagsAllowed } from './content'
+import { pcBodyAllowed, tagsAllowed } from './content'
 import { syncGear } from './gear'
 import { classes } from './data'
 import { gameRule } from './gameRules'
@@ -49,7 +49,7 @@ export function parasiteCandidates(state: GameState, p: ParasiteState, trigger: 
     && (!t.stages?.length || t.stages.includes(stage))
     && (!t.moments?.length || t.moments.includes(trigger))
     && tagsAllowed(t.tags)
-    && (!t.pc_body?.length || t.pc_body.includes(body))
+    && pcBodyAllowed(t.pc_body, body)
     && condMet(state, t.requires))
 }
 
@@ -60,7 +60,7 @@ export function parasiteCandidates(state: GameState, p: ParasiteState, trigger: 
 export function flaresOn(state: GameState, p: ParasiteState): boolean {
   if (gameRule(state, 'parasiteMult') <= 0) return false
   const body = characterBody(pcOf(state))
-  return parasiteTemplates().some((t) => t.parasite === p.id && tagsAllowed(t.tags) && (!t.pc_body?.length || t.pc_body.includes(body)))
+  return parasiteTemplates().some((t) => t.parasite === p.id && tagsAllowed(t.tags) && pcBodyAllowed(t.pc_body, body))
 }
 
 /** 有別的事情等著處理的時候不發作 */

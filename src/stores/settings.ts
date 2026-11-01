@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { setContentFilters, setDefeatAdult, setDefeatAlways, setDefeatCompanion, type DefeatAdultMode, type FilterTag } from '@/engine/content'
+import { setContentFilters, setDefeatAdult, setDefeatAlways, setDefeatCompanion, setMascBodyContent, type DefeatAdultMode, type FilterTag } from '@/engine/content'
 import { companionRules, progression } from '@/engine/data'
 import { gearRules } from '@/engine/gear'
 import { setLongRestGap } from '@/engine/rest'
@@ -60,13 +60,14 @@ export const SOURCE_COUNT = 3
 export const SOURCE_MAX = 8
 
 /** 自動寫出經過的日誌種類 */
-export type NarrateKind = 'action' | 'combat' | 'travel' | 'event' | 'rest' | 'social' | 'trade'
+export type NarrateKind = 'action' | 'combat' | 'travel' | 'event' | 'story' | 'rest' | 'social' | 'trade'
 
 export const NARRATE_KINDS: { id: NarrateKind; name: string; desc: string }[] = [
   { id: 'action', name: '🎲 主動行動', desc: '擲骰判定的行動：聊天、送禮、偷竊、雇傭、談判、蒙混……' },
   { id: 'combat', name: '⚔️ 戰鬥', desc: '戰報' },
   { id: 'travel', name: '🧭 旅行', desc: '旅途與抵達' },
-  { id: 'event', name: '📜 事件與委託', desc: '陷阱、採集、對峙、委託' },
+  { id: 'event', name: '📜 事件與委託', desc: '陷阱、採集、對峙、委託、旅途與城鎮的事件' },
+  { id: 'story', name: '⭐ 特殊任務', desc: '特殊任務的每一步：劇情、判定、戰鬥' },
   { id: 'rest', name: '🛏️ 休息', desc: '短休、長休' },
   { id: 'social', name: '💬 交流', desc: '沒有擲骰的交流：直接雇用、城門、繳罰金……' },
   { id: 'trade', name: '🛒 交易', desc: '買賣（通常不需要）' },
@@ -74,7 +75,11 @@ export const NARRATE_KINDS: { id: NarrateKind; name: string; desc: string }[] = 
 
 /** 日誌屬於哪一種（決定要不要自動寫出經過） */
 export function narrateKindOf(report: Report): NarrateKind {
+  // 特殊任務的每一步（劇情、判定、戰鬥）都歸在這一類，單獨開關
+  if (report.story) return 'story'
   if (report.check) return 'action'
+  // 採集（日誌顯示成「行動」）：照設定的說明算「事件與委託」
+  if (report.outcome.tags?.includes('採集')) return 'event'
   switch (report.kind) {
     case 'combat': return 'combat'
     case 'travel': return 'travel'
@@ -116,6 +121,8 @@ interface SavedSettings {
   defeatAdult: DefeatAdultMode
   /** 隊友的戰敗色情事件（主角不會遇到時改由隊友遇到）：全部的隊友、男性形象的隊友不發生、關閉 */
   defeatCompanion: DefeatAdultMode
+  /** 陽剛體型也能遇到「只給陰柔、中性」的成人內容（預設關） */
+  mascBodyContent: boolean
   /** 戰敗色情事件一定發生（不擲「敵人起意」） */
   defeatAlways: boolean
   /** 讀檔、開新遊戲前，先把目前（或還沒繼續）的進度存進自動存檔欄位 */
@@ -170,6 +177,7 @@ function defaults(): SavedSettings {
     contentFilters: { ntr: true, non_virgin: true, pc_unwilling: true, male_partner: true },
     defeatAdult: 'all',
     defeatCompanion: 'not_masc',
+    mascBodyContent: false,
     defeatAlways: false,
     backupBeforeSwitch: true,
     language: 'zh-Hant',
@@ -244,6 +252,8 @@ export const useSettings = defineStore('settings', () => {
   watch(defeatAdult, setDefeatAdult, { immediate: true })
   const defeatCompanion = ref(initial.defeatCompanion)
   watch(defeatCompanion, setDefeatCompanion, { immediate: true })
+  const mascBodyContent = ref(initial.mascBodyContent === true)
+  watch(mascBodyContent, setMascBodyContent, { immediate: true })
   const defeatAlways = ref(initial.defeatAlways === true)
   watch(defeatAlways, setDefeatAlways, { immediate: true })
   const backupBeforeSwitch = ref(initial.backupBeforeSwitch !== false)
@@ -263,7 +273,7 @@ export const useSettings = defineStore('settings', () => {
   const panelOpacity = ref(initial.panelOpacity)
 
   watch(
-    [sources, routes, judgeWritesNarrative, narrateKinds, aiNarration, aiJudge, aiDesign, abilityRerolls, longRestGap, stepMinutes, creationGearBudget, logKeep, contentFilters, defeatAdult, defeatCompanion, defeatAlways, backupBeforeSwitch, language, uiLanguage, loreBudget, effects, background, backgroundBrightness, panelOpacity],
+    [sources, routes, judgeWritesNarrative, narrateKinds, aiNarration, aiJudge, aiDesign, abilityRerolls, longRestGap, stepMinutes, creationGearBudget, logKeep, contentFilters, defeatAdult, defeatCompanion, mascBodyContent, defeatAlways, backupBeforeSwitch, language, uiLanguage, loreBudget, effects, background, backgroundBrightness, panelOpacity],
     () => {
       const data: SavedSettings = {
         sources: sources.value,
@@ -286,6 +296,7 @@ export const useSettings = defineStore('settings', () => {
         contentFilters: { ...contentFilters.value },
         defeatAdult: defeatAdult.value,
         defeatCompanion: defeatCompanion.value,
+        mascBodyContent: mascBodyContent.value,
         defeatAlways: defeatAlways.value,
         backupBeforeSwitch: backupBeforeSwitch.value,
         language: language.value,
@@ -346,7 +357,8 @@ export const useSettings = defineStore('settings', () => {
   function autoNarrates(report: Report): boolean {
     const kind = narrateKindOf(report)
     if (!narrateKinds.value[kind]) return false
-    return aiNarration.value || (kind === 'action' && report.check?.source === 'ai')
+    // AI 判定的行動（含特殊任務的判定）：判定時就寫了經過，關掉 AI 細節描述也照樣顯示
+    return aiNarration.value || report.check?.source === 'ai'
   }
 
   /** 新增一個來源（先複製來源 1 的服務與 key，只要改模型就好）；回傳新來源的位置，到上限時 -1 */
@@ -388,7 +400,7 @@ export const useSettings = defineStore('settings', () => {
   const logKeepLimit = () => Math.max(50, Math.min(5000, Math.floor(Number(logKeep.value) || 200)))
 
   return {
-    sources, routes, judgeWritesNarrative, narrateKinds, autoNarrates, aiNarration, aiJudge, aiDesign, judgesWithAi, designs, abilityRerolls, rerollLimit, longRestGap, stepMinutes, creationGearBudget, gearBudget, logKeep, logKeepLimit, contentFilters, defeatAdult, defeatCompanion, defeatAlways, backupBeforeSwitch, language, uiLanguage, loreBudget, effects, effectsLevel, background, backgroundBrightness, panelOpacity,
+    sources, routes, judgeWritesNarrative, narrateKinds, autoNarrates, aiNarration, aiJudge, aiDesign, judgesWithAi, designs, abilityRerolls, rerollLimit, longRestGap, stepMinutes, creationGearBudget, gearBudget, logKeep, logKeepLimit, contentFilters, defeatAdult, defeatCompanion, mascBodyContent, defeatAlways, backupBeforeSwitch, language, uiLanguage, loreBudget, effects, effectsLevel, background, backgroundBrightness, panelOpacity,
     sourceReady, sourceIndex, sourceFor, ready, splitJudgeNarrative, narrationFeature, copySource, addSource, removeSource,
   }
 })

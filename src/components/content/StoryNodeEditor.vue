@@ -101,7 +101,7 @@ function toggleCheck(o: StoryOption, on: boolean) {
     <label class="block"><span>事件描述 <Hint text="觸發時看到的，也會交給 AI。" /></span><textarea v-model="node.text" rows="3" maxlength="600" /></label>
     <label class="check"><input type="checkbox" :checked="!!node.urgent" @change="($event.target as HTMLInputElement).checked ? (node.urgent = true) : delete node.urgent" /> 緊急
       <Hint text="走到任務點時要先處理，不能移動或休息。不緊急（預設）：多一個「稍候」，這次先略過、不記日誌，離開這裡之後再來還會遇到。緊急：只能處理或「放棄」，選了任務線就中斷（適合旅途上、臨時地圖裡這種過了就沒有的場面）。" /></label>
-    <label v-if="where !== 'road'" class="check">時段
+    <label v-if="where !== 'road' && where !== 'side'" class="check">時段
       <select :value="node.hours ?? ''" @change="setHours(($event.target as HTMLSelectElement).value)">
         <option value="">不限</option>
         <option value="day">只在白天（6～18 點）</option>

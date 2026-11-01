@@ -130,7 +130,9 @@ const rows = computed(() =>
       const blocked = cell.kind === 'wall' || cell.kind === 'water'
       const who = seen ? people.value.get(`${x},${y}`) ?? [] : []
       // 沒看過的相鄰格也能點：摸黑往前走，走不過去就跳「那邊走不過去」
-      return { x, y, cell, seen, here, who, spot: spots.value.get(`${x},${y}`), canStep: adjacent && (!seen || !blocked) }
+      // 看得到的遠處格子：點了一格一格走過去（旅途上一格一天，不行）
+      const canWalk = !adjacent && !here && seen && !blocked && area.value.kind !== 'road'
+      return { x, y, cell, seen, here, who, spot: spots.value.get(`${x},${y}`), canStep: adjacent && (!seen || !blocked), canWalk }
     }),
   ),
 )
@@ -169,8 +171,10 @@ watch(rows, (list) => {
 onBeforeUnmount(() => clearTimeout(freshTimer))
 
 function step(x: number, y: number) {
-  // 和方向鍵同一條路：走不過去時只晃一下、跳提示
-  game.move(x - pos.value.x, y - pos.value.y)
+  // 旁邊的格子：和方向鍵同一條路，走不過去時只晃一下、跳提示
+  if (Math.abs(x - pos.value.x) + Math.abs(y - pos.value.y) === 1) game.move(x - pos.value.x, y - pos.value.y)
+  // 遠處的格子：一格一格走過去，路上有事就停（再點一次別的地方改走那裡）
+  else game.walkTo(x, y)
 }
 
 const KEYS: Record<string, [number, number]> = {
@@ -216,8 +220,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           v-for="c in row"
           :key="`${c.x},${c.y}`"
           class="cell"
-          :class="[c.seen ? c.cell.kind : 'fog', { here: c.here, step: c.canStep, done: c.cell.done, bump: c.here && bumping, reveal: fresh.has(`${c.x},${c.y}`), trail: area.kind === 'road' && c.x < pos.x, draw: fresh.has(`t${c.x},${c.y}`) }]"
-          :disabled="!c.canStep"
+          :class="[c.seen ? c.cell.kind : 'fog', { here: c.here, step: c.canStep, walk: c.canWalk, target: game.walkTarget?.x === c.x && game.walkTarget?.y === c.y, done: c.cell.done, bump: c.here && bumping, reveal: fresh.has(`${c.x},${c.y}`), trail: area.kind === 'road' && c.x < pos.x, draw: fresh.has(`t${c.x},${c.y}`) }]"
+          :disabled="!c.canStep && !c.canWalk"
           :title="c.seen ? (c.spot ?? label(c.cell)) + (c.who.length ? `\n人：${peopleTitle(c.who)}` : '') : '未探索'"
           :style="{ backgroundImage: tile(c.cell, c.seen, c.x, c.y) }"
           @click="step(c.x, c.y)"
@@ -266,6 +270,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .cell.step { cursor: pointer; }
 .cell.step::after { content: ''; position: absolute; inset: 0; background: #f0d08322; box-shadow: inset 0 0 0 1px #f0d08366; pointer-events: none; }
 .cell.step:hover::after { background: #f0d08344; }
+/* 遠處的格子：點了走過去；走去的那一格畫虛線框 */
+.cell.walk { cursor: pointer; }
+.cell.walk:hover::after { content: ''; position: absolute; inset: 0; background: #f0d08322; pointer-events: none; }
+.cell.target::before { content: ''; position: absolute; inset: 2px; border: 2px dashed var(--accent); border-radius: 3px; pointer-events: none; z-index: 1; }
 .cell.here { box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 10px #f0d08388; z-index: 1; }
 .glyph { width: calc(var(--cell) * 0.55); height: calc(var(--cell) * 0.55); color: var(--gold-hi); filter: drop-shadow(0 1px 0 #000) drop-shadow(0 0 2px #000); }
 .glyph.danger { color: #ff8a70; }

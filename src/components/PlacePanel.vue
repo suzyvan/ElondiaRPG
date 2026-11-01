@@ -10,7 +10,7 @@ import { formatMoney } from '@/engine/money'
 import { marketsHere } from '@/engine/companions'
 import { canNegotiate } from '@/engine/negotiation'
 import { canAcceptRank, guildQuests, questSpot, questTemplate, templeCost } from '@/engine/town'
-import { examQuest, examsFirst, isExam, promotionStatus } from '@/engine/guild'
+import { examOffer, examQuest, examsFirst, isExam, promotionStatus } from '@/engine/guild'
 import { canTurnIn, deliverable, isCollectQuest, isMaterialQuest, layerName, questProgressText, rewardFor } from '@/engine/materialQuests'
 import { bestTool } from '@/engine/tools'
 import type { Quest } from '@/engine/types'
@@ -111,6 +111,11 @@ function refreshQuests() {
 
 const promo = computed(() => promotionStatus(s.value))
 const exam = computed(() => examQuest(s.value))
+// 這座城的公會發的、還沒接的晉升考核（各城鎮的公會各有一個）
+const offer = computed(() => {
+  void quests.value
+  return examOffer(s.value)
+})
 const activeQuests = computed(() => examsFirst(s.value.quests.filter((q) => q.status === 'accepted' || q.status === 'ready')))
 // 材料委託可以過量交付：選要交幾份（預設全部）
 const turnInQty = ref<Record<string, number>>({})
@@ -123,7 +128,7 @@ const runnableHere = computed(() =>
 )
 
 function questWhere(q: Quest): string {
-  if (canTurnIn(s.value, q)) return `可以交付了！回到${locationById(q.giver).name}的冒險者公會${isMaterialQuest(q) ? '（可以多交，報酬依數量增加）' : ''}`
+  if (canTurnIn(s.value, q)) return `可以交付了！${isExam(q) ? '到任何一座城鎮的冒險者公會' : `回到${locationById(q.giver).name}的冒險者公會`}${isMaterialQuest(q) ? '（可以多交，報酬依數量增加）' : ''}`
   if (q.area === 'dungeon') return `目標：${locationById(q.target).name}${q.layer ? `・${layerName(q.layer)}` : ''}`
   if (isMaterialQuest(q)) return `地點：${locationById(q.target).name}近郊（${isCollectQuest(q) && q.monster ? '打倒牠們' : '採集點'}）`
   if (q.area === 'outskirts') return `地點：${locationById(q.target).name}近郊（地圖上的 ❗）`
@@ -283,8 +288,9 @@ const shopDesc = computed(() => {
             <div>
               <GameIcon name="trophy" :size="14" /> 你是 <strong>{{ promo.rank }} 級</strong>冒險者・功績 {{ promo.merit }}<template v-if="promo.next">・升 {{ promo.next }} 級需要功績 {{ promo.needMerit }}、等級 {{ promo.needLevel }}</template>
             </div>
-            <div v-if="exam" class="hot"><GameIcon name="scroll" :size="14" /> 晉升考核：{{ exam.title }}（{{ exam.status === 'available' ? '在委託板上，可以接取' : exam.status === 'ready' ? '完成了，可以交付' : '進行中' }}）</div>
-            <div v-else-if="promo.next" class="muted">功績與等級都夠了，公會就會發晉升考核；通過才升階。交付委託（依委託階級）、打倒地下城層主、完成特殊任務都有功績。</div>
+            <div v-if="exam" class="hot"><GameIcon name="scroll" :size="14" /> 晉升考核：{{ exam.title }}（{{ exam.status === 'ready' ? '完成了，在任何一座公會都可以交付' : '進行中' }}）</div>
+            <div v-else-if="offer" class="hot"><GameIcon name="scroll" :size="14" /> 這裡的公會發了晉升考核：{{ offer.title }}（在委託板上）<Hint text="冒險者的階級各地通用：每座城鎮的公會各發一個考核，目標在各自附近，挑方便的一個接（同時只能接一個）；在任何一座公會都可以交付。" /></div>
+            <div v-else-if="promo.next" class="muted">功績與等級都夠了，各城鎮的公會都會發晉升考核（目標在各自附近，挑一個接）；通過才升階。交付委託（依委託階級）、打倒地下城層主、完成特殊任務都有功績。</div>
           </div>
           <BuildingMenu :items="guildMenu" @pick="showBoard = true" />
           <AppDialog :open="showBoard" title="委託板" icon="scroll" width="900px" @close="showBoard = false">

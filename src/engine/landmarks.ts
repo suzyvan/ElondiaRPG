@@ -2,7 +2,7 @@
 // 開放條件、參訪（付錢或花時間換效果）、探索（主動行動的檢定）、場景（條件成立時的固定場景）；打工與受訓走 work.ts、perkActions.ts（格子的種類就是地標 id）。
 
 import { landmarkDef, landmarks, locationById, npcs as namedNpcs, specialMaps, type Degree, type LandmarkDef, type LandmarkScene } from './data'
-import { tagsAllowed } from './content'
+import { pcBodyAllowed, tagsAllowed } from './content'
 import { characterBody } from './look'
 import { npcFree } from './story'
 import { npcRecord } from './npcs'
@@ -169,7 +169,7 @@ export function sceneCast(state: GameState, sc: LandmarkScene): { ids: string[];
 /** 場景現在出不出現：內容標籤、主角的體型、劇情旗標；一定要在場的人（沒寫旗標的）死了或被抓走時也不出現 */
 export function sceneShown(state: GameState, sc: LandmarkScene): boolean {
   if (!tagsAllowed(sc.tags)) return false
-  if (sc.pc_body?.length && !sc.pc_body.includes(characterBody(pcOf(state)))) return false
+  if (!pcBodyAllowed(sc.pc_body, characterBody(pcOf(state)))) return false
   if (sc.requires && !condMet(state, sc.requires)) return false
   return (sc.cast ?? []).every((c) => c.flags?.length || npcFree(state, c.npc))
 }
@@ -263,5 +263,6 @@ export function playLandmarkScene(state: GameState, index: number): Report {
   else r.scene = state.time.day
   report.outcome = { result: 'success', summary: `在${l.name}${sc.title}：${text}` }
   if (sc.tags?.includes('adult')) report.narration = { ...report.narration, length: 'long', adult_scene: text }
+  if (sc.pc_body?.length) report.narration = { ...report.narration, body_limited: true }
   return commitReport(state, report)
 }

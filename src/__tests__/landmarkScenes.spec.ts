@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { landmarks, stories } from '@/engine/data'
-import { setContentFilters } from '@/engine/content'
+import { setContentFilters, setMascBodyContent } from '@/engine/content'
 import { enterLocation, getArea, landmarkHidden, standOn } from '@/engine/grid'
 import { npcRecord } from '@/engine/npcs'
 import { peopleHere } from '@/engine/population'
@@ -383,11 +383,18 @@ describe('work-line scenes', () => {
     // 陽剛的主角接不到打工線
     pcOf(state).body = 'masc'
     expect(landmarkHidden(state, l)).toBe(true)
-    // 進行中的任務還要用到時留著
+    // 進行中的任務還要用到時留著（等級不夠接新任務也一樣）
     pcOf(state).body = 'fem'
     startStory(state, 'odd_measure')
-    pcOf(state).body = 'masc'
+    pcOf(state).level = 1
     expect(landmarkHidden(state, l)).toBe(false)
+    pcOf(state).level = 20
+    // 體型改成陽剛：進行中的任務暫停，地標也跟著不出現；打開「陽剛體型也能遇到」的設定後回來
+    pcOf(state).body = 'masc'
+    expect(landmarkHidden(state, l)).toBe(true)
+    setMascBodyContent(true)
+    expect(landmarkHidden(state, l)).toBe(false)
+    setMascBodyContent(false)
     // 線完成之後有場景
     pcOf(state).body = 'fem'
     state.stories!.odd_measure!.status = 'completed'

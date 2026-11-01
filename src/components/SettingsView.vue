@@ -181,6 +181,11 @@ function doReset() {
             <option value="off">關閉</option>
           </select>
         </label>
+        <label class="check">
+          <input v-model="settings.mascBodyContent" type="checkbox" /> 陽剛體型也能遇到「只給陰柔、中性」的成人內容
+          <Hint text="有一部分成人向內容限定陰柔、中性體型的主角：17 條打工、儀式的特殊任務線，地下城事件（全部），部分城鎮、旅途事件與地標的場景；連帶兩種主要的寄生物也只能從那裡得到。勾選後陽剛體型的主角也會遇到。看的是體型（陽剛、陰柔、中性），不是性別；體型在建立角色或角色設定裡可以改。" />
+        </label>
+        <p v-if="settings.mascBodyContent" class="small body-warn"><GameIcon name="caution" :size="16" class="warn-icon" />這些內容是照陰柔、中性的主角寫的：角色的身分不會變（陽剛體型的主角一樣會當兔女郎、女僕、新娘），固定的事件文字也可能寫到不符合主角身體的部位。AI 寫經過時會照主角的身體改寫，但不保證每次都自然。</p>
         <label v-if="settings.defeatAdult !== 'off' || settings.defeatCompanion !== 'off'" class="check">
           <input v-model="settings.defeatAlways" type="checkbox" /> 戰敗色情事件一定發生 <Hint text="不擲「敵人起意」的魅力檢定：戰敗、沒有救兵，而且還站著的敵人裡有會起意的（惡人、發情的怪物……），就一定進入戰敗事件。不死、構裝這類不會起意的敵人照樣不會。" />
         </label>
@@ -289,6 +294,8 @@ function doReset() {
 </template>
 
 <style scoped>
+.body-warn { display: flex; gap: 6px; align-items: flex-start; margin: 0; line-height: 1.6; }
+.body-warn .warn-icon { color: var(--danger); flex: none; margin-top: 2px; }
 .form { display: grid; gap: 12px; max-width: 560px; }
 .warn-line { margin: -4px 0 0; color: var(--accent); }
 .tabs { gap: 6px; margin-bottom: 10px; }

@@ -186,6 +186,8 @@ export interface JudgePromptOptions {
   defeatRules?: string
   /** 玩家修改過的成人場景規則 */
   sceneRules?: string
+  /** 陽剛體型的主角玩照陰柔、中性主角寫的成人內容時的說明（prompt.ts 的 mascBodyNote） */
+  bodyNote?: string
   /** 正文篇幅（順便寫經過時） */
   lengthScale?: LengthScale
   /** 上一段正文的結尾與幕間發生的事（提示詞設定開啟「前後銜接」時） */
@@ -227,7 +229,7 @@ function judgeFormat(): string {
 /** 可以標出親密場景；寫經過時附上成人場景規則 */
 function sceneSection(opts: JudgePromptOptions, player: string, narrative: boolean): string {
   const flag = '如果這次的經過包含性愛等親密場景（例如兩人決定共度一夜、被迫接客、被敵人侵犯），adult_scene 用一句話寫出是什麼場景（≤ 40 字）；沒有就不要填這個欄位，也不要硬把行動寫成親密場景。'
-  return narrative ? `${flag}填了 adult_scene 時，narrative 依下面的成人場景規則詳細描寫：\n${fillSceneRules(opts.sceneRules, player)}` : flag
+  return narrative ? `${flag}填了 adult_scene 時，narrative 依下面的成人場景規則詳細描寫：\n${fillSceneRules(opts.sceneRules, player)}${opts.bodyNote ? `\n${opts.bodyNote}` : ''}` : flag
 }
 
 function narrativeLength(p: ActionPending, scale: LengthScale): string {

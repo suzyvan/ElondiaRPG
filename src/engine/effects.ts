@@ -8,7 +8,8 @@
 // 入隊、離隊、狀態、生命值等直接修改狀態，並記錄在 report.changes。數值上限由呼叫端（例如主動行動）負責夾住。
 
 import { attachParasite, changeCorruption, detachParasite, tameParasite } from './parasites'
-import { tagsAllowed } from './content'
+import { pcBodyAllowed, tagsAllowed } from './content'
+import { characterBody } from './look'
 import { addItem } from './state'
 import { abilities, classAbilities, classes, enemies, locationById, masterEventPool, perkDef, slaveryRules, type AbilityDef, type AttrId, type LewdKey, type LockGrade, type MasterEventPool } from './data'
 import { grantPerk, losePerk, offerPerks } from './perks'
@@ -573,7 +574,7 @@ export function applyEffects(state: GameState, report: Report, effects: RewardEf
           break
         }
         // 設定關掉的內容（成人向、NTR……）：不開始
-        if (!tagsAllowed(def.tags)) {
+        if (!tagsAllowed(def.tags) || !pcBodyAllowed(def.start.pc_body, characterBody(pcOf(state)))) {
           notes.push(`（特殊任務「${def.title}」的內容在設定裡關閉了）`)
           break
         }

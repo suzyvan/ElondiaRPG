@@ -471,6 +471,61 @@ export const useGame = defineStore('game', () => {
     return copy
   }
 
+  /** 走一格（方向鍵、點旁邊的格子、點遠處時一格一格走）。撞牆不算錯誤：地圖上輕輕晃一下就好；規則不讓走的也一樣 */
+  function move(dx: number, dy: number) {
+    const blocked = state.value && !state.value.combat ? grid.blockedMove(state.value, dx, dy) : null
+    if (blocked) {
+      blockedOnMap(blocked)
+      return undefined
+    }
+    return run((s) => afterMove(s, grid.move(s, dx, dy)), { onMap: true })
+  }
+
+  // ---- 點地圖上的格子走過去（grid.pathTo）：一格一格走（和方向鍵一樣的規則），路上有事就停 ----
+  /** 正在走去的格子（地圖標出來） */
+  const walkTarget = ref<{ x: number; y: number } | null>(null)
+  let walkTimer: ReturnType<typeof setTimeout> | undefined
+  /** 每一步的間隔：和地圖上角色滑過一格的動畫差不多 */
+  const WALK_STEP_MS = 140
+
+  function stopWalk() {
+    clearTimeout(walkTimer)
+    walkTimer = undefined
+    walkTarget.value = null
+  }
+
+  /** 走完這一步之後有要先處理的事（戰鬥、事件、等待判定、擋路的任務點……）：停下來 */
+  function mustStop(s: GameState): boolean {
+    return !!(s.combat || s.pendingAction || s.pendingDefeat || s.pendingMark || s.pendingMasterEvent || s.townEvent || s.roadEvent || s.dungeonEvent || s.parasiteEvent || story.blockingNode(s))
+  }
+
+  function walkTo(x: number, y: number) {
+    stopWalk()
+    const s = state.value
+    if (!s || s.combat) return
+    const path = grid.pathTo(s, x, y)
+    if (!path) {
+      blockedOnMap('到不了那裡：只能走已經探索過、沒有東西擋路的地方')
+      return
+    }
+    walkTarget.value = { x, y }
+    const areaKey = grid.currentArea(s).key
+    const stepAt = (i: number) => {
+      walkTimer = undefined
+      const now = state.value
+      const t = path[i]
+      if (!now || !t || grid.currentArea(now).key !== areaKey) return stopWalk()
+      const p = grid.position(now)
+      const r = move(t.x - p.x, t.y - p.y)
+      const after = state.value
+      const there = after && grid.position(after)
+      // 沒走成、發生了事、或到了終點：停
+      if (!r || r.combat || r.report || !after || mustStop(after) || there?.x !== t.x || there.y !== t.y || i + 1 >= path.length) return stopWalk()
+      walkTimer = setTimeout(() => stepAt(i + 1), WALK_STEP_MS)
+    }
+    stepAt(0)
+  }
+
   /** 地圖上的提示：主角那一格晃一下，地圖角落顯示原因 */
   function blockedOnMap(text: string) {
     bumpText.value = text
@@ -641,6 +696,7 @@ export const useGame = defineStore('game', () => {
   function enter(data: SaveData) {
     for (const c of controllers.values()) c.abort()
     clearUndo()
+    stopWalk()
     const world = useContent().enterWorld(data.state.world, data.content)
     state.value = load(data.state)
     state.value.world = { id: world.id, name: world.name }
@@ -676,6 +732,7 @@ export const useGame = defineStore('game', () => {
     if (!state.value) return
     for (const c of controllers.values()) c.abort()
     clearUndo()
+    stopWalk()
     save()
     await flushed()
     const finished = Object.fromEntries(Object.entries(narrations.value).filter(([, n]) => n.status === 'done'))
@@ -817,6 +874,7 @@ export const useGame = defineStore('game', () => {
     // 還沒繼續的遊戲會被蓋掉：先備份（設定關掉時不備份）
     void backupResume('開新遊戲前')
     clearUndo()
+    stopWalk()
     state.value = newGame({ name, race, classId, ...(bonus ? { bonus } : {}), ...profile })
     state.value.world = { id: content.active, name: content.activeName }
     grid.enterLocation(state.value)
@@ -833,6 +891,7 @@ export const useGame = defineStore('game', () => {
   function reset() {
     for (const c of controllers.values()) c.abort()
     clearUndo()
+    stopWalk()
     state.value = null
     resume.value = null
     narrations.value = {}
@@ -1185,14 +1244,10 @@ export const useGame = defineStore('game', () => {
     // 走過腳下的出入口（城鎮各區、房子的門、特殊地圖的通道）：按 E 或格子資訊的按鈕
     crossLink: () => run((s) => afterMove(s, grid.crossLink(s)), { onMap: true }),
     move: (dx: number, dy: number) => {
-      // 撞牆不算錯誤：地圖上輕輕晃一下就好（不跳出錯誤訊息、不推動版面）；規則不讓走的也一樣
-      const blocked = state.value && !state.value.combat ? grid.blockedMove(state.value, dx, dy) : null
-      if (blocked) {
-        blockedOnMap(blocked)
-        return undefined
-      }
-      return run((s) => afterMove(s, grid.move(s, dx, dy)), { onMap: true })
+      stopWalk()
+      return move(dx, dy)
     },
+    walkTo, stopWalk, walkTarget,
     goOutskirts: () => run((s) => grid.goOutskirts(s) ?? encounters.checkHostiles(s), { onMap: true }),
     returnToTown: () => run(grid.returnToTown, { onMap: true }),
     // 房子（homes.ts）

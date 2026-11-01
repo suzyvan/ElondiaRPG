@@ -37,6 +37,8 @@ export interface PromptOptions {
   defeatRules?: string
   /** 玩家修改過的成人場景規則（沒有時用預設） */
   sceneRules?: string
+  /** 陽剛體型的主角玩照陰柔、中性主角寫的成人內容時：接在成人場景規則後面的說明（mascBodyNote） */
+  bodyNote?: string
   /** 正文篇幅：整體偏短、標準、偏長（沒有時是標準） */
   lengthScale?: LengthScale
   /** 上一段正文的結尾與幕間發生的事（提示詞設定開啟「前後銜接」時） */
@@ -268,6 +270,14 @@ export const DEFAULT_SCENE_RULES = `<adult_scene>
 5. 文字的露骨程度依文風與世界書；篇幅依「本次要求」，大部分篇幅留給這段場景。
 </adult_scene>`
 
+/**
+ * 設定「陽剛體型也能遇到限定陰柔、中性的成人內容」打開、主角是陽剛體型時，接在成人場景規則後面：
+ * 那些事件文字與場景提示是照陰柔、中性的主角寫的，身體部位要照主角的身體寫，角色身分照舊
+ */
+export function mascBodyNote(player: string): string {
+  return `注意：主角${player}是陽剛的男性身體。這段經過的事件文字或場景提示可能是照陰柔、中性的主角寫的——提到和主角身體不符的部位或生理反應（胸部、乳頭、陰道、子宮、懷孕、產卵……）時不要照抄，改成符合主角身體的寫法；角色的身分與打扮（兔女郎、女僕、新娘……）照舊，當成主角穿著那身打扮。`
+}
+
 export function fillSceneRules(template: string | undefined, player: string): string {
   return (template?.trim() ? template : DEFAULT_SCENE_RULES).split('{{player}}').join(player)
 }
@@ -337,7 +347,9 @@ export function buildPrompt(report: Report, lore: LoreLike[] | { constant: LoreL
     // 成人向的戰敗事件：另外一套規則
     { key: 'defeat', title: '戰敗事件規則', part: 'system', text: report.narration?.mode ? fillDefeatRules(opts.defeatRules, opts.playerName, victim) : '' },
     // 成人向的親密場景：要求在正文詳細描寫經過
-    { key: 'scene', title: '成人場景規則', part: 'system', text: scene ? fillSceneRules(opts.sceneRules, opts.playerName) : '' },
+    { key: 'scene', title: '成人場景規則', part: 'system', text: scene ? `${fillSceneRules(opts.sceneRules, opts.playerName)}${opts.bodyNote ? `\n${opts.bodyNote}` : ''}` : '' },
+    // 限定陰柔、中性主角的內容，不是親密場景的那幾段（任務點、事件的固定文字也會寫到身體）：一樣提醒照主角的身體寫
+    { key: 'body', title: '主角的身體', part: 'system', text: !scene && opts.bodyNote && report.narration?.body_limited ? opts.bodyNote : '' },
     { key: 'protagonist', title: '主角設定', part: 'user', text: opts.protagonist ? `<protagonist>\n${opts.protagonist}\n</protagonist>` : '' },
     { key: 'lore_triggered', title: '世界書（這次觸發）', part: 'user', text: triggered.length ? `<worldbook>\n${loreText(triggered)}\n</worldbook>` : '' },
     { key: 'context', title: '人際關係與冒險記憶', part: 'user', text: opts.context ?? '' },

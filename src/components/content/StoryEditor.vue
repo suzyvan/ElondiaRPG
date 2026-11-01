@@ -265,7 +265,7 @@ function remove() {
         <label v-if="draft.start.kind === 'informant'">情報的價格（白鸛幣） <input v-model.number="draft.start.price" type="number" min="0" /></label>
         <label>主角至少幾級 <input v-model.number="draft.start.min_level" type="number" min="1" max="20" placeholder="不限" /></label>
       </div>
-      <CheckList v-model="draft.start.pc_body" label="只給這些主角" hint="依主角的體型（建角時選的體態；沒選時依種族與性別）。都不勾＝都可以，例如做給女性主角的任務只勾女性形象。" :options="BODY_OPTIONS" />
+      <CheckList v-model="draft.start.pc_body" label="只給這些主角" hint="依主角的體型（建角時選的體態；沒選時依種族與性別）。都不勾＝都可以，例如做給女性主角的任務只勾女性形象。勾了女性形象、中性而沒勾男性形象時，設定打開「陽剛體型也能遇到『只給陰柔、中性』的成人內容」的玩家一樣會遇到。" :options="BODY_OPTIONS" />
       <div v-if="draft.start.kind === 'travel'" class="row checks small">
         <span>只在前往這些地區時（不勾＝任何地區）：</span>
         <label v-for="r in geography.regions" :key="r.id" class="check">

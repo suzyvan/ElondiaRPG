@@ -27,7 +27,7 @@ import { gateCheck } from './security'
 import { toolBonus } from './tools'
 import { arrive, daysToHours, EVENTS, MODE_NAME, legFare, ROAD_DAILY_CC, rollLegDays } from './travel'
 import type { GameState, Report, RoadState, TimelineEntry } from './types'
-import { tagsAllowed, type ContentTag } from './content'
+import { pcBodyAllowed, tagsAllowed, type ContentTag } from './content'
 import { characterBody } from './look'
 import type { Body } from './traits'
 import { shortestPath } from './world'
@@ -460,7 +460,7 @@ function locationExists(id: string): boolean {
  */
 export function roadEventFits(state: GameState, t: RoadTemplate, mode: RouteMode, region: string): boolean {
   return (t.scope ?? 'road') === 'road' && (!t.modes || t.modes.includes(mode)) && (!t.regions?.length || t.regions.includes(region))
-    && condMet(state, t.requires) && tagsAllowed(t.tags) && (!t.pc_body?.length || t.pc_body.includes(characterBody(pcOf(state))))
+    && condMet(state, t.requires) && tagsAllowed(t.tags) && pcBodyAllowed(t.pc_body, characterBody(pcOf(state)))
 }
 
 /** 這個選項會不會進入親密場景（旅途、城鎮、地下城事件共用） */
@@ -488,6 +488,7 @@ export function answerRoadEvent(state: GameState, index: number): Report {
   report.narration = { ...report.narration, focus: [tpl.text, `主角的選擇：${o.label}`] }
   // 成人向：選項帶 adult_scene 時交給成人場景的寫手（和城鎮、地下城事件一樣）
   if (tpl.scene && sceneOn(o, ok)) report.narration = { ...report.narration, length: 'medium', adult_scene: tpl.scene }
+  if (tpl.pc_body?.length) report.narration = { ...report.narration, body_limited: true }
   const cell = currentArea(state).cells[ev.x]
   if (cell) cell.done = true
   delete state.roadEvent

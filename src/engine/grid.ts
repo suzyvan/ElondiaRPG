@@ -1118,6 +1118,56 @@ export function crossLink(state: GameState): StepResult {
 }
 
 /** 移動到指定格子（只能是相鄰格）。 */
+// ---- 點地圖上的格子走過去（畫面一格一格走，路上有事就停；game.ts 的 walkTo） ----
+
+/** 走在路上不會發生事情的格子：空地、安全房，以及處理過的（打過的遭遇、採過的、開過的、觸發過的）。沒發現的陷阱在玩家看來就是空地 */
+const QUIET_DONE: CellKind[] = ['encounter', 'elite', 'boss', 'resource', 'chest', 'trap']
+function quietCell(c: Cell): boolean {
+  return c.kind === 'floor' || c.kind === 'safe' || c.kind === 'yard' || (c.kind === 'trap' && !c.done) || (QUIET_DONE.includes(c.kind) && !!c.done)
+}
+/** 找不到安靜的路時，聚落裡可以穿過設施（可能遇到城鎮事件）；遭遇、寶箱、任務點、出入口、樓梯照樣不經過 */
+const NEVER_THROUGH: CellKind[] = ['encounter', 'elite', 'boss', 'resource', 'chest', 'quest', 'link', 'exit', 'stairs_down', 'stairs_up', 'event']
+
+/**
+ * 從現在的位置走到 (x, y) 的路（不含起點；終點可以是任何走得過去的格子）。只走已經揭開的格子；
+ * 路上先只走安靜的格子，走不到時聚落裡才穿過設施。旅途上（一格一天）、走不到、或就在原地時回傳 null
+ */
+export function pathTo(state: GameState, x: number, y: number): { x: number; y: number }[] | null {
+  if (state.combat) return null
+  const area = currentArea(state)
+  if (area.kind === 'road') return null
+  const from = position(state)
+  const goal = cellAt(area, x, y)
+  if ((from.x === x && from.y === y) || !walkable(goal) || !isRevealed(area, x, y)) return null
+  const search = (through: (c: Cell) => boolean) => {
+    const key = (cx: number, cy: number) => cy * area.width + cx
+    const prev = new Map<number, number>([[key(from.x, from.y), -1]])
+    const queue = [key(from.x, from.y)]
+    for (let qi = 0; qi < queue.length; qi++) {
+      const k = queue[qi]!
+      const cx = k % area.width
+      const cy = Math.floor(k / area.width)
+      if (cx === x && cy === y) {
+        const out: { x: number; y: number }[] = []
+        for (let c = k; c !== key(from.x, from.y); c = prev.get(c)!) out.unshift({ x: c % area.width, y: Math.floor(c / area.width) })
+        return out
+      }
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const nx = cx + dx
+        const ny = cy + dy
+        const nk = key(nx, ny)
+        const c = cellAt(area, nx, ny)
+        if (!c || prev.has(nk) || !walkable(c) || !isRevealed(area, nx, ny)) continue
+        if (!(nx === x && ny === y) && !through(c)) continue
+        prev.set(nk, k)
+        queue.push(nk)
+      }
+    }
+    return null
+  }
+  return search(quietCell) ?? (area.kind === 'settlement' || area.kind === 'home' ? search((c) => !NEVER_THROUGH.includes(c.kind)) : null)
+}
+
 export function moveTo(state: GameState, x: number, y: number): StepResult {
   const p = position(state)
   return move(state, x - p.x, y - p.y)
@@ -1270,11 +1320,11 @@ function gather(state: GameState, area: Area, item: string): Report {
   if (item === '古錢') {
     const money = rewardMoney(state, withRng(state, (rng) => rng.int(10, 60)))
     report.changes.money_cc = money
-    report.outcome = { result: 'success', summary: `在${area.name}找到一些古錢。` }
+    report.outcome = { result: 'success', summary: `在${area.name}找到一些古錢。`, tags: ['採集'] }
   } else {
     const qty = gatherQty(state)
     report.changes.items_gained = [{ name: item, qty, owner: 'pc' }]
-    report.outcome = { result: 'success', summary: `在${area.name}採集到${item}${qty > 1 ? ` ×${qty}` : ''}。` }
+    report.outcome = { result: 'success', summary: `在${area.name}採集到${item}${qty > 1 ? ` ×${qty}` : ''}。`, tags: ['採集'] }
   }
   return commitReport(state, report)
 }

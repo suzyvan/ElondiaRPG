@@ -142,6 +142,8 @@ export function humanizeReport(report: Report) {
       at: locationName(report.location.at),
       ...(report.location.to ? { to: locationName(report.location.to) } : {}),
     },
+    // 給敘事用的旗標，不用送出去
+    ...(report.narration ? { narration: { ...report.narration, body_limited: undefined } } : {}),
     party: report.party.map(actor),
     others: report.others?.map(actor),
     // 旁邊的人另外放在 <bystanders>

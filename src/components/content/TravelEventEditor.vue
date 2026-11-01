@@ -247,7 +247,7 @@ function remove() {
     <FoldSet>
       <template #legend>內容 <Hint text="內容標籤：設定沒有開啟或關掉時這個事件不出現。親密場景：選項勾了「進入親密場景」時，敘事依這段描寫。" /></template>
       <CheckList v-model="draft.tags" label="內容標籤" :options="CONTENT_TAG_OPTIONS" />
-      <CheckList v-model="draft.pc_body" label="只給這些主角" :options="BODY_OPTIONS" />
+      <CheckList v-model="draft.pc_body" label="只給這些主角" hint="依主角的體型；都不勾＝都可以。勾了女性形象、中性而沒勾男性形象時，設定打開「陽剛體型也能遇到『只給陰柔、中性』的成人內容」的玩家一樣會遇到。" :options="BODY_OPTIONS" />
       <label class="block">親密場景（成人向，可以空著）<textarea v-model="draft.scene" rows="2" maxlength="200" /></label>
     </FoldSet>
 

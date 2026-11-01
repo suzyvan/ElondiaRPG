@@ -5,7 +5,7 @@ import { enterLocation, standOn } from '@/engine/grid'
 import { applyContent, emptyMods, normalizeMods } from '@/engine/mods'
 import { applyRoadOutcome } from '@/engine/road'
 import { newGame } from '@/engine/state'
-import { blockingNode, nodesHere, nodesWaitingForTime, placeText, playNode, startStory, waitForNode } from '@/engine/story'
+import { blockingNode, nodeHours, nodesHere, nodesWaitingForTime, placeText, playNode, startStory, waitForNode } from '@/engine/story'
 import { sanitizeOutcome, sanitizeStory, type StoryMod } from '@/engine/storyMods'
 import { hoursUntil, jumpFrom } from '@/engine/timeOfDay'
 import { baseReport } from '@/engine/town'
@@ -57,8 +57,10 @@ describe('time of day helpers', () => {
     expect(s.nodes[0]!.hours).toBe('night')
     expect(s.nodes[0]!.success?.time).toEqual({ until: 'morning' })
     expect(sanitizeStory('x', { ...tryst, nodes: [{ ...tryst.nodes[0]!, hours: 'noon' as never }] }, true).nodes[0]!.hours).toBeUndefined()
-    // 旅途上的任務點不限時段
+    // 旅途上與臨時地圖裡的任務點不限時段
     expect(sanitizeStory('x', { ...tryst, nodes: [{ ...tryst.nodes[0]!, at: { where: 'road' } }] }, true).nodes[0]!.hours).toBeUndefined()
+    expect(sanitizeStory('x', { ...tryst, nodes: [{ ...tryst.nodes[0]!, at: { where: 'side' } }] }, true).nodes[0]!.hours).toBeUndefined()
+    expect(nodeHours({ at: { where: 'side' }, hours: 'night' })).toBeUndefined()
   })
 })
 
@@ -80,6 +82,19 @@ describe('story nodes only at night or by day', () => {
     expect(nodesHere(state).map((n) => n.ref)).toEqual(['tryst:meet'])
     expect(nodesWaitingForTime(state)).toEqual([])
     expect(() => waitForNode(state, 'tryst:meet')).toThrow('現在就可以')
+  })
+
+  it('cannot wait while something has to be dealt with first (same as resting)', () => {
+    withTryst()
+    const state = game(10)
+    startStory(state, 'tryst')
+    standOn(state, 'tavern')
+    state.captives = { npcs: ['x'], aggressor: 'party', location: 'soriel', area: 'soriel/x', day: 1 }
+    expect(() => waitForNode(state, 'tryst:meet')).toThrow('先決定怎麼處置被制伏的人')
+    delete state.captives
+    state.townEvent = { template: 'x' }
+    expect(() => waitForNode(state, 'tryst:meet')).toThrow('先決定怎麼應付眼前的事')
+    expect(state.time).toMatchObject({ day: 1, hour: 10 })
   })
 
   it('moves the clock forward when the outcome says so', () => {

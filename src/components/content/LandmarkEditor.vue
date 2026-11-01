@@ -241,7 +241,7 @@ const wearOptions = computed(() => wearChoices())
         <label class="block">說明（玩家看的） <input v-model="sc.desc" :maxlength="LANDMARK_LIMITS.desc_chars" /></label>
         <label class="block"><span>經過（交給 AI） <Hint text="這段場景是什麼；{cast} 會換成在場的人。" /></span><textarea v-model="sc.scene" rows="3" :maxlength="LANDMARK_LIMITS.scene_text_chars" /></label>
         <CheckList v-model="sc.tags" label="內容標籤" :options="CONTENT_TAG_OPTIONS" />
-        <CheckList v-model="sc.pc_body" label="只給這些主角" hint="依主角的體型；都不勾＝都可以。" :options="BODY_OPTIONS" />
+        <CheckList v-model="sc.pc_body" label="只給這些主角" hint="依主角的體型；都不勾＝都可以。勾了女性形象、中性而沒勾男性形象時，設定打開「陽剛體型也能遇到『只給陰柔、中性』的成人內容」的玩家一樣會遇到。" :options="BODY_OPTIONS" />
         <div class="row small">限定穿著 <Hint text="主角要穿著這些才能選（例如打工的制服）。寫底材時任何一件同種的服裝都算。" /> <NameListInput v-model="sc.wear" :options="wearOptions" placeholder="底材或物品名稱" /></div>
         <RequiresEditor :model-value="sc.requires!" label="場景出現的條件" placeholder="全部成立才出現" :extras="false" any @update:model-value="(v) => (sc.requires = v)" />
         <div class="small">在場的固定 NPC（最多 {{ LANDMARK_LIMITS.cast }} 個） <Hint text="寫了旗標的人，旗標成立才在場；沒寫的人一定在場（死了或被抓走時這個場景不出現）。" /></div>

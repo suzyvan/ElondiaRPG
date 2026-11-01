@@ -6,7 +6,7 @@
 
 import { gameRule } from './gameRules'
 import { attrOf, mod, proficiency, snapshot } from './character'
-import { tagsAllowed } from './content'
+import { pcBodyAllowed, tagsAllowed } from './content'
 import { locationById, regionById } from './data'
 import { currentArea, type Area } from './grid'
 import { characterBody } from './look'
@@ -74,7 +74,7 @@ export function dungeonCandidates(state: GameState, area: Area, trigger: Dungeon
     && (!t.regions?.length || t.regions.includes(loc.region))
     && (!t.layers?.length || t.layers.includes(layer))
     && tagsAllowed(t.tags)
-    && (!t.pc_body?.length || t.pc_body.includes(body))
+    && pcBodyAllowed(t.pc_body, body)
     && condMet(state, t.requires)
     && (seen[t.id] === undefined || day - seen[t.id]! >= (t.cooldown_days ?? repeat)))
 }
@@ -152,6 +152,7 @@ export function resolvePcOption(state: GameState, report: Report, t: RoadTemplat
   report.outcome = { result: o.check ? (ok ? 'success' : 'failure') : 'neutral', summary: lines.join(''), tags: [tag] }
   report.narration = { ...report.narration, focus: [t.text, `主角的回應：${o.label}`] }
   if (scene && sceneOn(o, ok)) report.narration = { ...report.narration, length: 'medium', adult_scene: scene }
+  if (t.pc_body?.length) report.narration = { ...report.narration, body_limited: true }
   return ok
 }
 
