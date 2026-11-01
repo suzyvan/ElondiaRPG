@@ -44,6 +44,8 @@ const targets = computed(() => {
 
 // 掙脫（自己）、撕開（隊友）戰鬥中的拘束：只有一個對象時直接做
 const struggleAp = lewdRules.unbind.combat.ap
+/** 行動點上限超過這個數字時改寫數字（高等級的圓點會把生命值擠掉） */
+const AP_PIPS_MAX = 8
 const bound = computed(() => (actor.value ? struggleTargets(combat.value, actor.value) : []))
 const struggleTitle = computed(() => bound.value.map((t) => `${t.id === actor.value?.id ? '掙脫' : `撕開${t.name}身上的`}拘束：DC ${struggleDc(combat.value, actor.value!, t)}`).join('\n'))
 function struggle() {
@@ -522,7 +524,8 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
                 <span class="num">{{ shownHp(c) }}/{{ c.maxHp }}<template v-if="c.tempHp">+{{ c.tempHp }}</template></span>
               </span>
               <span class="ap" :title="`行動點 ${c.ap}/${c.apMax}（每回合 +${c.apRegen}）`">
-                <span class="pips"><i v-for="n in c.apMax" :key="n" :class="{ on: n <= c.ap }" /></span>
+                <span v-if="c.apMax <= AP_PIPS_MAX" class="pips"><i v-for="n in c.apMax" :key="n" :class="{ on: n <= c.ap }" /></span>
+                <span v-else class="pips ap-num"><i class="on" />{{ c.ap }}/{{ c.apMax }}</span>
               </span>
               <span v-if="c.slotMax.length" class="slots small muted" :title="slotsText(c)">環 {{ slotsShort(c) }}</span>
             </div>
@@ -839,7 +842,9 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
 .bar > span.ghost::after { display: none; }
 .bar > span.fill { transition: width 0.12s steps(3, end); }
 .num { font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ap { flex: none; }
 .pips { display: inline-flex; gap: 2px; }
+.ap-num { align-items: center; gap: 3px; font-size: var(--fs-xs); color: var(--accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pips i { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--accent); display: inline-block; }
 .pips i.on { background: var(--accent); }
 .slots { white-space: nowrap; }
