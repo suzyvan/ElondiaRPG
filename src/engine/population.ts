@@ -441,7 +441,17 @@ export function presentHere(state: GameState, id: string): boolean {
   if (state.party.some((m) => m.id === id)) return true
   // 被制伏、倒在地上等你處置的人：一直在你手上
   if (state.captives?.npcs.includes(id) && state.captives.area === currentArea(state).key) return true
-  return nearbyPeople(state).some((p) => p.rec.id === id)
+  // 只算這一個人今天在哪一格（和 peopleHere 同樣的規則），不必把全部 NPC 的位置都排一遍：
+  // 後期存檔登錄的 NPC 很多，受訓、邀請這類清單對每個人各問一次時會變成很慢（玩家回報：城裡每個操作都卡）
+  const rec = npcRecord(state, id)
+  if (!rec) return false
+  const area = currentArea(state)
+  const allies = allyPlacements(state)
+  if (areaOf(state, rec, state.time.day, allies) !== area.key) return false
+  const cell = npcCell(state, rec, area, allies)
+  if (!cell) return false
+  const p = position(state)
+  return Math.max(Math.abs(cell.x - p.x), Math.abs(cell.y - p.y)) <= 1
 }
 
 /** 區域 key 是聚落裡的區塊（不是近郊、地下城、房子） */
