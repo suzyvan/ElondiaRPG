@@ -38,7 +38,9 @@ else
   exit 1
 fi
 
-echo "ElondiaRPG is running at $URL"
+if [ -z "$PY" ]; then
+  echo "ElondiaRPG is running at $URL"
+fi
 echo "Keep this window open while playing. Press Ctrl+C to stop."
 ( sleep 1; open_url ) &
 if [ -n "$PY" ]; then

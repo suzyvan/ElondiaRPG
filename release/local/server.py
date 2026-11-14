@@ -152,6 +152,7 @@ def main():
         print(f'Port {PORT} is busy ({e}). The game may already be running.')
         sys.exit(2)
     server.daemon_threads = True
+    print(f'ElondiaRPG is running at http://localhost:{PORT}/ (AI relay on). Press Ctrl+C to stop.', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
