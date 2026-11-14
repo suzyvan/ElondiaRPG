@@ -5,6 +5,7 @@
 import { hasItemKey, stripItemKeys } from '@/engine/itemKey'
 import { explainConnection } from './connectionHint'
 import type { Prompt } from './prompt'
+import { PROXY_HEADER, proxiedURL } from './localProxy'
 import { listVertexModels, parseServiceAccount, streamVertexService, vertexBody } from './vertexAuth'
 import { anthropicThinking, cacheMarkFor, geminiThinking, openAIReasoningBody, type ProviderConfig, type ProviderId, type TokenUsage } from './providerInfo'
 
@@ -120,10 +121,13 @@ async function* streamAnthropic(config: ProviderConfig, prompt: Prompt, signal?:
 
 async function openAIClient(provider: ProviderId, config: ProviderConfig) {
   const { default: OpenAI } = await import('openai')
+  // 經本機版轉送：Base URL 換成 http://localhost:8473/proxy/...，請求從玩家的電腦送出（不受瀏覽器的 CORS 限制）
+  const viaProxy = provider === 'openai_compatible' && !!config.localProxy && !!config.baseURL
   return new OpenAI({
     // OpenAI SDK 一定要有 key；本機服務不檢查，給個佔位字串
     apiKey: config.apiKey || 'not-needed',
-    ...(provider === 'openai_compatible' ? { baseURL: config.baseURL } : {}),
+    ...(provider === 'openai_compatible' ? { baseURL: viaProxy ? proxiedURL(config.baseURL!) : config.baseURL } : {}),
+    ...(viaProxy ? { defaultHeaders: { [PROXY_HEADER]: '1' } } : {}),
     dangerouslyAllowBrowser: true,
   })
 }

@@ -60,7 +60,7 @@ export function connectionHint(provider: ProviderId, config: Pick<ProviderConfig
   if (url.protocol === 'http:' && pageProtocol === 'https:') {
     return `連不上 ${where}：網頁版是 https，瀏覽器不讓它連 http 的服務（混合內容）。請改用 https 的網址，或用本機版。`
   }
-  return `連不上 ${where}：確認網址正確、服務正常。也可能是這個服務不允許從瀏覽器直接連（CORS）：請服務開啟 CORS，或改用自己的轉送代理。` + F12
+  return `連不上 ${where}：確認網址正確、服務正常。也可能是這個服務不允許從瀏覽器直接連（CORS）：請服務開啟 CORS；或下載本機版，勾選模型設定的「經本機版轉送」；或改用自己的轉送代理。` + F12
 }
 
 /** 連不上服務時換成看得懂的錯誤（原本的訊息放在括號裡）；其他錯誤照原樣 */

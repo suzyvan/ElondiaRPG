@@ -35,6 +35,8 @@ export interface ProviderConfig {
    * 有些中轉服務會在串流途中審查、把成人內容截斷，整段收比較不會被切掉。預設串流
    */
   stream?: boolean
+  /** OpenAI 相容格式：經本機版的啟動器轉送（連沒開 CORS 的服務；localProxy.ts） */
+  localProxy?: boolean
 }
 
 /**

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { localProxyAvailable, onLocalhost } from '@/narrator/localProxy'
 import {
   CACHE_MARKS, guessCacheMark, guessReasoningFormat, parseExtraBody, providerInfo, PROVIDERS, REASONING_FORMATS, REASONING_LEVELS, type ProviderId, type ReasoningLevel,
 } from '@/narrator/providerInfo'
@@ -86,6 +87,16 @@ const reasoning = computed({
   set: (v: string) => {
     if (v) cfg.value.reasoning = v as ReasoningLevel
     else delete cfg.value.reasoning
+  },
+})
+// 經本機版轉送（localProxy.ts）：只有 OpenAI 相容格式；本機版的啟動器有回應時才能用
+const proxyOk = ref<boolean | null>(null)
+onMounted(async () => { if (onLocalhost()) proxyOk.value = await localProxyAvailable() })
+const viaProxy = computed({
+  get: () => !!cfg.value.localProxy,
+  set: (v: boolean) => {
+    if (v) cfg.value.localProxy = true
+    else delete cfg.value.localProxy
   },
 })
 const streaming = computed({
@@ -212,6 +223,16 @@ function copyFrom(e: Event) {
       <span class="lab">最大輸出 tokens（選填） <Hint text="留空用服務的預設值。" /></span>
       <input type="number" min="0" :value="cfg.maxTokens ?? ''" style="width: 140px" @input="onMaxTokens" />
     </label>
+
+    <template v-if="source.provider === 'openai_compatible'">
+      <label class="check">
+        <input id="model-local-proxy" v-model="viaProxy" type="checkbox" :disabled="!viaProxy && proxyOk !== true" /> 經本機版轉送（連不上沒開 CORS 的服務時用）
+        <Hint :width="340" text="有些中轉站不允許網頁直接連（沒開 CORS），瀏覽器會擋下請求，只看到「Connection error」。用本機版的啟動器開遊戲時，可以勾這個：請求改由你自己電腦上的啟動器轉送給服務，不經過任何第三方，key 也只送到那個服務。線上版（GitHub Pages）只能放靜態檔案，沒有轉送。" />
+      </label>
+      <p v-if="!onLocalhost() || proxyOk === false || (viaProxy && proxyOk !== true)" class="small muted">
+        {{ onLocalhost() ? '偵測不到本機轉送：請用新版本機版的啟動器（Start-Windows.bat、Start-macOS.command、start.sh）開遊戲。' : '本機轉送只有本機版能用：到 Releases 下載本機版，用啟動器開遊戲。' }}
+      </p>
+    </template>
 
     <label v-if="source.provider !== 'anthropic'" class="check">
       <input v-model="streaming" type="checkbox" /> 串流傳輸（邊產生邊顯示）
