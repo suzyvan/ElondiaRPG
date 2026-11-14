@@ -244,7 +244,7 @@ export function settlementKey(locationId: string, blockId: string) {
   return `${locationId}/${blockId}`
 }
 
-function palaceName(loc: Location): string {
+export function palaceName(loc: Location): string {
   return (loc.faction && maps.palace_names[loc.faction]) || '王城'
 }
 

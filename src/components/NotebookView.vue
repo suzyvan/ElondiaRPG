@@ -18,12 +18,13 @@ import { useSettings } from '@/stores/settings'
 import BestiaryPanel from './BestiaryPanel.vue'
 import FoldMenu from './ui/FoldMenu.vue'
 import GameIcon from './ui/GameIcon.vue'
+import FactionPanel from './FactionPanel.vue'
 
-// 冒險筆記：一般委託、特殊任務（目前的目標與經過）、情報（買到的與打聽到的傳聞）、怪物圖鑑
+// 冒險筆記：一般委託、特殊任務（目前的目標與經過）、情報（買到的與打聽到的傳聞）、勢力（聲望、警戒與通緝）、怪物圖鑑
 const game = useGame()
 const settings = useSettings()
 const s = computed(() => game.state!)
-type Tab = 'quests' | 'stories' | 'intel' | 'bestiary'
+type Tab = 'quests' | 'stories' | 'intel' | 'factions' | 'bestiary'
 const tab = ref<Tab>('quests')
 
 // ---- 每一頁的篩選：上次選的狀態記在這個瀏覽器；搜尋不記 ----
@@ -130,6 +131,7 @@ const counts = computed(() => ({
   quests: active.value.length,
   stories: myStories.value.filter((x) => x.p.status === 'active').length,
   intel: intel.value.filter((i) => i.status === 'active' && i.kind === 'point').length,
+  wanted: Object.keys(s.value.wanted ?? {}).filter((f) => s.value.wanted?.[f]).length,
 }))
 </script>
 
@@ -139,6 +141,7 @@ const counts = computed(() => ({
       <button :class="{ active: tab === 'quests' }" @click="tab = 'quests'"><GameIcon name="scroll" :size="15" />一般委託 <span v-if="counts.quests" class="tag">{{ counts.quests }}</span></button>
       <button :class="{ active: tab === 'stories' }" @click="tab = 'stories'"><GameIcon name="star" :size="15" />特殊任務 <span v-if="counts.stories" class="tag">{{ counts.stories }}</span></button>
       <button :class="{ active: tab === 'intel' }" @click="tab = 'intel'"><GameIcon name="eye" :size="15" />情報 <span v-if="counts.intel" class="tag">{{ counts.intel }}</span></button>
+      <button :class="{ active: tab === 'factions' }" @click="tab = 'factions'"><GameIcon name="flag" :size="15" />勢力 <span v-if="counts.wanted" class="tag bad">通緝 {{ counts.wanted }}</span></button>
       <button :class="{ active: tab === 'bestiary' }" @click="tab = 'bestiary'"><GameIcon name="skull" :size="15" />圖鑑</button>
     </nav>
 
@@ -252,6 +255,7 @@ const counts = computed(() => ({
     </template>
 
     <BestiaryPanel v-else-if="tab === 'bestiary'" />
+    <FactionPanel v-else-if="tab === 'factions'" />
 
     <template v-else>
       <div v-if="intel.length" class="row filters">

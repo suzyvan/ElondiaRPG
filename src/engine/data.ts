@@ -75,7 +75,7 @@ export interface Route {
   note?: string
 }
 
-export interface Faction { id: string; name: string }
+export interface Faction { id: string; name: string; desc?: string; /** 首都（地點 id） */ capital?: string }
 export const geography = geographyJson as unknown as {
   factions: Faction[]
   regions: Region[]
