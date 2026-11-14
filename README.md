@@ -23,7 +23,7 @@
 
 4. **連不上沒開 CORS 的 AI 服務**（有些中轉站不允許網頁直接連，只看到「Connection error」）：在「設定 → 模型」（OpenAI 相容格式）勾選「經本機版轉送」，請求改由啟動器從你的電腦轉送給服務，不經第三方。線上版沒有這個功能（GitHub Pages 只能放靜態檔案）。見 [`docs/PROMPTS.md`](docs/PROMPTS.md) 的「本機版轉送」。
 
-也可以照下面「自己建置」用 `pnpm dev` 執行，或把 `game/` 資料夾放到任何靜態網頁伺服器（例如在裡面執行 `npx serve`；這樣沒有本機轉送）。
+也可以照下面「自己建置」用 `pnpm dev` 執行，或把 `game/` 資料夾放到任何靜態網頁伺服器（例如在裡面執行 `npx serve`；這樣沒有本機轉送。`pnpm dev`、`pnpm preview` 有）。
 
 ### 開始之後
 
