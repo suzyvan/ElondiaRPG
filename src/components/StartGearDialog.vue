@@ -5,7 +5,7 @@ import { computed, ref } from 'vue'
 import { armorDef, attrName, damageTypeName, weaponDef, type AttrId } from '@/engine/data'
 import { describeEffects } from '@/engine/perks'
 import {
-  creationCatalog, creationCost, gearRules, gearStats, MOD_NAME, rarityName, SLOT_CATEGORY, slotNameFor, type CreationGear, type CreationOption, type CreationPick,
+  creationCatalog, creationCost, gearRules, gearStats, MOD_NAME, rarityName, SLOT_CATEGORY, slotNameFor, weaponLine, type CreationGear, type CreationOption, type CreationPick,
 } from '@/engine/gear'
 import type { GearSlot } from '@/engine/types'
 import AppDialog from './AppDialog.vue'
@@ -69,7 +69,7 @@ function attackOf(o: CreationOption): string {
   const s = gearStats(o.spec)
   if (!s.weapon) return ''
   const w = weaponDef(s.weapon)
-  return `${w.dice} ${damageTypeName(w.type)}${s.two_handed ? '（雙手）' : ''}`
+  return weaponLine(w, s.two_handed)
 }
 function defenseOf(o: CreationOption): string {
   const s = gearStats(o.spec)

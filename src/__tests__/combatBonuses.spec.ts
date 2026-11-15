@@ -1,8 +1,8 @@
 // 角色詳情的戰鬥加值與來源（character.ts 的 combatBonuses）：和開戰時的算法一樣
 import { describe, expect, it } from 'vitest'
-import { combatBonuses, mod, proficiency, attrsOf, weaponFor } from '@/engine/character'
+import { apRegenFor, combatBonuses, mod, proficiency, attrsOf, weaponFor } from '@/engine/character'
 import { armorDef } from '@/engine/data'
-import { gearBonuses } from '@/engine/gear'
+import { gearBonuses, gearSummary } from '@/engine/gear'
 import { newGame } from '@/engine/state'
 import { startCombat } from '@/engine/combat'
 import { enterLocation } from '@/engine/grid'
@@ -25,5 +25,27 @@ describe('combat bonuses in the character sheet', () => {
     const combat = startCombat(state, [['goblin', 1]])
     const me = combat.combatants.find((c) => c.id === pc.id)!
     expect(me.armorEvade + (me.baseMods?.evade ?? 0) + Math.floor(mod(me.attrs.dex) / 2)).toBe(b.evade.total)
+  })
+
+  it('counts gear toward AP regen, the same as in combat', () => {
+    const state = newGame({ name: '北眺', race: 'human', classId: 'ranger', seed: 4, birthplace: 'soriel' })
+    enterLocation(state)
+    const pc = state.party[0]!
+    pc.gear = { ...(pc.gear ?? {}), piercing_1: { name: '臍釘', spec: { base: 'navel_vigor', material: 'silver', rarity: 'rare', enchants: { mods: { ap_regen: 1 } } } } }
+    const b = combatBonuses(pc)
+    const gear = gearBonuses(pc).mods.ap_regen ?? 0
+    expect(gear).toBeGreaterThan(0)
+    expect(b.ap_regen.parts[0]).toEqual({ src: '基本', v: apRegenFor(pc.level) })
+    expect(b.ap_regen.parts).toContainEqual({ src: '裝備', v: gear })
+    const combat = startCombat(state, [['goblin', 1]])
+    const me = combat.combatants.find((c) => c.id === pc.id)!
+    expect(me.apRegen + (me.baseMods?.ap_regen ?? 0)).toBe(b.ap_regen.total)
+  })
+})
+
+describe('weapon attribute in gear descriptions', () => {
+  it('says whether a weapon uses strength or dexterity', () => {
+    expect(gearSummary({ base: 'dagger', material: 'iron' })).toContain('（靈巧）')
+    expect(gearSummary({ base: 'greatsword', material: 'iron' })).toMatch(/（力量、雙手）/)
   })
 })

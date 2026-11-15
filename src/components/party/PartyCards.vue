@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive } from 'vue'
 import { lastSeen, stateKey } from '@/fx/seen'
-import { affinityStage, apMaxFor, apRegenFor, attrsOf, carriedAbilities, castingAttr, guildRankFor, loadoutUsage, mod, proficiency, xpToNext } from '@/engine/character'
+import { affinityStage, apMaxFor, attrsOf, carriedAbilities, castingAttr, combatBonuses, guildRankFor, loadoutUsage, mod, proficiency, xpToNext } from '@/engine/character'
 import { gameRule } from '@/engine/gameRules'
 import { playerRank } from '@/engine/guild'
 import { abilityDef, attributeRules, attrName, className, classDef, companionRules, conditionName, conditionTone, genderDef, genderName, raceName } from '@/engine/data'
@@ -109,7 +109,7 @@ function canDismiss(m: Character) {
       </div>
       <p v-if="isNoncombatant(m)" class="small muted nc">無法戰鬥：同行但不參與戰鬥、不分經驗。</p>
       <div v-else class="combat3">
-        <div><span class="label">行動點</span><span><b>{{ apMaxFor(m.level, attrsOf(m)) }}</b> <small class="muted">每回合 +{{ apRegenFor(m.level) }}</small></span></div>
+        <div><span class="label">行動點</span><span><b>{{ apMaxFor(m.level, attrsOf(m)) }}</b> <small class="muted">每回合 +{{ combatBonuses(m).ap_regen.total }}</small></span></div>
         <div>
           <span class="label">法術環</span>
           <span v-if="spellSlots(m).length" class="slots" title="剩下／上限；長休後全滿">

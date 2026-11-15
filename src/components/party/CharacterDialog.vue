@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import {
-  abilityQuality, apMaxFor, apRegenFor, attrsOf, carriedAbilities, castingAttr, combatBonuses, countsForLoadout, evadeFloor, gearAffinities, hasRerollPool, luckyThreshold, mod, proficiency, rerollsLeft, weaponFor, xpToNext,
+  abilityQuality, apMaxFor, attrsOf, carriedAbilities, castingAttr, combatBonuses, countsForLoadout, evadeFloor, gearAffinities, hasRerollPool, luckyThreshold, mod, proficiency, rerollsLeft, weaponFor, xpToNext,
 } from '@/engine/character'
 import { abilityDef, armorDef, attributeRules, attrName, classDef, damageTypeName, genderName, locationById, progression, slaveryRules, statusDef, tagDef } from '@/engine/data'
 import { XP_SINKS, xpSinkBlocked, xpSinkCost, xpSinkName } from '@/engine/xpSinks'
@@ -65,7 +65,7 @@ const combat = computed<StatItem[]>(() => {
   const w = weaponFor(x)
   const a = armorDef(x.armor)
   return [
-    { label: '行動點', value: apMaxFor(x.level, attrsOf(x)), note: `每回合 +${apRegenFor(x.level)}` },
+    { label: '行動點', value: apMaxFor(x.level, attrsOf(x)), note: `每回合 +${b.value.ap_regen.total}${b.value.ap_regen.parts.length > 1 ? `（${sources(b.value.ap_regen.parts)}）` : ''}` },
     { label: '法術環', value: slotsText(x) },
     ...(classDef(x.class).caster !== 'none' ? [{ label: '施法屬性', value: attrName(castingAttr(x.class)), note: `熟練 +${proficiency(x.level)}` }] : []),
     { label: '幸運一擊', value: `自然骰 ${luckyThreshold(attrsOf(x), gearAffinities(x).mods.crit ?? 0)} 以上`, hint: '擲出這個數字以上的自然骰時，傷害加倍' },

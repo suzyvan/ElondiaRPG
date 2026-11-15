@@ -9,7 +9,7 @@
 import gearJson from '@data/rules/gear.json'
 import {
   armorDef, attrName, className, raceName, damageTypeName, damageTypes, DUNGEON_LAYER_IDS, dungeonEncounters, enemies, equipment, geography, itemDef, itemRules, lewdRules, weaponDef, wildEncounters, mulResist,
-  type AffinityMap, type AttrId, type BindKind, type EncounterGroup, type LockGrade, type Mods,
+  type AffinityMap, type AttrId, type BindKind, type EncounterGroup, type LockGrade, type Mods, type WeaponDef,
 } from './data'
 import { itemKey, itemLabel, sameShape } from './itemKey'
 import { bindTip } from './bindRulesMods'
@@ -879,6 +879,11 @@ export const MOD_NAME: Record<string, string> = {
 }
 const signed = (n: number) => (n >= 0 ? `+${n}` : `${n}`)
 
+/** 武器的一段說明：傷害骰、傷害類型、用哪個屬性（力量或靈巧武器）、雙手 */
+export function weaponLine(w: Pick<WeaponDef, 'dice' | 'type' | 'attr'>, twoHanded?: boolean): string {
+  return `${w.dice} ${damageTypeName(w.type)}（${attrName(w.attr)}${twoHanded ? '、雙手' : ''}）`
+}
+
 /** 一行說明：稀有度・欄位・武器或防具類型・加成 */
 /**
  * 一件裝備的摘要。inExtra：拘束具放在額外飾品欄（bonusesOff）時只列生效的部分：
@@ -904,7 +909,7 @@ export function gearSummaryParts(spec: GearSpec, inExtra = false): SummaryPart[]
   const parts = [rarityName(s.rarity), baseSlotName(s.slot)]
   if (s.weapon) {
     const w = weaponDef(s.weapon)
-    parts.push(`${w.dice} ${damageTypeName(w.type)}${s.two_handed ? '（雙手）' : ''}`)
+    parts.push(weaponLine(w, s.two_handed))
   }
   if (s.armor) {
     const a = armorDef(s.armor)

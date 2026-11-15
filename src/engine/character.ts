@@ -180,12 +180,13 @@ export function luckyThreshold(attrs: Attrs, critBonus = 0): number {
 /** 迴避骰的下限：1 + max(0, mod(靈巧)) */
 /** 一項戰鬥加值的來源（角色詳情：命中、迴避……的加值寫出從哪裡來） */
 export interface BonusPart { src: string; v: number }
-export type BonusKey = 'hit' | 'evade' | 'damage' | 'dr' | 'save'
+export type BonusKey = 'hit' | 'evade' | 'damage' | 'dr' | 'save' | 'ap_regen'
 
 /**
  * 戰鬥加值與來源（和 combat.ts 開戰時一樣的算法；戰鬥中的狀態另外算）：
  * 命中 = 熟練 + 武器屬性的調整值 + 裝備 + 特質 + 非戰鬥狀態；迴避 = d20（有下限）+ 靈巧調整值的一半 + 防具 + 裝備 + 特質 + 狀態；
- * 傷害、豁免 = 裝備 + 特質 + 狀態；減傷 = 防具 + 裝備（只擋物理）+ 特質 + 狀態
+ * 傷害、豁免 = 裝備 + 特質 + 狀態；減傷 = 防具 + 裝備（只擋物理）+ 特質 + 狀態；
+ * 行動點回復 = 依等級的基本回復 + 裝備 + 特質 + 狀態（戰鬥中每回合最少 0）
  */
 export function combatBonuses(c: Character): Record<BonusKey, { total: number; parts: BonusPart[] }> {
   const attrs = attrsOf(c)
@@ -208,6 +209,10 @@ export function combatBonuses(c: Character): Record<BonusKey, { total: number; p
     damage: out(shared('damage')),
     dr: out([{ src: '防具', v: armor.dr }, ...shared('dr')]),
     save: out(shared('save')),
+    ap_regen: (() => {
+      const r = out([{ src: '基本', v: apRegenFor(c.level) }, ...shared('ap_regen')])
+      return { ...r, total: Math.max(0, r.total) }
+    })(),
   }
 }
 
