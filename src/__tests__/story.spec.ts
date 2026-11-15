@@ -9,7 +9,7 @@ import { applyContent, emptyMods, normalizeMods } from '@/engine/mods'
 import { npcRecord, registerNpc } from '@/engine/npcs'
 import { newGame } from '@/engine/state'
 import { ensureRelationship, setAffinity } from '@/engine/social'
-import { abandonStory, activeNodes, nodesHere, playNode, startStory, storyOffersHere } from '@/engine/story'
+import { abandonStory, activeNodes, nodesHere, playNode, startStory, storyMarks, storyOffersHere } from '@/engine/story'
 import { hasFlag } from '@/engine/storyFlags'
 import { flagUsage, newStory, sanitizeStory, storyIssues } from '@/engine/storyMods'
 import type { GameState, Report } from '@/engine/types'
@@ -46,6 +46,20 @@ describe('special quests', () => {
     const p = state.position!
     registerNpc(state, { ...npcRecord(state, 'npc_selene')!, at: { area: p.area, x: p.x, y: p.y, until: state.time.day } })
     expect(storyOffersHere(state).map((s) => s.id)).toContain('lost_relic')
+  })
+
+  it('marks the people who give quests and the places with quest nodes on the map', () => {
+    const state = game()
+    standOn(state, 'temple')
+    const p = state.position!
+    registerNpc(state, { ...npcRecord(state, 'npc_selene')!, at: { area: p.area, x: p.x, y: p.y, until: state.time.day } })
+    const selene = { rec: npcRecord(state, 'npc_selene')! }
+    expect(storyMarks(state, [selene]).npcs.has('npc_selene')).toBe(true)
+    // 接了之後：第一個任務點在酒館
+    startStory(state, 'lost_relic')
+    const marks = storyMarks(state, [selene])
+    expect(marks.cells.has('tavern')).toBe(true)
+    expect(marks.npcs.has('npc_selene')).toBe(false)
   })
 
   it('needs enough affinity with the fixed NPC when the start sets a threshold', () => {

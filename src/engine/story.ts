@@ -123,6 +123,29 @@ function storyStarts(): StartIndex {
 }
 
 /**
+ * 地圖上要標出來的任務（聚落地圖的格子與人）：
+ * cells 是現在有任務點的設施種類（進行中、沒暫停、條件成立的任務點寫在這座城的設施或地標上；也包括接得到公會任務時的公會），
+ * npcs 是和任務有關的人（任務點是「這個人在身邊」，或現在找他就能接任務）。people 是畫面算好的這一區的人
+ */
+export function storyMarks(state: GameState, people: { rec: { id: string } }[] = []): { cells: Set<string>; npcs: Set<string> } {
+  const cells = new Set<string>()
+  const npcs = new Set<string>()
+  const here = state.location
+  for (const n of activeNodes(state)) {
+    const at = n.node.at
+    if (at.where === 'cell' && at.cell && (!at.location || at.location === here)) cells.add(at.cell)
+    else if (at.where === 'npc' && at.npc && (!at.location || at.location === here)) npcs.add(at.npc)
+  }
+  const { guild, byNpc } = storyStarts()
+  if (guild.some((x) => (!x.def.start.location || x.def.start.location === here) && canStart(state, x.def))) cells.add('guild')
+  for (const p of people) {
+    const list = byNpc.get(p.rec.id)
+    if (list?.some((x) => canStart(state, x.def)) && npcFree(state, p.rec.id)) npcs.add(p.rec.id)
+  }
+  return { cells, npcs }
+}
+
+/**
  * 有沒有特殊任務要用到這個地標：進行中（沒暫停）的任務還沒做的任務點在這一格，或現在接得到的任務的任務點在這一格、委託人待在這個地標。
  * 只有場景的地標沒有場景可選時，靠這個決定要不要留在地圖上（例如打工線的委託人所在）
  */

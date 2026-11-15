@@ -9,6 +9,8 @@ import { isHostile, type PresentNpc } from '@/engine/population'
 import { useGame } from '@/stores/game'
 import { currentLight, isDark } from '@/engine/light'
 import { sceneSpots } from '@/engine/landmarks'
+import { storyMarks } from '@/engine/story'
+import { npcKind } from '@/engine/npcs'
 import { freshKeys, stateKey } from '@/fx/seen'
 import GameIcon from './ui/GameIcon.vue'
 import type { IconName } from './ui/iconPaths'
@@ -25,7 +27,12 @@ const ICON = CELL_ICON
 
 const EVENT_ICON = { special: '⭐', master: '⛓️', slave: '💞', advanced: '✨' }
 
+// 任務（engine/story.ts 的 storyMarks）：有任務點的設施、和任務有關的人。設施上同時有地標或場景時，任務的星號優先
+const marks = computed(() => storyMarks(game.state!, game.here))
+const questHere = (cell: Cell) => !cell.storyNode && marks.value.cells.has(cell.kind)
+
 function icon(cell: Cell): string {
+  if (questHere(cell)) return '⭐'
   // 房子：家具、樓梯、門；城裡買下的房子
   // 苗圃上的作物：成熟 🌾、還在長 🌿
   if (cell.crop && game.state) return cropStatus(game.state, cell)?.ready ? '🌾' : '🌿'
@@ -49,6 +56,7 @@ const EVENT_GAME_ICON: Record<string, IconName> = { special: 'star', master: 'lo
 function gameIcon(cell: Cell): IconName | undefined {
   const e = icon(cell)
   if (!e || cell.crop || cell.furniture) return undefined
+  if (questHere(cell)) return 'star'
   if (cell.dir) return ({ up: 'arrowUp', down: 'arrowDown', out: 'door' } as const)[cell.dir]
   if (cell.home) return 'home'
   if (cell.kind === 'quest' && cell.storyNode) return 'star'
@@ -82,6 +90,10 @@ function tile(cell: Cell, seen: boolean, x: number, y: number): string {
 }
 
 function label(cell: Cell): string {
+  if (questHere(cell)) return `${baseLabel(cell)}（有特殊任務的任務點）`
+  return baseLabel(cell)
+}
+function baseLabel(cell: Cell): string {
   if (cell.crop && game.state) {
     const c = cropStatus(game.state, cell)
     return `${cell.furniture}：種著${cell.crop.seed}${c?.ready ? '，可以收成了' : `，還要 ${c?.hoursLeft ?? 0} 小時`}`
@@ -115,7 +127,20 @@ const people = computed(() => {
 })
 
 function peopleTitle(list: PresentNpc[]): string {
-  return list.map((p) => p.rec.name).join('、')
+  return list.map((p) => `${p.rec.name}${npcKind(p.rec) === 'adventurer' ? '（冒險者）' : ''}${marks.value.npcs.has(p.rec.id) ? '（有任務）' : ''}`).join('、')
+}
+
+/** 格子上的人分兩個標記：冒險者、居民（各自的人數）；有敵意的紅色、有任務的人加「!」 */
+function badges(list: PresentNpc[]) {
+  const groups = [
+    { kind: 'adv', title: '冒險者', who: list.filter((p) => npcKind(p.rec) === 'adventurer') },
+    { kind: 'res', title: '居民', who: list.filter((p) => npcKind(p.rec) !== 'adventurer') },
+  ]
+  return groups.filter((g) => g.who.length).map((g) => ({
+    kind: g.kind, title: g.title, n: g.who.length,
+    hostile: g.who.some((p) => isHostile(game.state!, p.rec)),
+    quest: g.who.some((p) => marks.value.npcs.has(p.rec.id)),
+  }))
 }
 
 // 地標內部有場景的格子（例如咖啡廳的小房間）：畫一顆心
@@ -229,11 +254,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           @click="step(c.x, c.y)"
         >
           <template v-if="c.seen && !c.here">
-            <GameIcon v-if="c.spot" class="glyph spot" name="heart" />
+            <GameIcon v-if="c.spot && !questHere(c.cell)" class="glyph spot" name="heart" />
             <GameIcon v-else-if="gameIcon(c.cell)" class="glyph" :class="{ danger: DANGER.has(c.cell.kind) }" :name="gameIcon(c.cell)!" />
             <span v-else class="emoji">{{ icon(c.cell) }}</span>
           </template>
-          <span v-if="c.who.length" class="npc" :class="{ hostile: c.who.some((p) => isHostile(game.state!, p.rec)) }"><GameIcon name="user" :size="9" />{{ c.who.length > 1 ? c.who.length : '' }}</span>
+          <span v-if="c.who.length" class="npcs">
+            <span v-for="b in badges(c.who)" :key="b.kind" class="npc" :class="[b.kind, { hostile: b.hostile, quest: b.quest }]" :title="`${b.title} ${b.n} 人${b.quest ? '（有任務）' : ''}`">
+              <b v-if="b.quest" class="bang">!</b><GameIcon name="user" :size="9" />{{ b.n > 1 ? b.n : '' }}
+            </span>
+          </span>
         </button>
       </template>
     </div>
@@ -312,9 +341,14 @@ button.bump-tip.go { pointer-events: auto; cursor: pointer; color: var(--accent)
 @keyframes draw { from { transform: scaleX(0); } }
 .me { display: grid; place-items: center; width: calc(var(--cell) * 0.7); height: calc(var(--cell) * 0.7); border-radius: 50%; background: radial-gradient(circle, #f0d083, #b8862a); color: #2a1a08; box-shadow: 0 0 8px #f0d083; }
 .me :deep(.game-icon) { width: 70%; height: 70%; }
+/* 格子上的人：右上角，冒險者（藍）在上、居民（綠）在下；有敵意的紅色；有任務的人金色加「!」 */
+.npcs { position: absolute; right: 1px; top: 1px; display: grid; justify-items: end; gap: 1px; pointer-events: none; }
 .npc {
-  position: absolute; right: 1px; top: 1px; display: inline-flex; align-items: center; gap: 1px; height: 12px; padding: 0 2px; border-radius: 2px;
+  display: inline-flex; align-items: center; gap: 1px; height: 12px; padding: 0 2px; border-radius: 2px;
   background: var(--accent-2); color: #10201a; font: 700 9px/12px system-ui, sans-serif; box-shadow: 0 0 0 1px #000;
 }
+.npc.adv { background: #6f9fd8; color: #0c1a2c; }
+.npc.quest { background: #f0d083; color: #2a1a08; box-shadow: 0 0 0 1px #000, 0 0 5px #f0d083; }
 .npc.hostile { background: var(--danger); color: #fff; }
+.npc .bang { font-size: 10px; line-height: 12px; }
 </style>

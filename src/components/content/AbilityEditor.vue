@@ -9,6 +9,7 @@ import { parasiteRules } from '@/engine/parasites'
 import { useGame } from '@/stores/game'
 import UsageNote from './UsageNote.vue'
 import Hint from '../ui/Hint.vue'
+import { ABILITY_CATEGORIES, abilityCategoryName, autoAbilityCategory, isAbilityCategory } from '@/engine/abilityCategory'
 import ContentIcon from '../icons/ContentIcon.vue'
 import { abilityGlyph, abilityGlyphName } from '../icons/abilityArt'
 import EditorHeader from './EditorHeader.vue'
@@ -181,6 +182,12 @@ function remove() {
     game.error = e instanceof Error ? e.message : String(e)
   }
 }
+
+/** 分類：空字串是自動（不寫 category） */
+function setCategory(v: string) {
+  if (isAbilityCategory(v)) draft.value.category = v
+  else delete draft.value.category
+}
 </script>
 
 <template>
@@ -243,6 +250,13 @@ function remove() {
           </select>
         </label>
         <label v-if="draft.target === 'random_enemies'">次數 <input v-model.number="draft.count" type="number" min="1" max="10" /></label>
+        <label>分類
+          <select :value="draft.category ?? ''" @change="setCategory(($event.target as HTMLSelectElement).value)">
+            <option value="">自動（{{ abilityCategoryName(autoAbilityCategory(draft)) }}）</option>
+            <option v-for="c in ABILITY_CATEGORIES" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+          <Hint text="能力分頁與戰鬥選單的分類按鈕用。沒選時依效果自動判斷：打一個敵人有傷害是單體攻擊、打全體是範圍攻擊、對敵人沒傷害是控制・削弱、治療護盾、對自己或隊友的其他是增益、加減慾望是慾望。" />
+        </label>
         <label>判定
           <select v-model="draft.resolve">
             <option v-for="(n, k) in ABILITY_RESOLVES" :key="k" :value="k">{{ n }}</option>

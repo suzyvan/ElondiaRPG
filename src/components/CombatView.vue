@@ -20,6 +20,9 @@ import ContentIcon from './icons/ContentIcon.vue'
 import BottomSheet from './mobile/BottomSheet.vue'
 import SwipeTabs from './mobile/SwipeTabs.vue'
 import { isMobile } from './mobile/mobile'
+import AbilityCategoryChips from './ui/AbilityCategoryChips.vue'
+import { abilityCategory, isAbilityCategory } from '@/engine/abilityCategory'
+import type { AbilityCategoryId } from '@/engine/data'
 import { vMarquee } from './marquee'
 
 const emit = defineEmits<{ finished: []; open: [what: 'party' | 'settings'] }>()
@@ -86,10 +89,31 @@ function itemEffect(name: string): string {
   return useSummary(items.value.find((i) => i.name === name)?.def.use).replace('・戰鬥中', '')
 }
 
+// 技能的分類按鈕（engine/abilityCategory.ts）：記在這個瀏覽器，換人時那個人沒有這個分類就回到全部
+const CAT_KEY = 'elondia.combatAbilityCat'
+const abCat = ref<AbilityCategoryId | ''>(readCat())
+function readCat(): AbilityCategoryId | '' {
+  try {
+    const v = localStorage.getItem(CAT_KEY)
+    return isAbilityCategory(v) ? v : ''
+  } catch {
+    return ''
+  }
+}
+watch(abCat, (v) => {
+  try {
+    localStorage.setItem(CAT_KEY, v)
+  } catch {
+    // 瀏覽器不給存：只是下次不記得
+  }
+})
+const actorAbilities = computed(() => (actor.value ? actor.value.abilities.map(abilityDef) : []))
+const inCat = (x: AbilityDef) => !abCat.value || abilityCategory(x) === abCat.value
+
 const groups = computed(() => {
   const a = actor.value
   if (!a) return []
-  const list = a.abilities.map(abilityDef)
+  const list = actorAbilities.value.filter(inCat)
   return [
     { name: '技能', items: list.filter((x) => x.type === 'skill') },
     { name: '法術', items: list.filter((x) => x.type === 'spell').sort((x, y) => (x.circle ?? 0) - (y.circle ?? 0)) },
@@ -162,14 +186,21 @@ function holdCancel() {
 }
 onBeforeUnmount(holdCancel)
 
+/** 開始選目標；只有一個可選的目標時不用再點，直接對它出手 */
+function aim(p: NonNullable<typeof pending.value>) {
+  pending.value = p
+  const list = targets.value
+  if (list.length === 1) chooseTarget(list[0]!.id)
+}
+
 function choose(a: AbilityDef) {
   const circle = wantedCircle(a)
-  if (a.target === 'enemy' || a.target === 'ally' || a.target === 'ally_or_downed') pending.value = { kind: 'ability', ability: a, ...(circle ? { circle } : {}) }
+  if (a.target === 'enemy' || a.target === 'ally' || a.target === 'ally_or_downed') aim({ kind: 'ability', ability: a, ...(circle ? { circle } : {}) })
   else send({ type: 'ability', ability: a.id, ...(circle ? { circle } : {}) })
 }
 
 function chooseItem(name: string) {
-  if (itemNeedsTarget(name)) { pending.value = { kind: 'item', item: name }; return }
+  if (itemNeedsTarget(name)) { aim({ kind: 'item', item: name }); return }
   // 全體範圍與逃脫道具：不用選目標
   const list = itemTargets(combat.value, name)
   const target = list.find((t) => t.id === actor.value?.id) ?? list[0]
@@ -466,7 +497,7 @@ const resultText = { victory: '勝利！', defeat: '戰敗……', fled: '成功
 // 技能依類型分頁；長按卡片或技能看說明（電腦版的滑鼠提示）。
 const isLewd = (a: AbilityDef) => a.classes?.includes('lewd') ?? false
 function tabAbilities(id: string): AbilityDef[] {
-  const list = actor.value ? actor.value.abilities.map(abilityDef) : []
+  const list = actorAbilities.value.filter(inCat)
   if (id === 'skill') return list.filter((x) => x.type === 'skill' && !isLewd(x))
   if (id === 'spell') return list.filter((x) => x.type === 'spell' && !isLewd(x)).sort((x, y) => (x.circle ?? 0) - (y.circle ?? 0))
   if (id === 'cantrip') return list.filter((x) => x.type === 'cantrip' && !isLewd(x))
@@ -730,7 +761,7 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
       </template>
       <template v-else>
         <div class="row basics">
-          <button class="primary" :disabled="actor.ap < costs.weapon_attack" @click="pending = { kind: 'attack' }">
+          <button class="primary" :disabled="actor.ap < costs.weapon_attack" @click="aim({ kind: 'attack' })">
             {{ actor.weapon.name }}攻擊 <span class="small">{{ costs.weapon_attack }} AP<template v-if="!isMobile">・{{ damageTypeName(actor.weapon.type) }}</template></span>
           </button>
           <button :disabled="actor.ap < costs.defend" @click="send({ type: 'defend' })">防禦 <span class="small muted">{{ costs.defend }} AP</span></button>
@@ -754,6 +785,7 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
             ><span class="fill" />戰敗</button>
           </span>
         </div>
+        <AbilityCategoryChips v-if="actorAbilities.length" v-model="abCat" :abilities="actorAbilities" class="cats" />
         <div v-if="!isMobile" class="groups">
           <div v-for="g in groups" :key="g.name" class="group">
             <h4 class="small muted">{{ g.name }}</h4>
@@ -1008,6 +1040,8 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
 /* 長按的進度：按住時從左填到右，放開就退回 */
 .surrender .go .fill { position: absolute; inset: 0; background: currentColor; opacity: 0.25; transform: scaleX(0); transform-origin: left; pointer-events: none; }
 .surrender .go.holding .fill { transform: scaleX(1); transition: transform var(--hold) linear; }
+.cats { margin: 2px 0 4px; }
+@media (max-width: 720px) { .cats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .cats :deep(button) { flex: none; white-space: nowrap; } }
 .groups { max-height: 30vh; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 0 18px; align-items: flex-start; }
 .group { min-width: 0; }
 .group .row { gap: 4px; }

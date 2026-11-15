@@ -1067,6 +1067,9 @@ export interface ApplyDef {
   /** 目標的等級比施放者低才套用（威壓） */
   if_weaker?: boolean
 }
+/** 能力的分類（abilityCategory.ts）：單體攻擊、範圍攻擊、控制・削弱、治療・護盾、增益、慾望 */
+export type AbilityCategoryId = 'attack' | 'area' | 'control' | 'heal' | 'buff' | 'lust'
+
 export interface AbilityDef {
   id: string
   name: string
@@ -1137,6 +1140,8 @@ export interface AbilityDef {
   brood?: { parasite?: string; chance: number }
   /** 升環（只有法術）：用比 circle 高的法術環施放時，每高一環多的效果（upcast.ts） */
   upcast?: UpcastDef
+  /** 分類（能力分頁、戰鬥選單的分類按鈕）：沒寫時依效果自動判斷（abilityCategory.ts） */
+  category?: AbilityCategoryId
   desc: string
 }
 /** 升環：每高一環多的效果，數值照 D&D 5e 的升環規則 */

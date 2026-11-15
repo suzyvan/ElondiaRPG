@@ -7,6 +7,7 @@
 // - 自建的底材或材料會自動產生「底材 × 同類材料」的制式裝備。
 // 說明見 docs/CONTENT_EDITOR.md。
 
+import { isAbilityCategory } from './abilityCategory'
 import { applyFamilyRules, restoreFamilyRules, sanitizeFamilyRules, type FamilyRulesMod } from './familyMods'
 import { familyRules, STAGE_ORDER } from './pregMarks'
 import type { PregnancyCond } from './data'
@@ -1628,6 +1629,7 @@ export function sanitizeAbility(id: string, raw: Partial<AbilityMod>, custom: bo
     resolve,
     desc: str(raw.desc, 200),
   }
+  if (isAbilityCategory(raw.category)) out.category = raw.category
   if (type === 'skill') out.unlock = int(raw.unlock, 1, 20, 1)
   if (type === 'spell') out.circle = int(raw.circle, 1, 9, 1)
   if (raw.ap !== undefined && raw.ap !== null && String(raw.ap) !== '') out.ap = int(raw.ap, 0, 12, 2)

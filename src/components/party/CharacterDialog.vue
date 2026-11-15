@@ -31,6 +31,9 @@ import ContentIcon from '../icons/ContentIcon.vue'
 import PortraitBox from '../PortraitBox.vue'
 import Avatar from '../ui/Avatar.vue'
 import GameIcon from '../ui/GameIcon.vue'
+import AbilityCategoryChips from '../ui/AbilityCategoryChips.vue'
+import { abilityCategory, abilityCategoryName } from '@/engine/abilityCategory'
+import type { AbilityCategoryId } from '@/engine/data'
 import Hint from '../ui/Hint.vue'
 import StatGrid, { type StatItem } from '../ui/StatGrid.vue'
 import PaperDoll from './PaperDoll.vue'
@@ -197,6 +200,13 @@ function spend(attr: string) {
 const loadoutCap = computed(() => gameRule(s.value, 'skillLoadout'))
 const carried = computed(() => new Set(carriedAbilities(m.value, loadoutCap.value)))
 const carriedCount = computed(() => m.value.abilities.filter((id) => countsForLoadout(id) && carried.value.has(id)).length)
+// 能力的分類按鈕與「只看攜帶中」（engine/abilityCategory.ts）
+const abCat = ref<AbilityCategoryId | ''>('')
+const onlyCarried = ref(false)
+const abilityDefs = computed(() => m.value.abilities.map(abilityDef))
+const shownGroups = computed(() => groupedAbilities(m.value)
+  .map((g) => ({ ...g, items: g.items.filter((a) => (!abCat.value || abilityCategory(a) === abCat.value) && (!onlyCarried.value || carried.value.has(a.id))) }))
+  .filter((g) => g.items.length))
 const learned = ref('')
 function pick(e: MouseEvent, id: string) {
   const el = e.currentTarget as HTMLElement
@@ -435,13 +445,15 @@ function saveTags() {
           <p v-if="loadoutCap > 0 && m.abilities.some(countsForLoadout)" class="loadout small">
             攜帶 <b :class="{ full: carriedCount >= loadoutCap }">{{ carriedCount }} / {{ loadoutCap }}</b>
             <Hint text="戰鬥中只能用攜帶的技能與法術（戲法不算，一直都帶著）；沒帶的留在技能庫，戰鬥以外隨時可以換。上限在設定的「遊戲規則」調整。" />
+            <button class="small only-carried" :class="{ on: onlyCarried }" :aria-pressed="onlyCarried" @click="onlyCarried = !onlyCarried">只看攜帶中</button>
           </p>
-          <div v-for="g in groupedAbilities(m)" :key="g.type" class="group">
+          <AbilityCategoryChips v-if="m.abilities.length" v-model="abCat" :abilities="abilityDefs" />
+          <div v-for="g in shownGroups" :key="g.type" class="group">
             <h4>{{ TYPE_NAME[g.type] }}</h4>
             <div class="abilities">
               <article v-for="a in g.items" :key="a.id" class="ability" :class="[`q-${abilityQuality(a)}`, { flip: learned === a.id, benched: !carried.has(a.id) }]">
                 <header>
-                  <ContentIcon kind="ability" :def="a" :size="20" /><b>{{ a.name }}</b><span class="tag">{{ QUALITY_NAME[abilityQuality(a)] }}</span>
+                  <ContentIcon kind="ability" :def="a" :size="20" /><b>{{ a.name }}</b><span class="tag">{{ QUALITY_NAME[abilityQuality(a)] }}</span><span class="tag cat">{{ abilityCategoryName(abilityCategory(a)) }}</span>
                   <button
                     v-if="loadoutCap > 0 && countsForLoadout(a.id)" class="carry small" :class="carried.has(a.id) ? 'ghost' : 'sec'"
                     :disabled="inCombat || (!carried.has(a.id) && carriedCount >= loadoutCap)"
@@ -455,6 +467,7 @@ function saveTags() {
             </div>
           </div>
           <p v-if="!m.abilities.length" class="muted small">還沒有能力。</p>
+          <p v-else-if="!shownGroups.length" class="muted small">這個分類沒有{{ onlyCarried ? '攜帶中的' : '' }}能力。</p>
         </section>
       </template>
     </SwipeTabs>
@@ -503,6 +516,9 @@ function saveTags() {
 .group h4 { margin: 12px 0 6px; color: var(--accent-2); letter-spacing: 0.15em; }
 .loadout { margin: 0 0 4px; display: flex; align-items: center; gap: 4px; }
 .loadout .full { color: #a8452c; }
+.loadout .only-carried { margin-left: auto; padding: 1px 9px; }
+.loadout .only-carried.on { background: var(--accent); color: var(--parchment); border-color: var(--accent); }
+.ability .tag.cat { color: var(--muted); }
 .ability.benched { opacity: 0.6; }
 .ability .carry { margin-left: auto; padding: 1px 8px; }
 .choose { padding: 10px; border: 1px dashed var(--accent); border-radius: 3px; margin-bottom: 8px; background: #fff3cf66; }
