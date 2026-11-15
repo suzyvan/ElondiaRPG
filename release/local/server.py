@@ -9,8 +9,9 @@ services that do not allow browsers to connect directly (no CORS):
 Requests go from this computer straight to the service; nothing passes through
 any third party. Only requests from this game page are relayed: they must carry
 the X-Elondia-Proxy: 1 header (other websites cannot send it without a CORS
-preflight, which this server never approves) and, when the browser sends an
-Origin, it has to be this page's own address.
+preflight, which this server never approves), the Host has to be this page's
+own address (localhost:8473 or 127.0.0.1:8473, against DNS rebinding) and,
+when the browser sends an Origin, it has to be this page's own address too.
 """
 
 import functools
@@ -27,6 +28,9 @@ import urllib.request
 PORT = 8473
 HOST = '127.0.0.1'
 ORIGINS = {f'http://localhost:{PORT}', f'http://127.0.0.1:{PORT}'}
+# The page's own address. Checking Host stops DNS rebinding: another site pointing its own name at
+# 127.0.0.1 would be "same-origin" with itself, so its GET requests carry no Origin header at all.
+HOSTS = {f'localhost:{PORT}', f'127.0.0.1:{PORT}'}
 PROXY_RE = re.compile(r'^/proxy/(https?)/([^/?#]+)(.*)$')
 # Headers that describe the connection to this server, not the request itself
 SKIP_REQUEST = {
@@ -91,6 +95,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def relay(self):
         if self.headers.get('X-Elondia-Proxy') != '1':
+            return self.fail(403, '本機轉送只接受遊戲自己送出的請求')
+        if (self.headers.get('Host') or '').lower() not in HOSTS:
             return self.fail(403, '本機轉送只接受遊戲自己送出的請求')
         origin = self.headers.get('Origin')
         if origin and origin not in ORIGINS:

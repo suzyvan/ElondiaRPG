@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { BESTIARY_LEVEL_NAME, bestiaryCount, bestiaryLevel, habitats, weaknesses, type BestiaryLevel } from '@/engine/bestiary'
 import { abilityDef, enemies, isLayerBoss, monsterTraits, type EnemyDef } from '@/engine/data'
 import { ENEMY_KINDS } from '@/engine/mods'
@@ -59,6 +59,13 @@ const rows = computed<Row[]>(() => {
   return out.sort(by[sort.value])
 })
 const current = computed(() => rows.value.find((r) => r.id === picked.value) ?? null)
+// 窄畫面（手機）詳細資料在格子上方：點下面的怪時捲過去，不然看起來像沒反應
+const detail = ref<HTMLElement | null>(null)
+watch(picked, async (id) => {
+  if (!id || typeof window === 'undefined' || !window.matchMedia?.('(max-width: 640px)').matches) return
+  await nextTick()
+  detail.value?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+})
 watch(rows, (list) => { if (picked.value && !list.some((r) => r.id === picked.value)) picked.value = null })
 
 const pct = (n: number, d: number) => `${d ? Math.round((n / d) * 1000) / 10 : 0}%`
@@ -129,7 +136,7 @@ const boss = (def: EnemyDef) => isLayerBoss(def.id)
           <li v-if="!rows.length" class="muted small empty">沒有符合的怪物。</li>
         </ul>
 
-        <aside v-if="current" class="detail">
+        <aside v-if="current" ref="detail" class="detail">
           <div class="dhead">
             <ContentIcon kind="monster" :def="current.def" :size="44" />
             <div class="grow">

@@ -433,3 +433,7 @@ export function setHp(state: GameState, c: Character, hp: number, report?: Repor
   if (snap) snap.hp = [snap.hp?.[0] ?? before, c.hp, c.maxHp]
 }
 
+/** 可以受訓的人（學特質、克服缺陷、學工藝）：主角，與自己的夥伴（任務同行、跟著別人的隊伍、主人與他的隊員不算） */
+export function trainees(state: GameState): Character[] {
+  return state.party.filter((m) => m.isPlayer || (m.bond !== 'guest' && m.bond !== 'leader' && !m.group))
+}

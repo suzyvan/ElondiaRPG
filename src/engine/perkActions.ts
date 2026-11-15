@@ -9,7 +9,7 @@ import { locationById, npcs as namedNpcs, perkDef, perkRules, type Degree, type 
 import { cellName, currentArea, currentCell } from './grid'
 import { closedHere } from './landmarks'
 import { formatMoney } from './money'
-import { pcOf } from './party'
+import { pcOf, trainees } from './party'
 import { guildClerkId, npcRecord } from './npcs'
 import { shopKey, shopTypeForCell } from './trade'
 import { presentHere } from './population'
@@ -56,10 +56,8 @@ function gateBlock(level: number, t: TrainSpec, who?: { name: string; affinity: 
  * 學費、時數、DC 照特質強度算（trainSpec）；同一個特質設施和老師都能學時，用老師的（比較便宜、比較簡單）；
  * 好感、等級不夠時照樣列出、標上原因
  */
-/** 可以受訓的人：主角，與自己的夥伴（任務同行、跟著別人的隊伍、主人與他的隊員不算） */
-export function trainees(state: GameState): Character[] {
-  return state.party.filter((m) => m.isPlayer || (m.bond !== 'guest' && m.bond !== 'leader' && !m.group))
-}
+/** 可以受訓的人（學特質、克服缺陷、學工藝都一樣；party.ts） */
+export { trainees }
 
 /** 受訓的人（沒指定時是主角） */
 function traineeOf(state: GameState, memberId?: string): Character {

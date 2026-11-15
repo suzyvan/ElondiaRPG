@@ -5,6 +5,7 @@ import { generateNpc } from '@/engine/npcs'
 import { trainees, trainOptions } from '@/engine/perkActions'
 import { joinParty, pcOf } from '@/engine/party'
 import { trainSpec } from '@/engine/perks'
+import { craftLessons, learnCraft } from '@/engine/craftLessons'
 import { perkDef } from '@/engine/data'
 import { newGame, withRng } from '@/engine/state'
 import type { GameState } from '@/engine/types'
@@ -55,5 +56,18 @@ describe('companions can train too', () => {
     standOn(state, 'guild')
     expect(trainees(state).some((x) => x.id === g.id)).toBe(false)
     expect(() => prepareAction(state, { kind: 'train', target: `flaw_coward@${g.id}`, text: '' })).toThrow()
+  })
+
+  it('does not let guests learn a craft either (own companions still can)', () => {
+    const state = game()
+    const g = joinParty(state, withRng(state, (rng) => generateNpc(state, rng, { level: 3, kind: 'adventurer', location: state.location })), 'guest')
+    const m = joinParty(state, withRng(state, (rng) => generateNpc(state, rng, { level: 3, kind: 'adventurer', location: state.location })), 'voluntary')
+    standOn(state, 'tailor')
+    state.money_cc = 5000
+    expect(craftLessons(state, g.id)).toEqual([])
+    expect(() => learnCraft(state, craftLessons(state, m.id)[0]!.craft, g.id)).toThrow('不能在這裡受訓')
+    expect(craftLessons(state, m.id).length).toBeGreaterThan(0)
+    learnCraft(state, craftLessons(state, m.id)[0]!.craft, m.id)
+    expect(state.money_cc).toBeLessThan(5000)
   })
 })
