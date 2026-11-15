@@ -28,3 +28,29 @@ describe('ability categories', () => {
     expect(sanitizeAbility('x', { ...a, category: 'nope' as never }, true).category).toBeUndefined()
   })
 })
+
+describe('hiding abilities from the combat menu', () => {
+  it('keeps a per-character list that only holds abilities the character knows', async () => {
+    const { newGame } = await import('@/engine/state')
+    const { setAbilityHidden } = await import('@/engine/town')
+    const state = newGame({ name: '艾倫', race: 'human', classId: 'fighter', seed: 3 })
+    const pc = state.party[0]!
+    const id = pc.abilities[0]!
+    setAbilityHidden(state, pc.id, id, true)
+    setAbilityHidden(state, pc.id, 'not_known', true)
+    expect(pc.hiddenAbilities).toEqual([id])
+    setAbilityHidden(state, pc.id, id, false)
+    expect(pc.hiddenAbilities).toBeUndefined()
+  })
+})
+
+describe('combat item kinds', () => {
+  it('sorts items by what they do', async () => {
+    const { combatItemKind } = await import('@/engine/combat')
+    expect(combatItemKind({ heal: { dice: '2d4' } } as never)).toBe('heal')
+    expect(combatItemKind({ damage: { dice: '2d6', type: 'fire' } } as never)).toBe('attack')
+    expect(combatItemKind({ escape: true } as never)).toBe('escape')
+    expect(combatItemKind({ lust: -10 } as never)).toBe('lust')
+    expect(combatItemKind({ cleanse: ['poisoned'] } as never)).toBe('buff')
+  })
+})

@@ -437,6 +437,16 @@ export function setAbilityCarried(state: GameState, memberId: string, abilityId:
   setCarried(member, abilityId, on, gameRule(state, 'skillLoadout'))
 }
 
+/** 戰鬥選單隱藏或顯示一個能力（技能、法術、戲法都可以；和攜帶無關，戰鬥中也能改） */
+export function setAbilityHidden(state: GameState, memberId: string, abilityId: string, hidden: boolean) {
+  const member = state.party.find((m) => m.id === memberId)
+  if (!member) throw new Error('隊伍中沒有這位角色')
+  const rest = (member.hiddenAbilities ?? []).filter((id) => id !== abilityId && member.abilities.includes(id))
+  if (hidden && member.abilities.includes(abilityId)) rest.push(abilityId)
+  if (rest.length) member.hiddenAbilities = rest
+  else delete member.hiddenAbilities
+}
+
 /** 重抽升級時的能力選項（不推進時間，也不產生報告） */
 export function rerollAbility(state: GameState, memberId: string, max?: number): string[] {
   const member = state.party.find((m) => m.id === memberId)

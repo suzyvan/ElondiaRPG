@@ -1,6 +1,6 @@
 // 寄生物的發作、主動觸發、解咒與紋回來（docs/ADULT_EVENTS.md 第 6 節）。
 // - 發作：走動每一步、旅途每天、長休之後依機率（parasites.json，乘上存檔規則「寄生發作的機率」與階段的倍率），
-//   兩次至少隔 cooldown_hours 小時；模板是 travel_events.json 的 templates（scope: parasite，parasite 寄生物、stages 階段、moments 時機）。
+//   兩次至少隔 cooldown_hours 小時，同一件至少隔 repeat_hours 小時；模板是 travel_events.json 的 templates（scope: parasite，parasite 寄生物、stages 階段、moments 時機）。
 // - 發作事件發生在主角身上，主角自己擲骰回應（和地下城事件一樣）；選項的結果通常是侵蝕度加減。
 // - 已馴服的寄生物不會自己發作，可以在寄生物面板主動觸發（每次長休之間一次），得到 tamed.buff 狀態。
 // - 解咒：神殿（信仰）或刻印師（智力），擲骰對 DC（侵蝕度越高越難、越貴）；成功拿掉寄生物並中止它的任務線
@@ -92,8 +92,11 @@ export function maybeParasiteEvent(state: GameState, trigger: ParasiteTrigger, a
   const base = (parasiteRules[`${trigger}_chance`] ?? 0) * gameRule(state, 'parasiteMult')
   if (base <= 0) return false
   const recent = log?.recent ?? []
+  // 同一件至少隔 repeat_hours 才會再出現（玩家回報：旅途上第 3 階段只有一件候選，連續二十天都是同一件）
+  const gap = parasiteRules.repeat_hours ?? 72
+  const rested = (id: string) => log?.seen?.[id] === undefined || now - log.seen[id]! >= gap
   for (const p of activeParasites(pc)) {
-    const list = parasiteCandidates(state, p, trigger, at)
+    const list = parasiteCandidates(state, p, trigger, at).filter((t) => rested(t.id))
     if (!list.length) continue
     const chance = Math.min(1, base * (parasiteRules.stages[stageOf(p.corruption)]?.chance_mult ?? 1))
     const fresh = list.filter((t) => !recent.includes(t.id))
@@ -102,10 +105,16 @@ export function maybeParasiteEvent(state: GameState, trigger: ParasiteTrigger, a
     const next = (state.parasiteEvents ??= {})
     next.last = now
     next.recent = [pick.id, ...recent.filter((x) => x !== pick.id)].slice(0, 3)
+    next.seen = { ...pruneSeen(next.seen, now, gap), [pick.id]: now }
     state.parasiteEvent = { template: pick.id, parasite: p.id }
     return true
   }
   return false
+}
+
+/** 已經過了間隔的就不用記了（存檔不會一直變大） */
+function pruneSeen(seen: Record<string, number> | undefined, now: number, gap: number): Record<string, number> {
+  return Object.fromEntries(Object.entries(seen ?? {}).filter(([, h]) => now - h < gap))
 }
 
 /** 等待回應的發作事件 */

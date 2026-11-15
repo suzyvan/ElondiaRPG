@@ -22,6 +22,7 @@ import SwipeTabs from './mobile/SwipeTabs.vue'
 import { isMobile } from './mobile/mobile'
 import AbilityCategoryChips from './ui/AbilityCategoryChips.vue'
 import { abilityCategory, isAbilityCategory } from '@/engine/abilityCategory'
+import { COMBAT_ITEM_KINDS, combatItemKind } from '@/engine/combat'
 import type { AbilityCategoryId } from '@/engine/data'
 import { vMarquee } from './marquee'
 
@@ -85,6 +86,27 @@ function struggle() {
 
 // 道具：行囊裡可以在戰鬥中使用的東西
 const items = computed(() => combatItems(game.state!))
+/** 道具依效果分組（回復、攻擊、增益・解除、慾望、逃脫）；電腦版的道具區可以摺疊（記在這個瀏覽器） */
+const itemGroups = computed(() => COMBAT_ITEM_KINDS
+  .map((k) => ({ ...k, items: items.value.filter((i) => combatItemKind(i.def.use) === k.id) }))
+  .filter((g) => g.items.length))
+const ITEMS_OPEN = 'elondia.combatItemsOpen'
+const itemsOpen = ref(readItemsOpen())
+function readItemsOpen(): boolean {
+  try {
+    return localStorage.getItem(ITEMS_OPEN) !== 'closed'
+  } catch {
+    return true
+  }
+}
+function toggleItems(e: Event) {
+  itemsOpen.value = (e.target as HTMLDetailsElement).open
+  try {
+    localStorage.setItem(ITEMS_OPEN, itemsOpen.value ? 'open' : 'closed')
+  } catch {
+    // 瀏覽器不給存：只是下次不記得
+  }
+}
 function itemEffect(name: string): string {
   return useSummary(items.value.find((i) => i.name === name)?.def.use).replace('・戰鬥中', '')
 }
@@ -107,7 +129,12 @@ watch(abCat, (v) => {
     // 瀏覽器不給存：只是下次不記得
   }
 })
-const actorAbilities = computed(() => (actor.value ? actor.value.abilities.map(abilityDef) : []))
+const allAbilities = computed(() => (actor.value ? actor.value.abilities.map(abilityDef) : []))
+// 角色詳情隱藏的能力（Character.hiddenAbilities）：不列出來，「顯示隱藏的」可以臨時打開
+const hiddenIds = computed(() => new Set(game.state?.party.find((m) => m.id === actor.value?.id)?.hiddenAbilities ?? []))
+const hiddenCount = computed(() => allAbilities.value.filter((a) => hiddenIds.value.has(a.id)).length)
+const showHidden = ref(false)
+const actorAbilities = computed(() => allAbilities.value.filter((a) => showHidden.value || !hiddenIds.value.has(a.id)))
 const inCat = (x: AbilityDef) => !abCat.value || abilityCategory(x) === abCat.value
 
 const groups = computed(() => {
@@ -785,7 +812,14 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
             ><span class="fill" />戰敗</button>
           </span>
         </div>
-        <AbilityCategoryChips v-if="actorAbilities.length" v-model="abCat" :abilities="actorAbilities" class="cats" />
+        <div v-if="allAbilities.length" class="cat-row">
+          <AbilityCategoryChips v-if="actorAbilities.length" v-model="abCat" :abilities="actorAbilities" class="cats" />
+          <button
+            v-if="hiddenCount" class="small ghost show-hidden" :aria-pressed="showHidden"
+            title="在角色詳情的能力頁隱藏的能力（照樣能用，只是不列在這裡）"
+            @click="showHidden = !showHidden"
+          >{{ showHidden ? '收起隱藏的' : `顯示隱藏的 ${hiddenCount} 個` }}</button>
+        </div>
         <div v-if="!isMobile" class="groups">
           <div v-for="g in groups" :key="g.name" class="group">
             <h4 class="small muted">{{ g.name }}</h4>
@@ -811,22 +845,25 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
               </button>
             </div>
           </div>
-          <div v-if="items.length" class="group">
-            <h4 class="small muted"><GameIcon name="potion" :size="13" /> 道具（{{ costs.item }} AP）</h4>
-            <div class="row">
-              <button
-                v-for="i in items"
-                :key="i.name"
-                class="ability"
-                :disabled="actor.ap < costs.item"
-                :title="`${i.def.desc ?? ''}${i.def.desc ? '\n' : ''}${itemEffect(i.name)}${actor.ap < costs.item ? '\n（行動點不足）' : ''}`"
-                @click="chooseItem(i.name)"
-              >
-                <span class="an">{{ i.name }} ×{{ i.qty }}</span>
-                <span class="small muted sub2">{{ itemEffect(i.name) }}</span>
-              </button>
+          <details v-if="items.length" class="group items" :open="itemsOpen" @toggle="toggleItems">
+            <summary class="small muted"><GameIcon name="potion" :size="13" /> 道具（{{ costs.item }} AP）<span class="cnt">{{ items.length }} 種</span></summary>
+            <div v-for="g in itemGroups" :key="g.id" class="item-group">
+              <span class="small muted ig-name">{{ g.name }}</span>
+              <div class="row">
+                <button
+                  v-for="i in g.items"
+                  :key="i.name"
+                  class="ability"
+                  :disabled="actor.ap < costs.item"
+                  :title="`${i.def.desc ?? ''}${i.def.desc ? '\n' : ''}${itemEffect(i.name)}${actor.ap < costs.item ? '\n（行動點不足）' : ''}`"
+                  @click="chooseItem(i.name)"
+                >
+                  <span class="an">{{ i.name }} ×{{ i.qty }}</span>
+                  <span class="small muted sub2">{{ itemEffect(i.name) }}</span>
+                </button>
+              </div>
             </div>
-          </div>
+          </details>
         </div>
         <!-- 手機版：技能依類型分頁，可以左右滑；不能用的照樣能點（說出原因），長按看說明 -->
         <SwipeTabs v-if="isMobile" v-model="abilityTab" :tabs="abilityTabs" swipe bar class="m-skills">
@@ -842,13 +879,16 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
             </div>
             <div class="m-grid">
               <template v-if="id === 'item'">
-                <button
-                  v-for="i in items" :key="i.name" class="ability" :class="{ off: actor.ap < costs.item }"
-                  @pointerdown="press($event, { kind: 'item', name: i.name })" @contextmenu.prevent @click="tapItem(i.name)"
-                >
-                  <span class="an">{{ i.name }} ×{{ i.qty }}</span>
-                  <span class="small muted sub2">{{ costs.item }} AP</span>
-                </button>
+                <template v-for="g in itemGroups" :key="g.id">
+                  <span v-if="itemGroups.length > 1" class="small muted m-ig">{{ g.name }}</span>
+                  <button
+                    v-for="i in g.items" :key="i.name" class="ability" :class="{ off: actor.ap < costs.item }"
+                    @pointerdown="press($event, { kind: 'item', name: i.name })" @contextmenu.prevent @click="tapItem(i.name)"
+                  >
+                    <span class="an">{{ i.name }} ×{{ i.qty }}</span>
+                    <span class="small muted sub2">{{ costs.item }} AP</span>
+                  </button>
+                </template>
               </template>
               <template v-else>
                 <button
@@ -1044,6 +1084,13 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
 @media (max-width: 720px) { .cats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .cats :deep(button) { flex: none; white-space: nowrap; } }
 .groups { max-height: 30vh; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 0 18px; align-items: flex-start; }
 .group { min-width: 0; }
+.cat-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; }
+.cat-row .cats { flex: 1 1 auto; min-width: 0; }
+.show-hidden { padding: 2px 9px; margin: 2px 0 4px; }
+.group.items summary { cursor: pointer; margin: 4px 0 3px; color: var(--accent-2); display: flex; align-items: center; gap: 4px; }
+.group.items .cnt { color: var(--muted); }
+.item-group { display: grid; gap: 2px; margin-bottom: 4px; }
+.item-group .ig-name { font-size: var(--fs-xs); }
 .group .row { gap: 4px; }
 .group h4 { margin: 4px 0 3px; font-weight: normal; color: var(--accent-2); display: flex; align-items: center; gap: 4px; }
 /* 技能與道具按鈕固定兩行高：不能用的原因放在滑鼠提示 */
@@ -1093,6 +1140,7 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
 .actions.m .surrender > button { flex: 1; min-width: 0; }
 .actions.m .basics button { min-height: 42px; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .m-skills :deep(.st-bar) { margin-bottom: 6px; }
+.m-grid .m-ig { grid-column: 1 / -1; font-size: var(--fs-xs); margin-top: 2px; }
 .m-skills .cnt { margin-left: 2px; font-size: var(--fs-xs); color: var(--muted); }
 .m-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; max-height: 152px; overflow-y: auto; overscroll-behavior: contain; }
 .m-grid .ability { min-width: 0; max-width: none; min-height: 46px; padding: 4px 6px; -webkit-touch-callout: none; user-select: none; }

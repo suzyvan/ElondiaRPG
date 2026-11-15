@@ -94,6 +94,8 @@ export interface ParasiteRules {
   travel_chance: number
   rest_chance: number
   cooldown_hours: number
+  /** 同一件發作至少隔幾小時才會再出現（沒寫時 72） */
+  repeat_hours?: number
   stages: ParasiteStage[]
   /** 發作的檢定難度：普通 = base + 等級 × per_level（四捨五入）+ 階段的加減；選項寫的 DC 以 14 為「普通」 */
   dc?: { base: number; per_level: number; stages: number[] }

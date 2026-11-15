@@ -203,6 +203,8 @@ const carriedCount = computed(() => m.value.abilities.filter((id) => countsForLo
 // 能力的分類按鈕與「只看攜帶中」（engine/abilityCategory.ts）
 const abCat = ref<AbilityCategoryId | ''>('')
 const onlyCarried = ref(false)
+// 戰鬥選單隱藏的能力（Character.hiddenAbilities）
+const hidden = computed(() => new Set(m.value.hiddenAbilities ?? []))
 const abilityDefs = computed(() => m.value.abilities.map(abilityDef))
 const shownGroups = computed(() => groupedAbilities(m.value)
   .map((g) => ({ ...g, items: g.items.filter((a) => (!abCat.value || abilityCategory(a) === abCat.value) && (!onlyCarried.value || carried.value.has(a.id))) }))
@@ -451,9 +453,15 @@ function saveTags() {
           <div v-for="g in shownGroups" :key="g.type" class="group">
             <h4>{{ TYPE_NAME[g.type] }}</h4>
             <div class="abilities">
-              <article v-for="a in g.items" :key="a.id" class="ability" :class="[`q-${abilityQuality(a)}`, { flip: learned === a.id, benched: !carried.has(a.id) }]">
+              <article v-for="a in g.items" :key="a.id" class="ability" :class="[`q-${abilityQuality(a)}`, { flip: learned === a.id, benched: !carried.has(a.id), veiled: hidden.has(a.id) }]">
                 <header>
                   <ContentIcon kind="ability" :def="a" :size="20" /><b>{{ a.name }}</b><span class="tag">{{ QUALITY_NAME[abilityQuality(a)] }}</span><span class="tag cat">{{ abilityCategoryName(abilityCategory(a)) }}</span>
+                  <button
+                    class="ghost small eye" :class="{ off: hidden.has(a.id) }" :aria-pressed="hidden.has(a.id)"
+                    :aria-label="hidden.has(a.id) ? '在戰鬥選單顯示' : '在戰鬥選單隱藏'"
+                    :title="hidden.has(a.id) ? '戰鬥選單隱藏中（照樣能用，戰鬥選單按「顯示隱藏的」才看得到）；按一下恢復顯示' : '在戰鬥選單隱藏這個能力（照樣能用、照樣攜帶，只是不列出來）'"
+                    @click="game.setAbilityHidden(m.id, a.id, !hidden.has(a.id))"
+                  ><GameIcon :name="hidden.has(a.id) ? 'eyeOff' : 'eye'" :size="14" /></button>
                   <button
                     v-if="loadoutCap > 0 && countsForLoadout(a.id)" class="carry small" :class="carried.has(a.id) ? 'ghost' : 'sec'"
                     :disabled="inCombat || (!carried.has(a.id) && carriedCount >= loadoutCap)"
@@ -521,6 +529,9 @@ function saveTags() {
 .ability .tag.cat { color: var(--muted); }
 .ability.benched { opacity: 0.6; }
 .ability .carry { margin-left: auto; padding: 1px 8px; }
+.ability .eye { padding: 1px 4px; }
+.ability .eye.off { color: var(--danger); }
+.ability.veiled { border-left-style: dashed; }
 .choose { padding: 10px; border: 1px dashed var(--accent); border-radius: 3px; margin-bottom: 8px; background: #fff3cf66; }
 .choose .head { justify-content: space-between; }
 .options { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px; margin-top: 8px; }

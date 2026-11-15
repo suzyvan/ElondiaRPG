@@ -10,8 +10,8 @@ R = ''
 LINGERIE, MARK, SEED = 'hungry_lingerie', 'succubus_mark', 'parasite_seed'
 
 RULES = {
-    "$comment": "寄生物（見 docs/ADULT_EVENTS.md 第 6 節）：侵蝕度 0～100 依 stages 分階段（min 是門檻，chance_mult 是這個階段發作的機率倍率）。發作：走動每一步 step_chance、旅途每天 travel_chance、長休之後 rest_chance（都再乘上存檔規則「寄生發作的機率」），兩次至少隔 cooldown_hours 小時。dc 是發作檢定的普通難度：base + 主角等級 × per_level（四捨五入）+ 階段的加減；選項寫的 DC 以 14 為「普通」，實際 DC = 普通難度 +（寫的 DC − 14）+ 存檔規則「事件檢定的難度」。remove 是解咒的地方（神殿、刻印師）與擲骰的屬性。parasites：kind gear（寄生裝備：item 物品鎖在 slot 欄位）、mark（淫紋：刻在 place 的詛咒印記）、seed（寄生種子）；grow_per_day 每天自己增長的侵蝕度；stage_effects 各階段的被動效果（檢定加減）；remove 解咒的 DC 與價錢基準（DC + 侵蝕度/10、價錢 ×(1 + 侵蝕度/100)）；reink_price 刻印師紋回來的價錢；stories 解咒時中止的任務線（連同 flag_prefix 開頭的劇情旗標一起清掉，之後再被寄生可以重來）；tamed 馴服之後的物品或印記、主動觸發的親密場景（scene）、結果（text）與狀態（buff）。",
-    "step_chance": 0.01, "travel_chance": 0.3, "rest_chance": 0.25, "cooldown_hours": 8,
+    "$comment": "寄生物（見 docs/ADULT_EVENTS.md 第 6 節）：侵蝕度 0～100 依 stages 分階段（min 是門檻，chance_mult 是這個階段發作的機率倍率）。發作：走動每一步 step_chance、旅途每天 travel_chance、長休之後 rest_chance（都再乘上存檔規則「寄生發作的機率」），兩次至少隔 cooldown_hours 小時；同一件發作至少隔 repeat_hours 小時才會再出現（這段時間沒有別件可以發作時就不發作）。dc 是發作檢定的普通難度：base + 主角等級 × per_level（四捨五入）+ 階段的加減；選項寫的 DC 以 14 為「普通」，實際 DC = 普通難度 +（寫的 DC − 14）+ 存檔規則「事件檢定的難度」。remove 是解咒的地方（神殿、刻印師）與擲骰的屬性。parasites：kind gear（寄生裝備：item 物品鎖在 slot 欄位）、mark（淫紋：刻在 place 的詛咒印記）、seed（寄生種子）；grow_per_day 每天自己增長的侵蝕度；stage_effects 各階段的被動效果（檢定加減）；remove 解咒的 DC 與價錢基準（DC + 侵蝕度/10、價錢 ×(1 + 侵蝕度/100)）；reink_price 刻印師紋回來的價錢；stories 解咒時中止的任務線（連同 flag_prefix 開頭的劇情旗標一起清掉，之後再被寄生可以重來）；tamed 馴服之後的物品或印記、主動觸發的親密場景（scene）、結果（text）與狀態（buff）。",
+    "step_chance": 0.01, "travel_chance": 0.3, "rest_chance": 0.25, "cooldown_hours": 8, "repeat_hours": 72,
     "dc": {"base": 12, "per_level": 0.4, "stages": [0, 0, 1, 2]},
     "stages": [
         {"min": 0, "name": "潛伏", "chance_mult": 0.5},

@@ -25,7 +25,7 @@ import type { GameState, Report } from '@/engine/types'
 const LIN = 'hungry_lingerie'
 const MARK = 'succubus_mark'
 const SEED = 'parasite_seed'
-const keep = { step: parasiteRules.step_chance, cooldown: parasiteRules.cooldown_hours }
+const keep = { step: parasiteRules.step_chance, travel: parasiteRules.travel_chance, cooldown: parasiteRules.cooldown_hours }
 
 beforeEach(() => {
   localStorage.clear()
@@ -34,6 +34,7 @@ beforeEach(() => {
 afterEach(() => {
   setContentFilters({ pc_unwilling: true })
   parasiteRules.step_chance = keep.step
+  parasiteRules.travel_chance = keep.travel
   parasiteRules.cooldown_hours = keep.cooldown
 })
 
@@ -142,6 +143,27 @@ describe('parasites', () => {
     expect(condMet(state, { parasites: { [SEED]: { min: 30, tamed: false } } })).toBe(true)
     expect(checkModifiers(pc, { context: 'action', attr: 'dex' }).some((x) => x.value === -1)).toBe(true)
     expect(removalTerms(p)).toEqual({ dc: parasiteDef(SEED)!.remove!.dc + 6, price: Math.round(parasiteDef(SEED)!.remove!.price * 1.6) })
+  })
+
+  it('do not show the same flare-up again within three days, even when it is the only one that fits', () => {
+    const state = game()
+    const pc = pcOf(state)
+    attachParasite(pc, MARK, state.time)
+    // 支配階段、旅途上：只有「夜營的低語」一件
+    parasiteOf(pc, MARK)!.corruption = 100
+    parasiteRules.travel_chance = 1
+    parasiteRules.cooldown_hours = 0
+    expect(parasiteCandidates(state, parasiteOf(pc, MARK)!, 'travel').map((t) => t.id)).toEqual(['pe_mark_camp'])
+    const days: number[] = []
+    for (let d = 0; d < 7; d++) {
+      if (maybeParasiteEvent(state, 'travel')) {
+        days.push(d)
+        delete state.parasiteEvent
+      }
+      state.time = { ...state.time, day: state.time.day + 1 }
+      parasiteOf(pc, MARK)!.corruption = 100
+    }
+    expect(days).toEqual([0, 3, 6])
   })
 
   it('flare up on a step, wait for an answer and move corruption by the choice', () => {

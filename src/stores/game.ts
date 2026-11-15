@@ -1637,6 +1637,7 @@ export const useGame = defineStore('game', () => {
     rerollAbility: (member: string) => run((s) => town.rerollAbility(s, member, useSettings().rerollLimit())),
     // 技能攜帶上限：把學會的技能帶上或放回技能庫
     setAbilityCarried: (member: string, ability: string, on: boolean) => run((s) => town.setAbilityCarried(s, member, ability, on)),
+    setAbilityHidden: (member: string, ability: string, hidden: boolean) => run((s) => town.setAbilityHidden(s, member, ability, hidden)),
     /** 多出來的經驗換特質的機會、屬性點或技能三選一（xpSinks.ts） */
     spendXp: (member: string, kind: XpSink) =>
       run((s) => withRng(s, (rng) => spendXp(s.party.find((m) => m.id === member)!, kind, rng, s))),

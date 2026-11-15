@@ -385,6 +385,8 @@ export interface Character {
    * 沒有時帶最近學會的幾個（見 character.ts 的 carriedAbilities）
    */
   loadout?: string[]
+  /** 戰鬥選單裡隱藏的能力（只是不列出來，照樣攜帶、照樣能用；角色詳情的能力頁切換，戰鬥選單可以臨時顯示） */
+  hiddenAbilities?: string[]
   /** 武器與上身防具的基本類型（equipment.json）；有裝備欄位時由主手與上身的裝備決定 */
   weapon: string
   armor: string
@@ -1186,7 +1188,8 @@ export interface GameState {
   /** 寄生物等待回應的發作事件（parasiteEvents.ts）：模板與寄生物 */
   parasiteEvent?: { template: string; parasite: string }
   /** 寄生物發作的紀錄：上一次的時間（絕對小時）、最近發作過的事件（避免連續重複） */
-  parasiteEvents?: { last?: number; recent?: string[] }
+  /** 寄生物的發作：上次發作的時間、最近發作的幾件；seen 是每一件上次發作的時間（小時，同一件至少隔 repeat_hours） */
+  parasiteEvents?: { last?: number; recent?: string[]; seen?: Record<string, number> }
   /** 在臨時地圖裡：離開時回到的位置 */
   side?: { area: string; back: { area: string; x: number; y: number }; /** 特殊任務帶進來的臨時地圖：離開就放棄這個任務 */ story?: string }
   /** 在特殊地圖裡：從外面進來前的位置與地點（從出口離開時回到那裡），走過的需要刷新的地圖 */

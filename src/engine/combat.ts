@@ -1254,6 +1254,19 @@ export function combatItems(state: GameState): { name: string; qty: number; def:
     .filter((i) => i.qty > 0 && !!i.def?.use && COMBAT_USES.some((k) => i.def.use![k] !== undefined))
 }
 
+/** 戰鬥道具的分類（戰鬥選單分組用）：攻擊、回復、增益・解除、慾望、逃脫 */
+export type CombatItemKind = 'attack' | 'heal' | 'buff' | 'lust' | 'escape'
+export const COMBAT_ITEM_KINDS: { id: CombatItemKind; name: string }[] = [
+  { id: 'heal', name: '回復' }, { id: 'attack', name: '攻擊' }, { id: 'buff', name: '增益・解除' }, { id: 'lust', name: '慾望' }, { id: 'escape', name: '逃脫' },
+]
+export function combatItemKind(use: ItemDef['use']): CombatItemKind {
+  if (use?.escape) return 'escape'
+  if (itemHitsEnemies(use)) return 'attack'
+  if (use?.heal || use?.revive || use?.slot || use?.temp_hp) return 'heal'
+  if (use?.lust) return 'lust'
+  return 'buff'
+}
+
 /** 道具是對敵人用的（投擲傷害或施加負面狀態） */
 export function itemHitsEnemies(use: ItemDef['use']): boolean {
   return !!use?.damage || !!use?.apply
