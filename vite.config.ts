@@ -27,7 +27,7 @@ function woff2Only(): Plugin {
 /**
  * 本機轉送（和本機版啟動器 release/local/server.py 一樣，docs/PROMPTS.md「本機版轉送」）：
  * 開發時的 `pnpm dev` 與 `pnpm preview` 也能勾「經本機版轉送」測試沒開 CORS 的服務。
- * /proxy/<http|https>/<主機[:port]>/<路徑>?<參數> 轉給服務；要帶 X-Elondia-Proxy: 1，有 Origin 時要是這個開發伺服器
+ * /proxy/<http|https>/<主機[:port]>/<路徑>?<參數> 轉給服務；要帶 X-Elondia-Proxy: 1、Host 是本機，有 Origin 時要是這個開發伺服器
  */
 function localRelay(): Plugin {
   const SKIP_REQUEST = new Set(['host', 'origin', 'referer', 'cookie', 'connection', 'keep-alive', 'proxy-connection', 'proxy-authorization',
@@ -43,8 +43,12 @@ function localRelay(): Plugin {
     const url = req.url ?? ''
     if (!url.startsWith('/proxy/')) return next()
     void (async () => {
+      // Host 要是本機（擋 DNS rebinding：別的網站把自己的網域指到 127.0.0.1 時，Host 與 Origin 都是它自己的網域）
+      const host = (req.headers.host ?? '').toLowerCase()
+      const hostname = host.startsWith('[') ? host.slice(0, host.indexOf(']') + 1) : host.split(':')[0]
       const origin = req.headers.origin
-      if (req.headers['x-elondia-proxy'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) return fail(res, 403, '本機轉送只接受遊戲自己送出的請求')
+      if (req.headers['x-elondia-proxy'] !== '1' || !['localhost', '127.0.0.1', '[::1]'].includes(hostname ?? '')
+        || (origin && origin !== `http://${req.headers.host}`)) return fail(res, 403, '本機轉送只接受遊戲自己送出的請求')
       if (url === '/proxy/ping' || url.startsWith('/proxy/ping?')) return json(res, 200, { elondiaProxy: true })
       const m = /^\/proxy\/(https?)\/([^/?#]+)(.*)$/.exec(url)
       if (!m) return fail(res, 400, '轉送的網址格式不對')
