@@ -21,7 +21,7 @@ import {
 } from './character'
 import {
   abilities, abilityDef, armorDef, ATTR_IDS, attrName, PARK_STAMP_PREFIX, townQuestTemplates, classDef, combatRules, companionRules, contractDef, damageType, damageTypeName, damageTypes, dungeonEncounters, DUNGEON_LAYER_IDS, enemies, isLayerBoss, itemDef,
-  contentRevision, geography, lewdRules, locationById, monsterTraits, population, regionById, statusDef, wildEncounters, type EnemyDef,
+  contentRevision, geography, lewdRules, locationById, monsterTraits, population, regionById, statusDef, statuses, wildEncounters, type EnemyDef,
   type AbilityDef, type AffinityMap, type ApplyDef, type AttrId, type Attrs, type DamagePart, type DungeonLayerId, type EncounterGroup,
   type ItemDef, type LockGrade, type LuckRoll, type Mods, type MonsterAi, type WeaponDef,
   itemRules, mulResist,
@@ -1299,8 +1299,16 @@ export function combatItemKind(use: ItemDef['use']): CombatItemKind {
   if (use?.escape) return 'escape'
   if (itemHitsEnemies(use)) return 'attack'
   if (use?.heal || use?.revive || use?.slot || use?.temp_hp) return 'heal'
-  if (use?.lust) return 'lust'
+  if (use?.lust || selfLustStatus(use)) return 'lust'
   return 'buff'
+}
+
+/** 對自己用的道具給的狀態跟慾望有關（每回合加慾望、慾望抗性、高潮不扣生命……；媚香精油、冷靜劑、精力藥） */
+function selfLustStatus(use: ItemDef['use']): boolean {
+  const id = use?.status?.id
+  const s = id ? statuses[id] : undefined
+  if (!s) return false
+  return !!(s.lust_tick || s.lust_max || s.lust_mult || s.lust_hold || s.lust_dump || s.climax_guard || s.no_climax || s.resist?.lust || s.lust_scale || s.convert)
 }
 
 /** 道具是對敵人用的（投擲傷害或施加負面狀態） */

@@ -134,6 +134,8 @@ const allAbilities = computed(() => (actor.value ? actor.value.abilities.map(abi
 const hiddenIds = computed(() => new Set(game.state?.party.find((m) => m.id === actor.value?.id)?.hiddenAbilities ?? []))
 const hiddenCount = computed(() => allAbilities.value.filter((a) => hiddenIds.value.has(a.id)).length)
 const showHidden = ref(false)
+// 「顯示隱藏的」只對這一位：換人時收起（各人的隱藏各自獨立）
+watch(() => actor.value?.id, () => { showHidden.value = false })
 const actorAbilities = computed(() => allAbilities.value.filter((a) => showHidden.value || !hiddenIds.value.has(a.id)))
 const inCat = (x: AbilityDef) => !abCat.value || abilityCategory(x) === abCat.value
 
@@ -838,6 +840,7 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
                 :disabled="reason(a) !== null"
                 :title="abilityTitle(a)"
                 class="ability"
+                :class="{ veiled: hiddenIds.has(a.id) }"
                 @click="choose(a)"
               >
                 <span class="an"><ContentIcon kind="ability" :def="a" :size="18" />{{ a.name }}</span>
@@ -846,7 +849,7 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
             </div>
           </div>
           <details v-if="items.length" class="group items" :open="itemsOpen" @toggle="toggleItems">
-            <summary class="small muted"><GameIcon name="potion" :size="13" /> 道具（{{ costs.item }} AP）<span class="cnt">{{ items.length }} 種</span></summary>
+            <summary class="small muted"><span class="caret" aria-hidden="true">{{ itemsOpen ? '▾' : '▸' }}</span><GameIcon name="potion" :size="13" /> 道具（{{ costs.item }} AP）<span class="cnt">{{ items.length }} 種</span></summary>
             <div v-for="g in itemGroups" :key="g.id" class="item-group">
               <span class="small muted ig-name">{{ g.name }}</span>
               <div class="row">
@@ -892,7 +895,7 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
               </template>
               <template v-else>
                 <button
-                  v-for="a in tabAbilities(id)" :key="a.id" class="ability" :class="{ off: reason(a) !== null, lewd: isLewd(a) }"
+                  v-for="a in tabAbilities(id)" :key="a.id" class="ability" :class="{ off: reason(a) !== null, lewd: isLewd(a), veiled: hiddenIds.has(a.id) }"
                   @pointerdown="press($event, { kind: 'ability', id: a.id })" @contextmenu.prevent @click="tapAbility(a)"
                 >
                   <span class="an"><ContentIcon kind="ability" :def="a" :size="16" />{{ a.name }}</span>
@@ -1089,6 +1092,10 @@ const showResult = computed(() => combat.value.status !== 'ongoing' && played.va
 .show-hidden { padding: 2px 9px; margin: 2px 0 4px; }
 .group.items summary { cursor: pointer; margin: 4px 0 3px; color: var(--accent-2); display: flex; align-items: center; gap: 4px; }
 .group.items .cnt { color: var(--muted); }
+.group.items summary::-webkit-details-marker { display: none; }
+.group.items .caret { width: 0.8em; display: inline-block; }
+/* 角色詳情隱藏、臨時顯示出來的能力：虛線邊框（和角色詳情的能力卡一樣） */
+.ability.veiled { border-style: dashed; opacity: 0.85; }
 .item-group { display: grid; gap: 2px; margin-bottom: 4px; }
 .item-group .ig-name { font-size: var(--fs-xs); }
 .group .row { gap: 4px; }

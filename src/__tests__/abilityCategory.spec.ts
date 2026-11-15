@@ -52,5 +52,10 @@ describe('combat item kinds', () => {
     expect(combatItemKind({ escape: true } as never)).toBe('escape')
     expect(combatItemKind({ lust: -10 } as never)).toBe('lust')
     expect(combatItemKind({ cleanse: ['poisoned'] } as never)).toBe('buff')
+    // 自己用、狀態跟慾望有關的算慾望（媚香精油、冷靜劑、精力藥）；對敵人的照舊是攻擊
+    expect(combatItemKind({ status: { id: 'charm_glow', turns: 3 } } as never)).toBe('lust')
+    expect(combatItemKind({ status: { id: 'calm_draught', turns: 20 } } as never)).toBe('lust')
+    expect(combatItemKind({ status: { id: 'vigor_draught', turns: 20 } } as never)).toBe('lust')
+    expect(combatItemKind({ status: { id: 'potion_might', turns: 3 } } as never)).toBe('buff')
   })
 })
