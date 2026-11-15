@@ -523,14 +523,24 @@ ${outcomes || '- 無固定機制結果，依你的 effects 決定'}
     endNotesSection(opts.endNotes),
     {
       key: 'request', title: '本次要求', part: 'user',
-      text: narrative
+      text: (extraField(p) ? `${extraField(p)}\n` : '') + (narrative
         ? `本次要求：
 - narrative 視角：${povHint(opts.pov, undefined, pc.name)}
 - narrative 篇幅：${narrativeLength(p, opts.lengthScale ?? 'standard', opts.customLength)}${opts.variety ? `\n- narrative 這次的寫法：${opts.variety}` : ''}${continuity.judgeNote}
 請判定這次行動，只輸出 JSON。`
-        : `${continuity.judgeNote ? `${continuity.judgeNote.trim()}\n` : ''}請判定這次行動，只輸出 JSON（narrative 留空）。`,
+        : `${continuity.judgeNote ? `${continuity.judgeNote.trim()}\n` : ''}請判定這次行動，只輸出 JSON（narrative 留空）。`),
     },
   ])
+}
+
+/**
+ * 輸出格式以外、這種行動一定要多填的欄位（自創配方的 invention、自創特質的 perk）：放在最後的本次要求再提醒一次。
+ * 輸出格式的範例沒有這些欄位（放在 system、每種行動共用），只寫在前面的說明裡時，模型常照範例輸出而漏掉，程式只好照現成配方做
+ */
+function extraField(p: ActionPending): string {
+  if (p.kind === 'invent') return '- 這次是自創配方：輸出的 JSON 一定要多一個 "invention" 欄位（照 <invention> 的格式，依 <action> 寫的做法與材料設計成品、取名字；不要照抄現成配方的名字）。少了這個欄位，程式只能仿照現成配方做出「特製○○」'
+  if (p.kind === 'perk_pitch') return '- 這次是自創特質：輸出的 JSON 一定要多一個 "perk" 欄位（照前面說明的格式）'
+  return ''
 }
 
 /** 地點名單的潤飾：數值、類型與標籤固定，只請 AI 寫名字、外貌、性格、背景（普通人還有職業描述）。 */

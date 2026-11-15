@@ -136,6 +136,8 @@ describe('inventing', () => {
     valid(r)
     const name = Object.keys(state.inventions!)[0]!
     expect(name.startsWith('特製')).toBe(true)
+    // 照現成配方做的時候說出來
+    expect(r.outcome.summary).toContain('沒有用到 AI 依做法設計的成品')
     expect(qty(state, name)).toBe(2)
     expect(qty(state, '藥草')).toBe(0)
     expect(itemDef(name)?.recipe).toMatchObject({ craft: 'alchemy', level: 1, inputs: [{ name: '藥草', qty: 2 }] })
@@ -238,6 +240,9 @@ describe('inventing', () => {
     expect(all).toContain('"invention"')
     expect(all).toContain('2d4+2')
     expect(all).toContain('potion_poison_ward')
+    // 最後的本次要求再提醒一次 invention 是必填（輸出格式的範例沒有這個欄位，模型常照範例漏掉）
+    const request = prompt.user.slice(prompt.user.lastIndexOf('</invention>'))
+    expect(request).toContain('一定要多一個 "invention" 欄位')
   })
 
   it('copies a recipe one level up on a critical and weakens the copy on a partial', () => {

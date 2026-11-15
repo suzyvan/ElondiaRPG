@@ -477,7 +477,8 @@ export function applyInvent(state: GameState, report: Report, target: string, de
   // 強度依成功程度：大成功稍強、成功同級、部分成功稍弱（失敗時只用來算花費）
   const caps = (grade ? inventCaps(req.craft, req.level, req.category, grade) : undefined) ?? plan.caps
   if (!caps) return '這次的自創沒有可以參考的配方，什麼也沒做出來。'
-  const design = (raw !== undefined ? sanitizeDesign(raw, caps) : undefined) ?? templateDesign(state, caps)
+  const designed = raw !== undefined ? sanitizeDesign(raw, caps) : undefined
+  const design = designed ?? templateDesign(state, caps)
   const made = producedQty(design.qty, degree)
   // 份數多時花費跟著補足（材料價值要撐得起所有的份數）
   const gap = supplyGap(state, caps, plan.inputValue, design.qty)
@@ -506,6 +507,8 @@ export function applyInvent(state: GameState, report: Report, target: string, de
     effects.push({ type: 'item', name, qty: made })
     const strength = caps.grade === 'critical' ? '做得比預期還好' : caps.grade === 'partial' ? '效果比預期弱了一些' : '照預期做出來了'
     text = `${fee ? `花了 ${formatMoney(fee)}，` : ''}自創了「${name}」（${strength}），做出 ${made} 份，配方記下來了（${craftName(req.craft)} Lv.${req.level}）。`
+    // 沒有 AI 的設計（規則判定、AI 漏了 invention 欄位、設計不能用）：照現成配方做，說出來，不然玩家以為做法不影響成品
+    if (!designed) text += `這次沒有用到 AI 依做法設計的成品（${raw === undefined ? '判定沒有給出設計' : '給出的設計不能用'}），照現成的${design.name.replace(/^特製/, '')}做出特製品；可以在行囊替它改名。`
   } else {
     text = `${fee ? `花了 ${formatMoney(fee)}，` : ''}${degree === 'fail' ? '沒做成，損失了一半的材料' : '搞砸了，材料全部損失'}。`
   }
