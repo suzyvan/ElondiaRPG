@@ -5,10 +5,11 @@ import { addHours, commitReport } from '@/engine/state'
 import type { GameState, Report } from '@/engine/types'
 
 let reply = '{"records":[]}'
+let story = ['兩人在旅店的房間裡度過了第一夜。']
 vi.mock('@/narrator/providers', () => ({
   completeText: vi.fn(async () => reply),
   streamNarration: vi.fn(async function* () {
-    yield '兩人在旅店的房間裡度過了第一夜。'
+    for (const chunk of story) yield chunk
   }),
 }))
 
@@ -16,6 +17,7 @@ beforeEach(() => {
   localStorage.clear()
   setActivePinia(createPinia())
   reply = '{"records":[]}'
+  story = ['兩人在旅店的房間裡度過了第一夜。']
 })
 
 function scene(state: GameState, adult = '在旅店的房間裡共度一夜'): Report {
@@ -96,5 +98,43 @@ describe('record sex after an intimate scene', () => {
     expect(g.recordingSex.has(r.report_id)).toBe(false)
     expect(sexLogged(g.state!, r.report_id)).toBe(false)
     expect(g.error).toContain('記下性經歷逾時')
+  })
+
+  it('a report without adult_scene: the writer flags the scene, the tag is removed and the record is made', async () => {
+    const { g, providers } = await setup()
+    const { sexLogged, intimateReport } = await import('@/engine/sexRecord')
+    const r = commitReport(g.state!, {
+      schema_version: '0.1', report_id: `r-test-${g.state!.nextReportNo++}`, kind: 'rest',
+      time: { start: { ...g.state!.time }, end: addHours(g.state!.time, 8) },
+      location: { at: g.state!.location }, party: [{ id: 'pc', name: '艾倫' }], others: [{ id: 'npc_lina', name: '莉娜' }],
+      outcome: { result: 'success', summary: '長休' }, changes: {},
+    })
+    story = ['夜裡，莉娜鑽進了你的被窩。', '\n<intimate_scene>艾倫與莉娜在營地發生關係</intimate_scene>']
+    reply = '{"records":[{"id":"pc","sex":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"營地的一夜"}]}'
+    await g.narrate(r)
+    // 寫經過的要求帶著標記的說明
+    const sent = vi.mocked(providers.streamNarration).mock.calls.at(-1)![2] as { user: string }
+    expect(sent.user).toContain('<intimate_scene>')
+    expect(g.narrations[r.report_id]!.text).toBe('夜裡，莉娜鑽進了你的被窩。')
+    const saved = g.state!.reports.find((x) => x.report_id === r.report_id)!
+    expect(saved.narration?.intimate_note).toBe('艾倫與莉娜在營地發生關係')
+    expect(intimateReport(saved)).toBe(true)
+    await vi.waitFor(() => expect(sexLogged(g.state!, r.report_id)).toBe(true))
+  })
+
+  it('a report the writer did not flag is not recorded automatically, but the heart still works on it', async () => {
+    const { g, providers } = await setup()
+    const { sexLogged } = await import('@/engine/sexRecord')
+    const r = commitReport(g.state!, {
+      schema_version: '0.1', report_id: `r-test-${g.state!.nextReportNo++}`, kind: 'rest',
+      time: { start: { ...g.state!.time }, end: addHours(g.state!.time, 8) },
+      location: { at: g.state!.location }, party: [{ id: 'pc', name: '艾倫' }], outcome: { result: 'success', summary: '長休' }, changes: {},
+    })
+    story = ['一夜無事。']
+    await g.narrate(r)
+    expect(providers.completeText).not.toHaveBeenCalled()
+    await g.recordSex(r, undefined, { manual: true })
+    expect(providers.completeText).toHaveBeenCalledTimes(1)
+    expect(sexLogged(g.state!, r.report_id)).toBe(true)
   })
 })

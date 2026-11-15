@@ -101,7 +101,7 @@ describe('scene auto-generation', () => {
     const wrapper = mount(ReportCard, { props: { report: t.report } })
     const tools = wrapper.findAll('.tools button').map((b) => b.attributes('aria-label'))
     // 最新一則有經過的日誌另外有「續寫」
-    expect(tools).toEqual(['重新寫出經過', '玩家的行動與要求', '續寫', '生成插圖', '手動分段插圖'])
+    expect(tools).toEqual(['重新寫出經過', '玩家的行動與要求', '記下性經歷', '續寫', '生成插圖', '手動分段插圖'])
     expect(wrapper.find('.menu-list').text()).not.toContain('插圖')
     expect(wrapper.find('.menu-list').text()).not.toContain('經過')
   })

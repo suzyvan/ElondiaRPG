@@ -589,7 +589,8 @@ export const useGame = defineStore('game', () => {
   async function recordSex(report: Report, narrative?: string, opts: { manual?: boolean } = {}) {
     const s = state.value
     const settings = useSettings()
-    if (!s || !sexRecord.intimateReport(report) || sexRecord.sexLogged(s, report.report_id) || recordingSex.value.has(report.report_id)) return
+    // 自動：只記親密場景（判定或寫手標出的）；手動：玩家在任何日誌上按都送（規則判定、沒標到的漏網之魚）
+    if (!s || (!opts.manual && !sexRecord.intimateReport(report)) || sexRecord.sexLogged(s, report.report_id) || recordingSex.value.has(report.report_id)) return
     if (!settings.sexRecords || !settings.ready('sexlog') || (!opts.manual && !settings.sexRecordAi)) return
     const text = narrative ?? narrations.value[report.report_id]?.text ?? ''
     const { buildSexLogPrompt } = await import('@/narrator/sexLog')
@@ -1124,7 +1125,26 @@ export const useGame = defineStore('game', () => {
   // 世界書、繁簡轉換字典與各家 SDK 都很大，用到時才載入
   async function composeFor(report: Report) {
     const [{ composeNarration }, opts] = await Promise.all([import('@/narrator/compose'), usePrompts().composeOptions()])
-    return composeNarration(state.value, report, opts, narrations.value)
+    return composeNarration(state.value, report, opts, narrations.value, flagIntimate(report) ? { flagIntimate: true } : {})
+  }
+
+  /**
+   * 寫經過時要不要請寫手標出親密場景（<intimate_scene>）：自動記性經歷開著、來源設定好，
+   * 這則日誌還不是已知的親密場景、也還沒記過（休息、移動、規則判定的行動……寫出了性愛場景時才記得到）
+   */
+  function flagIntimate(report: Report): boolean {
+    const settings = useSettings()
+    const s = state.value
+    return !!s && settings.sexRecords && settings.sexRecordAi && settings.ready('sexlog')
+      && !sexRecord.intimateReport(report) && !sexRecord.sexLogged(s, report.report_id)
+  }
+
+  /** 寫手標出了親密場景：記在日誌上（之後就算親密場景、可以記性經歷），回傳更新後的日誌 */
+  function noteIntimate(report: Report, note: string | undefined): Report {
+    const target = state.value?.reports.find((r) => r.report_id === report.report_id) ?? report
+    if (!note || sexRecord.intimateReport(target)) return target
+    target.narration = { ...(target.narration ?? {}), intimate_note: note }
+    return target
   }
 
   async function promptFor(report: Report): Promise<Prompt> {
@@ -1183,11 +1203,13 @@ export const useGame = defineStore('game', () => {
       const text = cleanText(split.text, 'narration')
       entry.text = text
       if (state.value && split.updates.length) social.addSuggestions(state.value, split.updates, report.report_id)
+      // 寫手標出了親密場景（沒經過判定的日誌）：記在日誌上，接著記性經歷
+      const target = noteIntimate(report, split.intimate)
       entry.status = 'done'
       save()
       if (!rewrite && text.trim() && state.value) void useScenes().auto(state.value, report)
       // 親密場景：寫完經過之後另外請 AI 記下性經歷（重寫時已經記過，不再記）
-      void recordSex(report, text)
+      void recordSex(target, text)
     } catch (e) {
       // 停止或出錯時留下的半段也照正則清理
       entry.text = cleanText(splitSuggestions(entry.text).text, 'narration')
@@ -1233,7 +1255,7 @@ export const useGame = defineStore('game', () => {
     let added = ''
     try {
       const [{ composeNarration }, opts] = await Promise.all([import('@/narrator/compose'), usePrompts().composeOptions()])
-      const prompt = composeNarration(state.value, report, opts, narrations.value, { continuation: { written: base, hint } }).prompt
+      const prompt = composeNarration(state.value, report, opts, narrations.value, { continuation: { written: base, hint }, ...(flagIntimate(report) ? { flagIntimate: true } : {}) }).prompt
       const { streamNarration } = await import('@/narrator/providers')
       const feature = settings.narrationFeature(report)
       const src = settings.sourceFor(feature)
@@ -1248,6 +1270,11 @@ export const useGame = defineStore('game', () => {
       if (state.value && split.updates.length) social.addSuggestions(state.value, split.updates, report.report_id)
       entry.text = text.trim() ? `${base}\n\n${text.trim()}` : base
       if (text.trim()) entry.continued = (entry.continued ?? 0) + 1
+      // 續寫寫出了親密場景：記在日誌上，記性經歷（讀整段正文）
+      if (split.intimate) {
+        save()
+        void recordSex(noteIntimate(report, split.intimate), entry.text)
+      }
     } catch (e) {
       // 按了停止：留下已經寫出來的；其他錯誤：恢復成續寫前的正文
       const kept = cleanText(splitSuggestions(added).text, 'narration').trim()

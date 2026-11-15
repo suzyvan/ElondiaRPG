@@ -35,6 +35,7 @@ function reportText(report: Report): string {
   const lines = [
     report.outcome.summary ? `摘要：${report.outcome.summary}` : '',
     report.narration?.adult_scene ? `親密場景：${report.narration.adult_scene}` : '',
+    report.narration?.intimate_note ? `正文寫到的親密場景：${report.narration.intimate_note}` : '',
     report.narration?.player_intent ? `主角想做的事：${report.narration.player_intent}` : '',
     ...(report.timeline ?? []).slice(-12).map((t) => `- ${t.actor}：${t.action}${t.target ? ` → ${t.target}` : ''}`),
     report.others?.length ? `在場的其他人：${report.others.map((o) => `${o.name}（${o.id}）`).join('、')}` : '',

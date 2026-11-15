@@ -227,6 +227,8 @@ export interface Report {
     tease?: string
     /** 在娼館接客的人（角色 id）：老鴇讓接客的人喝避子湯，這次不會受孕（docs/FAMILY.md） */
     brothel_work?: string
+    /** 寫手在正文後標出的親密場景（沒經過判定的日誌寫出了性愛場景，narrator/prompt.ts 的 INTIMATE_FLAG_NOTE）：只用來記性經歷，不改寫法、不算成人場景 */
+    intimate_note?: string
   }
   lore_keys?: string[]
   /** 存檔規則「職業武器限制」：這次入隊、歸隊時收進行囊的武器（誰的什麼、為什麼）；commitReport 接在摘要後面 */

@@ -54,6 +54,8 @@ export interface PromptOptions {
    * hint 是玩家希望多寫的方向（可以不給）
    */
   continuation?: { written: string; hint?: string }
+  /** 請寫手在正文後標出親密場景（<intimate_scene>）：自動記性經歷開著、這則日誌不是已知的親密場景時（stores/game.ts） */
+  flagIntimate?: boolean
   /** 登場的怪物的外觀（<monsters>，narrator/monsters.ts 組好的；魔物娘的設定打開時是魔物娘） */
   monsters?: string
 }
@@ -345,6 +347,12 @@ export function styleLead(before: string): string {
   return '文風'
 }
 
+/**
+ * 請寫手標出正文裡的親密場景：沒有經過判定的日誌（休息、移動、旅行、規則判定……）寫出了性愛場景時，
+ * 程式從這個標籤知道要記下性經歷（stores/game.ts 的 recordSex；判定過的行動由判定的 adult_scene 標）
+ */
+export const INTIMATE_FLAG_NOTE = '- 如果你寫的正文裡有性愛場景（性交、性侍奉、自慰），在正文結束後另起一行輸出 <intimate_scene>一句話寫出是誰和誰、做了什麼（≤ 40 字）</intimate_scene>；只有挑逗、親吻、擁抱不算，沒有就不要輸出。這個標籤和 <relationship_updates> 一樣放在正文之後，不算正文'
+
 export function buildPrompt(report: Report, lore: LoreLike[] | { constant: LoreLike[]; triggered: LoreLike[] }, opts: PromptOptions): Prompt {
   const lang = LANGUAGE_NAME[opts.language]
   const { constant, triggered } = Array.isArray(lore) ? { constant: [], triggered: lore } : lore
@@ -370,6 +378,7 @@ export function buildPrompt(report: Report, lore: LoreLike[] | { constant: LoreL
     : report.narration?.mode === 'defeat_event' ? `\n- 戰敗事件的後半段：依${victim ?? '主角'}的反應與成功程度寫出經過` : ''
   const sceneLine = scene ? `\n- 成人場景：${scene}；依 <adult_scene> 的規則在正文中詳細描寫經過` : ''
   const variety = opts.variety ? `\n- 這次的寫法：${opts.variety}` : ''
+  const flagLine = opts.flagIntimate && !scene ? `\n${INTIMATE_FLAG_NOTE}` : ''
   // 打聽、詢問得到的具體內容：要寫進正文，不能只寫「講解了具體情況」
   const findings = report.check?.findings
     ? '\n- 報告的 check.findings 是主角這次得知的具體內容：要讓角色在正文裡把它說出來（可以換成角色的口吻、分幾句說，但內容不能少也不能改；不要寫成「講解了具體情況」這類空話）。地名、怪物以 findings 為準，不要另外編'
@@ -402,10 +411,10 @@ export function buildPrompt(report: Report, lore: LoreLike[] | { constant: LoreL
     {
       key: 'request', title: '本次要求', part: 'user',
       text: opts.continuation
-        ? continuationRequest(pov, length, `${defeat}${sceneLine}${intent}${focus}`, opts.continuation.hint)
+        ? continuationRequest(pov, length, `${defeat}${sceneLine}${intent}${focus}${flagLine}`, opts.continuation.hint)
         : `本次要求：
 - 視角：${pov}
-- 篇幅：${length}${defeat}${sceneLine}${variety}${findings}${bystanders}${continuity.narrationNote}${intent}${focus}
+- 篇幅：${length}${defeat}${sceneLine}${variety}${findings}${bystanders}${continuity.narrationNote}${intent}${focus}${flagLine}
 請依照上述報告寫出這次事件的詳細經過。`,
     },
   ])

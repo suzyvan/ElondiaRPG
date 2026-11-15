@@ -193,10 +193,10 @@ export function sexRecordText(state: GameState, id: string): string {
   return `${items}${recent}`
 }
 
-/** 是不是要記下性經歷的親密場景：帶 adult_scene，而且不是戰鬥中只有挑逗、剝衣 */
+/** 是不是要記下性經歷的親密場景：帶 adult_scene（不是戰鬥中只有挑逗、剝衣），或寫手在正文後標出了親密場景（intimate_note） */
 export function intimateReport(report: Report): boolean {
   const a = report.narration?.adult_scene
-  return !!a && report.narration?.tease !== a
+  return (!!a && report.narration?.tease !== a) || !!report.narration?.intimate_note
 }
 
 /**

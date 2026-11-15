@@ -29,14 +29,18 @@ const props = defineProps<{ report: Report }>()
 const game = useGame()
 const settings = useSettings()
 // 親密場景還沒記下性經歷（自動記關著、失敗時，可以手動記；docs/LEWD_STATS.md 第 29 節）
-const canRecordSex = computed(() => !!game.state && settings.sexRecords && intimateReport(props.report) && settings.ready('sexlog') && !sexLogged(game.state, props.report.report_id))
+// 每則日誌都可以手動記（規則判定、休息、移動……寫出了性愛場景卻沒標到的時候）；親密場景以外的寫在說明裡
+const canRecordSex = computed(() => !!game.state && settings.sexRecords && settings.ready('sexlog') && !sexLogged(game.state, props.report.report_id))
+const intimate = computed(() => intimateReport(props.report))
 const recordingSex = computed(() => game.recordingSex.has(props.report.report_id))
 // 記錄中不設 disabled（有些瀏覽器停用的按鈕不顯示滑過的說明），改成閃動、按了不重送
 const sexTitle = computed(() => recordingSex.value
   ? '正在記下性經歷…（等「性經歷記錄」的模型回應；太久沒回應會依「AI 判定逾時」放棄，之後可以再按）'
   : narration.value?.status === 'streaming'
     ? '經過寫完之後才能記下性經歷'
-    : '記下性經歷：請「性經歷記錄」的模型讀這段經過，記下誰和誰發生了關係、性侍奉、初體驗（每則日誌只記一次）')
+    : intimate.value
+      ? '記下性經歷：請「性經歷記錄」的模型讀這段經過，記下誰和誰發生了關係、性侍奉、初體驗（每則日誌只記一次）'
+      : '記下性經歷：這則日誌沒有標成親密場景；經過裡寫到了性愛場景卻沒自動記下時按這裡，請「性經歷記錄」的模型讀這段經過記下來（每則日誌只記一次）')
 
 // 回退（stores/undo.ts）：最近幾輪的日誌可以撤銷，連同之後的日誌
 const undoSteps = computed(() => {

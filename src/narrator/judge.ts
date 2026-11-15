@@ -575,31 +575,41 @@ export function buildNewsPrompt(state: GameState, items: { id: string; news: Npc
 }
 
 const SUGGESTION_RE = /<relationship_updates>([\s\S]*?)(?:<\/relationship_updates>|$)/
+/** 寫手標出的親密場景（narrator/prompt.ts 的 INTIMATE_FLAG_NOTE） */
+const INTIMATE_RE = /<intimate_scene>([\s\S]*?)(?:<\/intimate_scene>|$)/
 
-/** 敘事尾端的人際關係更新提議：取出後從正文移除。 */
-export function splitSuggestions(text: string): { text: string; updates: { id: string; to_player: string }[] } {
+/** 敘事尾端的人際關係更新提議與親密場景的標記（intimate）：取出後從正文移除。 */
+export function splitSuggestions(text: string): { text: string; updates: { id: string; to_player: string }[]; intimate?: string } {
   const m = SUGGESTION_RE.exec(text)
-  if (!m) return { text, updates: [] }
-  const clean = text.slice(0, m.index).trimEnd()
+  const im = INTIMATE_RE.exec(text)
+  if (!m && !im) return { text, updates: [] }
+  // 兩個標籤都在正文之後：從先出現的那個開始拿掉
+  const cut = Math.min(m?.index ?? Infinity, im?.index ?? Infinity)
+  const clean = text.slice(0, cut).trimEnd()
+  const intimate = im?.[1]?.trim().slice(0, 120)
+  const extra = intimate ? { intimate } : {}
+  if (!m) return { text: clean, updates: [], ...extra }
   try {
-    const raw = JSON.parse(m[1]!.trim()) as unknown
+    // 兩個標籤順序顛倒時，提議的內容裡會混到 <intimate_scene>：切掉
+    const body = m[1]!.split('<intimate_scene')[0]!.trim()
+    const raw = JSON.parse(body) as unknown
     const arr = Array.isArray(raw) ? raw : []
     const updates = arr
       .filter((u): u is { id: string; to_player: string } => !!u && typeof u.id === 'string' && typeof u.to_player === 'string')
-    return { text: clean, updates }
+    return { text: clean, updates, ...extra }
   } catch {
-    return { text: clean, updates: [] }
+    return { text: clean, updates: [], ...extra }
   }
 }
 
 /** 串流中顯示時，把還沒結束的提議區塊藏起來 */
 export function visibleNarration(text: string): string {
-  const TAG = '<relationship_updates'
-  const i = text.indexOf(TAG)
-  if (i >= 0) return text.slice(0, i).trimEnd()
+  const TAGS = ['<relationship_updates', '<intimate_scene']
+  const i = Math.min(...TAGS.map((t) => text.indexOf(t)).filter((x) => x >= 0))
+  if (Number.isFinite(i)) return text.slice(0, i).trimEnd()
   // 串流到一半、標籤還沒寫完
   const j = text.lastIndexOf('<')
-  return j >= 0 && TAG.startsWith(text.slice(j)) ? text.slice(0, j).trimEnd() : text
+  return j >= 0 && TAGS.some((t) => t.startsWith(text.slice(j))) ? text.slice(0, j).trimEnd() : text
 }
 
 /** 商店的交易清單：AI 依商店類型、城鎮與店主生成，程式再驗證價格與效果（見 engine/trade.ts）。 */

@@ -4,18 +4,18 @@ exports[`world editor round trip > stories: opening and saving without changes k
 {
   "dawn_throne_ambush": "1753e5236a94",
   "group_rulers_tea": "0d888aaaa3ec",
-  "inn_skirt": "35f0f906687d",
+  "inn_skirt": "78cd136597d1",
   "isadora_elope": "9b15b3f1d44d",
   "par_lin_feed": "90df30a887d6",
   "par_mark_find": "9f95fe774965",
   "par_mark_help": "f89a68bb7829",
   "serena_councillor": "2561154210d9",
   "smuggler_ledger": "fd953352c34c",
-  "spirit_drowned": "e8fba2268264",
+  "spirit_drowned": "ef1a96db7a0c",
   "tdcu_night_hunt": "cf3b959bb547",
   "tdwn_after_naadam": "7d5303184d67",
   "tdwn_secret_other": "165b60abf3d5",
-  "yczh_x": "3fc4dd840ab9",
-  "yh_storyteller": "04a546c4156d",
+  "yczh_x": "819ea302bede",
+  "yh_storyteller": "77d58e2f9bf7",
 }
 `;
