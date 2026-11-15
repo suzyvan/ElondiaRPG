@@ -1,8 +1,8 @@
-"""勢力聲望的補強：河谷鎮（人類諸國聯盟）與大燁朝廷的特殊任務結局給的聲望。
+"""勢力聲望的補強：河谷鎮（人類諸國聯盟）、大燁朝廷與媞丹汗國的特殊任務結局給的聲望。
 
-這兩個勢力的任務很多，但結局幾乎不給自己的聲望（全部跑完，聯盟只拿得到十幾點、大燁 27 點；
+這三個勢力的任務很多，但結局幾乎不給自己的聲望（全部跑完，聯盟只拿得到十幾點、大燁 27 點、媞丹 29 點；
 聲望 10 才是最好的一級，地標要 10～30）。這支腳本把下面兩張表列的結局（故事 id、節點 id、選項的文字、success 或 fail）
-的聲望設成表上的數字（同一個勢力原本的聲望換掉；表上是 0 的拿掉）。列的都是結局（complete），
+的聲望設成表上的數字（下面三張表；同一個勢力原本的聲望換掉；表上是 0 的拿掉）。列的都是結局（complete），
 可以重跑；改數字時改表再重跑。
 
 - RIVERVALE：河谷鎮的任務，逐條訂的。入門與一般任務 +1～3，各條線的結局 +3～5，戰爭與史詩的結局 +5；
@@ -12,6 +12,10 @@
   角色線、成人向的打工與祭典線減半（C +1、B +2）。失敗結局少 2。已經寫了聲望的結局不動
   （偏金墨盟、或扣大燁聲望的選擇照舊）；同一個任務裡另一個結局已經給大燁聲望時，折衷的結局給一半。
   萬民書：親政 +5、立憲 +3、退位不給。
+- TIDAN：媞丹的任務，規則和 YANYE 一樣（地區線是 tdn、tdr、tdl、tds、tdt、tdh、tdm、tdw、tdu、tdx、tdpol、nspol 開頭的）。
+  政治線的分歧點（那達慕之約、兩國的夜議）只給 +2，因為各自的結局任務本來就給聲望；
+  削弱汗國的走向（海東青飛走了、海上之盟）、把馬送給海東部、讓貢隊回冬營不給；大法典的「各部自治、減輕貢賦」+1；
+  榷場的火、歲幣的使節（兩國之間的事）+3。
 """
 
 import json
@@ -621,6 +625,294 @@ YANYE = {
     ],
 }
 
+TIDAN = {
+    'tdn_tea_caravan': [  # 茶馬路的商隊
+        ('deliver', '', 'success', 2),
+    ],
+    'tdn_market_rules': [  # 榷場的規矩
+        ('deal', '照規矩付三成', 'success', 2),
+        ('deal', '只付牌子上寫的一成', 'success', 2),
+    ],
+    'tdr_ovoo_bones': [  # 敖包上的骨紋
+        ('close', '', 'success', 2),
+    ],
+    'tdr_wolf_deer_song': [  # 蒼狼與白鹿的歌
+        ('sing', '', 'success', 3),
+    ],
+    'tdr_name_of_tengri': [  # 長生天的名字
+        ('call', '先叫蒼狼部的祖先', 'success', 3),
+        ('call', '先叫媞丹部的祖先', 'success', 3),
+        ('call', '先叫海東部的祖先', 'success', 3),
+    ],
+    'tdl_blood_feud': [  # 血仇
+        ('close', '', 'success', 2),
+    ],
+    'tdl_the_code': [  # 大法典
+        ('end', '寫進北院的軍法', 'success', 3),
+        ('end', '照大燁律改寫，交給南院', 'success', 3),
+        ('end', '寫下各部自治、減輕貢賦', 'success', 1),
+    ],
+    'tds_two_ledgers': [  # 兩本帳
+        ('report', '', 'success', 2),
+    ],
+    'tds_missing_tribute': [  # 少了的歲幣
+        ('end', '把銀子分給海東部抵貢', 'success', 1),
+    ],
+    'tdt_night_horses': [  # 夜裡的馬群
+        ('tell', '', 'success', 1),
+    ],
+    'tdt_smugglers_trail': [  # 走私的路
+        ('report', '', 'success', 2),
+    ],
+    'tdt_tea_horse': [  # 茶馬互市
+        ('end', '交給北院練騎兵', 'success', 1),
+    ],
+    'tdh_pearl_divers': [  # 採珠人
+        ('close', '', 'success', 2),
+    ],
+    'tdh_tribute_day': [  # 進貢的日子
+        ('end', '請南院替海東部減貢', 'success', 1),
+    ],
+    'tdm_named_arrow': [  # 刻著名字的鳴鏑
+        ('report', '', 'success', 1),
+    ],
+    'tdm_iron_pagoda': [  # 鐵浮屠的盟誓
+        ('ask', '「他叫什麼名字？」', 'success', 2),
+        ('ask', '「你想讓我知道嗎？」', 'success', 2),
+    ],
+    'tdm_nameless_khan': [  # 無名的可汗
+        ('end', '「你叫阿勒坦」', 'success', 3),
+        ('end', '「我會替你問出來」', 'success', 3),
+        ('end', '「名字是天可汗抹掉的，去問她」', 'success', 3),
+    ],
+    'tdw_coming_of_age': [  # 成年禮
+        ('back', '', 'success', 1),
+    ],
+    'tdw_ice_queen': [  # 冰后的宮殿
+        ('ask', '「牠會問什麼？」', 'success', 2),
+        ('ask', '打碎冰，放巫師走', 'success', 2),
+    ],
+    'tdw_blue_wolf': [  # 蒼狼
+        ('end', '「草原統一了，牠們是一家人」', 'success', 3),
+        ('end', '「兄弟殺了兄弟，名字被刮掉了」', 'success', 3),
+        ('end', '「最小的那一支，還在鷹河邊等著」', 'success', 3),
+    ],
+    'tdu_broken_fiddle': [  # 斷弦的馬頭琴
+        ('play', '', 'success', 2),
+    ],
+    'tdx_post_letter': [  # 驛站的急信
+        ('back', '', 'success', 1),
+    ],
+    'tdx_lost_foal': [  # 走失的小馬
+        ('back', '', 'success', 1),
+    ],
+    'tdpol_summons': [  # 天可汗的召見
+        ('report', '', 'success', 4),
+    ],
+    'tdpol_kurultai': [  # 忽里勒台
+        ('verdict', '', 'success', 4),
+    ],
+    'tdpol_naadam': [  # 那達慕之約
+        ('verdict', '「長生天的鞭：整軍南下」', 'success', 2),
+        ('verdict', '「長生天的鞭：整軍南下」（那達慕的聲音）', 'success', 2),
+        ('verdict', '「南院的印：定居築城」', 'success', 2),
+        ('verdict', '「南院的印：定居築城」（那達慕的聲音）', 'success', 2),
+    ],
+    'nspol_envoys': [  # 歲幣的使節
+        ('report', '', 'success', 3),
+    ],
+    'nspol_market_fire': [  # 榷場的火
+        ('tell', '在茶馬市當眾念出來', 'success', 3),
+        ('tell', '只交給兩國的使節', 'success', 3),
+    ],
+    'nspol_night_council': [  # 兩國的夜議
+        ('council', '「征伐：天可汗南下」', 'success', 2),
+        ('council', '「和盟：讓五席的人斡旋」', 'success', 2),
+        ('council', '「和盟：歲幣改成互市」', 'success', 2),
+        ('council', '「征伐：北院的殘部南下」', 'success', 2),
+        ('council', '「和盟：女帝寧可和天可汗談」', 'success', 2),
+    ],
+    'nspol_end_war': [  # 征伐
+        ('blade', '', 'success', 5),
+    ],
+    'tdcu_winter_hunt': [  # 冬獵的勢子
+        ('close', '「怕。可是馬比較要緊」', 'success', 1),
+        ('close', '「妳的箭沒有射偏過吧」', 'success', 1),
+    ],
+    'tdcu_night_hunt': [  # 夜獵
+        ('close', '「因為妳說話算話」', 'success', 1),
+        ('close', '「怕。可是我更想知道妳在想什麼」', 'success', 1),
+    ],
+    'tdcu_not_afraid': [  # 不怕她的人
+        ('confess', '走過去，握住她的手', 'success', 2),
+        ('confess', '「下一次，我還站在妳前面」', 'success', 2),
+    ],
+    'tdcu_x': [  # 狼皮上
+        ('night', '讓她像打獵一樣', 'success', 2),
+        ('night', '讓她什麼令都不下', 'success', 2),
+    ],
+    'tdcc_false_name': [  # 假名字
+        ('close', '「知道。可是我陪的是阿勒泰」', 'success', 1),
+        ('close', '「妳是察蘭，跑得比我快的人」', 'success', 1),
+    ],
+    'tdcc_fixed_race': [  # 放水的人
+        ('close', '「把錢還給騎手，請他們真的跑」', 'success', 1),
+        ('close', '「告訴天可汗，可是讓妳自己說」', 'success', 1),
+    ],
+    'tdcc_true_name': [  # 用真名贏
+        ('confess', '「妳跑得真好，察蘭」', 'success', 2),
+        ('confess', '「下次，我想贏妳」', 'success', 2),
+    ],
+    'tdcc_x': [  # 賽道的盡頭
+        ('night', '讓她「贏」', 'success', 2),
+        ('night', '慢慢來', 'success', 2),
+    ],
+    'tdcq_war_horse_bone': [  # 戰馬的骨
+        ('close', '「想」', 'success', 1),
+        ('close', '「不想。我想知道妳看見了什麼」', 'success', 1),
+    ],
+    'tdcq_night_reading': [  # 夜裡的占卜
+        ('close', '握住她發抖的手', 'success', 1),
+        ('close', '「那就讓它不要發生」', 'success', 1),
+    ],
+    'tdcq_unwelcome': [  # 不受歡迎的預言
+        ('confess', '「那一道是我」', 'success', 2),
+        ('confess', '「不用讀骨，我告訴妳將來」', 'success', 2),
+    ],
+    'tdcq_x': [  # 不讀骨的夜
+        ('night', '讓她讀你', 'success', 2),
+        ('night', '沿著她的紋', 'success', 2),
+    ],
+    'tdch_lost_messenger': [  # 沒換馬的信差
+        ('close', '「那是妳的信」', 'success', 1),
+        ('close', '「妳想讓我看嗎？」', 'success', 1),
+    ],
+    'tdch_night_ride': [  # 夜裡的路
+        ('close', '「不會」', 'success', 1),
+        ('close', '「我不會說，可是我不贊成」', 'success', 1),
+    ],
+    'tdch_traitor': [  # 冬營的叛徒
+        ('confess', '「那就選」', 'success', 2),
+        ('confess', '抱住她', 'success', 2),
+    ],
+    'tdch_x': [  # 冬營的火
+        ('night', '讓她自己來', 'success', 2),
+        ('night', '一點一點教她', 'success', 2),
+    ],
+    'tdct_snow': [  # 雪
+        ('close', '陪她坐著', 'success', 1),
+        ('close', '「還有十天」', 'success', 1),
+    ],
+    'tdct_hidden': [  # 藏起來的鷹
+        ('close', '「不會。妳只是捨不得」', 'success', 1),
+        ('close', '「我陪妳一起自私」', 'success', 1),
+    ],
+    'tdct_let_go': [  # 放手
+        ('confess', '「我不會飛走」', 'success', 2),
+        ('confess', '牽起她的手', 'success', 2),
+    ],
+    'tdct_x': [  # 鷹房的閣樓
+        ('night', '很溫柔地', 'success', 2),
+        ('night', '讓她決定什麼時候', 'success', 2),
+    ],
+    'tdg_twin_empresses': [  # 雙帝的會盟
+        ('night', '「那就照盟約來」', 'success', 2),
+        ('night', '「兩位陛下先分出勝負」', 'success', 2),
+    ],
+    'tdwn_secret': [  # 可敦的秘密
+        ('promise', '「我不會說出去」', 'success', 1),
+        ('promise', '「妳想看的，現在就在妳面前」', 'success', 1),
+    ],
+    'tdwn_secret_other': [  # 可敦的秘密
+        ('promise', '「我不會說出去」', 'success', 1),
+        ('promise', '「妳想要的，不是看而已吧」', 'success', 1),
+    ],
+    'tdwn_after_naadam': [  # 那達慕之後的夜
+        ('want', '「讓妳看著我」', 'success', 1),
+        ('want', '「去吧，我在帳外等妳」', 'success', 1),
+    ],
+    'tdwn_choice': [  # 可敦的選擇
+        ('lover', '「今晚，妳想怎樣都可以」', 'success', 2),
+        ('lover', '把她抱起來', 'success', 2),
+    ],
+    'tdwn_wild_horse': [  # 野馬帳
+        ('answer', '「妳還是妳，我要妳」', 'success', 2),
+        ('answer', '讓她自己決定要不要回來', 'success', 2),
+    ],
+    'tdur_wild_stallion': [  # 最烈的馬
+        ('done', '「試試就知道」', 'success', 1),
+        ('done', '「妳先說，妳能撐多久」', 'success', 1),
+    ],
+    'tdur_who_rides': [  # 誰騎誰
+        ('done', '讓她騎', 'success', 1),
+        ('done', '反過來騎她', 'success', 1),
+    ],
+    'tdur_bridle': [  # 韁繩
+        ('lover', '「我不套，我陪妳跑」', 'success', 2),
+        ('lover', '把韁繩輕輕繞上她的手腕', 'success', 2),
+    ],
+    'tdsr_foaling': [  # 接生
+        ('done', '下水陪她', 'success', 1),
+        ('done', '「春天是什麼意思？」', 'success', 1),
+    ],
+    'tdsr_stud': [  # 種馬
+        ('done', '「那就不怪妳」', 'success', 1),
+        ('done', '慢慢地陪她', 'success', 1),
+    ],
+    'tdsr_herd': [  # 她的馬群
+        ('lover', '「不是春天也要」', 'success', 2),
+        ('lover', '「那春天呢？」', 'success', 2),
+    ],
+    'tdg_golden_three': [  # 金帳的三人
+        ('night', '「讓察蘭先」', 'success', 2),
+        ('night', '「這一次，比別的」', 'success', 2),
+    ],
+    'tdwn_after_naadam_other': [  # 那達慕之後的夜
+        ('want', '「去吧，我在帳外等妳」', 'success', 1),
+    ],
+    'tdtongue_hands': [  # 兩邊的手
+        ('split', '晚上去通譯行學', 'success', 2),
+        ('split', '拿小的那份就好', 'success', 2),
+    ],
+    'tdtongue_extra': [  # 成交的添頭
+        ('horse_side', '讓三個馬販輪流（人馬族，人外）', 'success', 2),
+        ('horse_side', '用手和嘴打發他們', 'success', 2),
+    ],
+    'tdtongue_market': [  # 秋市
+        ('market', '跟茶商們（化龍族）', 'success', 2),
+        ('market', '跟馬販們（人馬族，人外）', 'success', 2),
+        ('market', '兩邊一起，翻話翻到說不出話', 'success', 2),
+    ],
+    'yhinc_ovoo': [  # 北原的敖包
+        ('ovoo', '讓整個驛站的牧人把敖包添滿（人馬族，人外）', 'success', 2),
+        ('ovoo', '把劉嬤嬤也拉下來一起添（人馬族，人外）', 'success', 2),
+        ('ovoo', '跟劉嬤嬤分帳，從此自己當香頭（人馬族，人外）', 'success', 2),
+    ],
+    'tdnaadam_target': [  # 靶子
+        ('archers', '讓七個射手一個一個摸個夠', 'success', 2),
+        ('archers', '用嘴替射得最準的那個領彩頭', 'success', 2),
+    ],
+    'tdnaadam_race': [  # 賽馬的彩頭
+        ('tent', '用手和嘴伺候三個', 'success', 2),
+        ('tent', '讓三個人輪流上（人馬族，人外）', 'success', 2),
+    ],
+    'tdnaadam_wrestle': [  # 摔跤的冠軍
+        ('prize', '只給摔跤的冠軍一個人（人馬族，人外）', 'success', 2),
+        ('prize', '被抬到場中央，三藝的優勝者一起（人馬族，人外）', 'success', 2),
+    ],
+    'club_chihuan_wild': [  # 押在野馬帳的一把
+        ('answer', '「我押妳。一直都押妳」', 'success', 2),
+        ('answer', '「下次，我跟妳押同一把」', 'success', 2),
+    ],
+    'club_urina_wild': [  # 誰騎誰・野馬帳
+        ('answer', '「妳贏了。韁繩我還是要牽」', 'success', 2),
+        ('answer', '「下次換我跟妳一起馴」', 'success', 2),
+    ],
+    'club_hailan_wild': [  # 放下弓的一夜
+        ('answer', '「我不放手」', 'success', 2),
+        ('answer', '「下次，我陪妳一起放下」', 'success', 2),
+    ],
+}
 
 def outcomes(story, node_id, label, kind):
     """表的一列對到的結局：選項文字 '' 是節點本身，'*' 是節點的每個選項"""
@@ -653,7 +945,7 @@ def main():
     data = json.load(open(PATH, encoding='utf-8'))
     by_id = {s['id']: s for s in data['stories']}
     changed = {}
-    for faction, table in (('human_alliance', RIVERVALE), ('yanye_court', YANYE)):
+    for faction, table in (('human_alliance', RIVERVALE), ('yanye_court', YANYE), ('tidan_khanate', TIDAN)):
         for sid, rows in table.items():
             story = by_id.get(sid)
             assert story, f'找不到任務 {sid}'

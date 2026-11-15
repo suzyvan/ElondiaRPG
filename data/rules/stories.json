@@ -46376,7 +46376,8 @@
             "effects": [
               { "type": "money", "amount": 80 },
               { "type": "affinity", "npc": "npc_td_chen", "delta": 5, "reason": "護送商隊到了榷場" },
-              { "type": "memory", "summary": "押著陳家的茶磚走茶馬路到了鷹河榷場，馬賊說陳茶商「說好的價錢不算數了」。", "importance": 2 }
+              { "type": "memory", "summary": "押著陳家的茶磚走茶馬路到了鷹河榷場，馬賊說陳茶商「說好的價錢不算數了」。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
             ],
             "complete": true
           }
@@ -46421,7 +46422,8 @@
                 "effects": [
                   { "type": "money", "amount": -30 },
                   { "type": "affinity", "npc": "npc_td_wole", "delta": 10, "reason": "照他的規矩付錢" },
-                  { "type": "memory", "summary": "在鷹河榷場付了監官斡勒三成的抽成，拿到南院的牌子。", "importance": 2 }
+                  { "type": "memory", "summary": "在鷹河榷場付了監官斡勒三成的抽成，拿到南院的牌子。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -46435,7 +46437,8 @@
                 "effects": [
                   { "type": "money", "amount": -10 },
                   { "type": "affinity", "npc": "npc_td_wole", "delta": -8, "reason": "當眾只付一成" },
-                  { "type": "memory", "summary": "在鷹河榷場當眾照南院的告示只付了一成，監官斡勒記恨在心。", "importance": 2 }
+                  { "type": "memory", "summary": "在鷹河榷場當眾照南院的告示只付了一成，監官斡勒記恨在心。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               },
@@ -46501,7 +46504,8 @@
             "set_flags": ["tdr_1_done"],
             "effects": [
               { "type": "affinity", "npc": "npc_td_qiqige", "delta": 10, "reason": "一起找到了沒有名字的白馬" },
-              { "type": "memory", "summary": "陪國師其其格在王庭北邊的草坡上找到一塊名字被刮掉的白馬骨。", "importance": 2 }
+              { "type": "memory", "summary": "陪國師其其格在王庭北邊的草坡上找到一塊名字被刮掉的白馬骨。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
             ],
             "complete": true
           }
@@ -46558,7 +46562,8 @@
             "effects": [
               { "type": "affinity", "npc": "npc_td_qiqige", "delta": 10, "reason": "找回了那首歌" },
               { "type": "affinity", "npc": "npc_td_old_groom", "delta": 10, "reason": "把歌唱給他聽" },
-              { "type": "memory", "summary": "在白狼雪窟的冰牆上讀出「蒼狼與白鹿」被禁唱的最後一段：兄弟不殺兄弟，殺了兄弟的，長生天不收他的名字。", "importance": 2 }
+              { "type": "memory", "summary": "在白狼雪窟的冰牆上讀出「蒼狼與白鹿」被禁唱的最後一段：兄弟不殺兄弟，殺了兄弟的，長生天不收他的名字。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
             ],
             "complete": true
           }
@@ -46609,7 +46614,8 @@
                 "set_flags": ["tdr_3_done", "tdr_end_canglang"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 12, "reason": "陪她叫了一夜的名字" },
-                  { "type": "memory", "summary": "陪國師其其格在大雪夜的敖包上叫回亡魂的名字；最後先叫了蒼狼部的祖先。", "importance": 3 }
+                  { "type": "memory", "summary": "陪國師其其格在大雪夜的敖包上叫回亡魂的名字；最後先叫了蒼狼部的祖先。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -46621,7 +46627,8 @@
                 "set_flags": ["tdr_3_done", "tdr_end_titan"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 12, "reason": "陪她叫了一夜的名字" },
-                  { "type": "memory", "summary": "陪國師其其格在大雪夜的敖包上叫回亡魂的名字；最後先叫了媞丹部的祖先。", "importance": 3 }
+                  { "type": "memory", "summary": "陪國師其其格在大雪夜的敖包上叫回亡魂的名字；最後先叫了媞丹部的祖先。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -46634,7 +46641,8 @@
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 12, "reason": "陪她叫了一夜的名字" },
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 5, "reason": "讓海東部第一個被記住" },
-                  { "type": "memory", "summary": "陪國師其其格在大雪夜的敖包上叫回亡魂的名字；最後先叫了海東部的祖先。", "importance": 3 }
+                  { "type": "memory", "summary": "陪國師其其格在大雪夜的敖包上叫回亡魂的名字；最後先叫了海東部的祖先。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -46752,7 +46760,8 @@
             "set_flags": ["tdl_2_done"],
             "effects": [
               { "type": "affinity", "npc": "npc_td_batur", "delta": 12, "reason": "一起化解了血仇" },
-              { "type": "memory", "summary": "在那達慕場上用摔跤化解了媞丹部與蒼狼部兩家二十年的血仇。", "importance": 2 }
+              { "type": "memory", "summary": "在那達慕場上用摔跤化解了媞丹部與蒼狼部兩家二十年的血仇。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
             ],
             "complete": true
           }
@@ -46806,7 +46815,8 @@
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_tieya", "delta": 10, "reason": "把軍法寫進大法典" },
                   { "type": "affinity", "npc": "npc_td_amur", "delta": -6, "reason": "把軍法寫進大法典" },
-                  { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 5, "reason": "寫下了大法典" }
+                  { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 5, "reason": "寫下了大法典" },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ]
               }
             },
@@ -46820,7 +46830,8 @@
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_amur", "delta": 12, "reason": "照大燁律改寫大法典" },
                   { "type": "affinity", "npc": "npc_td_tieya", "delta": -6, "reason": "照大燁律改寫大法典" },
-                  { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 3, "reason": "寫下了大法典" }
+                  { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 3, "reason": "寫下了大法典" },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ]
               }
             },
@@ -46833,7 +46844,8 @@
                 "counters": { "td_haidong": 1 },
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 12, "reason": "替海東部寫下減貢" },
-                  { "type": "affinity", "npc": "npc_td_ulantuya", "delta": -3, "reason": "削了她的法典" }
+                  { "type": "affinity", "npc": "npc_td_ulantuya", "delta": -3, "reason": "削了她的法典" },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ]
               }
             }
@@ -46892,7 +46904,8 @@
             "set_flags": ["tds_1_done"],
             "effects": [
               { "type": "affinity", "npc": "npc_td_su_shiyong", "delta": 10, "reason": "查出了歲幣的去向" },
-              { "type": "memory", "summary": "替歲幣使節蘇時雍查出北院把歲幣的絹運出庫房，要賣回給大燁的商人。", "importance": 2 }
+              { "type": "memory", "summary": "替歲幣使節蘇時雍查出北院把歲幣的絹運出庫房，要賣回給大燁的商人。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
             ],
             "complete": true
           }
@@ -46973,7 +46986,8 @@
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 12, "reason": "替海東部抵了今年的貢" },
                   { "type": "affinity", "npc": "npc_td_amur", "delta": -3, "reason": "誰都不給" },
-                  { "type": "affinity", "npc": "npc_td_tieya", "delta": -3, "reason": "誰都不給" }
+                  { "type": "affinity", "npc": "npc_td_tieya", "delta": -3, "reason": "誰都不給" },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ]
               }
             }
@@ -47021,7 +47035,8 @@
             "set_flags": ["tdt_1_done"],
             "effects": [
               { "type": "affinity", "npc": "npc_td_post_keeper", "delta": 8, "reason": "告訴他夜裡的馬群" },
-              { "type": "memory", "summary": "在鷹河邊看見陳茶商的人和馬賊頭目黑鬃一起押著沒有烙印的戰馬往南走。", "importance": 2 }
+              { "type": "memory", "summary": "在鷹河邊看見陳茶商的人和馬賊頭目黑鬃一起押著沒有烙印的戰馬往南走。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
             ],
             "complete": true
           }
@@ -47070,7 +47085,8 @@
             "effects": [
               { "type": "money", "amount": 120 },
               { "type": "affinity", "npc": "npc_td_hu_zhanggui", "delta": 10, "reason": "查到了收馬的人" },
-              { "type": "memory", "summary": "替胡記的胡掌櫃跟著走私的戰馬，找到一本帳：收馬的人只寫了一個「岳」字。", "importance": 2 }
+              { "type": "memory", "summary": "替胡記的胡掌櫃跟著走私的戰馬，找到一本帳：收馬的人只寫了一個「岳」字。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
             ],
             "complete": true
           }
@@ -47124,7 +47140,8 @@
                 "counters": { "td_war": 1 },
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_tieya", "delta": 10, "reason": "把三百匹戰馬交給北院" },
-                  { "type": "affinity", "npc": "npc_td_chen", "delta": -10, "reason": "把他交了出去" }
+                  { "type": "affinity", "npc": "npc_td_chen", "delta": -10, "reason": "把他交了出去" },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ]
               }
             },
@@ -47198,7 +47215,8 @@
             "set_flags": ["tdh_1_done"],
             "effects": [
               { "type": "affinity", "npc": "npc_td_hailan", "delta": 12, "reason": "替採珠人趕走了催貢的騎兵" },
-              { "type": "memory", "summary": "在結冰的鷹河邊替海東部的採珠人趕走了北院催貢的騎兵。", "importance": 2 }
+              { "type": "memory", "summary": "在結冰的鷹河邊替海東部的採珠人趕走了北院催貢的騎兵。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
             ],
             "complete": true
           }
@@ -47265,7 +47283,8 @@
                 "counters": { "td_peace": 1 },
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_amur", "delta": 8, "reason": "替海東部申訴" },
-                  { "type": "affinity", "npc": "npc_td_hailan", "delta": 8, "reason": "替海東部減了貢" }
+                  { "type": "affinity", "npc": "npc_td_hailan", "delta": 8, "reason": "替海東部減了貢" },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ]
               }
             },
@@ -47336,7 +47355,8 @@
             "set_flags": ["tdm_1_done"],
             "effects": [
               { "type": "affinity", "npc": "npc_td_old_groom", "delta": 10, "reason": "拼出了可汗名字的一半" },
-              { "type": "memory", "summary": "在鳴鏑古戰場的淺層從亡騎的箭囊裡拼出被抹去名字的可汗的一半名字：「阿勒……」", "importance": 2 }
+              { "type": "memory", "summary": "在鳴鏑古戰場的淺層從亡騎的箭囊裡拼出被抹去名字的可汗的一半名字：「阿勒……」", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
             ],
             "complete": true
           }
@@ -47395,7 +47415,10 @@
               "success": {
                 "text": "「阿勒坦。」鐵浮屠說，「金子的意思。」說完這兩個字，三層鐵甲一層一層地垮了下去，裡面空空的，什麼也沒有——他守了二十年，守完了。",
                 "set_flags": ["tdm_2_done", "tdm_name"],
-                "effects": [{ "type": "memory", "summary": "在鳴鏑古戰場的中層打倒鐵浮屠；他說出了被抹去名字的可汗的名字：阿勒坦。", "importance": 3 }],
+                "effects": [
+                  { "type": "memory", "summary": "在鳴鏑古戰場的中層打倒鐵浮屠；他說出了被抹去名字的可汗的名字：阿勒坦。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
+                ],
                 "complete": true
               }
             },
@@ -47404,7 +47427,11 @@
               "success": {
                 "text": "鐵浮屠沉默了很久：「……沒有人問過我。」他把鬼面摘下來，交到你手上，「名字在最深處，他自己會告訴你。我守到這裡就好。」說完，他靜靜地垮了下去。",
                 "set_flags": ["tdm_2_done"],
-                "effects": [{ "type": "item", "name": "鐵浮屠的鬼面", "qty": 1 }, { "type": "memory", "summary": "在鳴鏑古戰場的中層打倒鐵浮屠；他沒有說出名字，把鬼面交給了你。", "importance": 3 }],
+                "effects": [
+                  { "type": "item", "name": "鐵浮屠的鬼面", "qty": 1 },
+                  { "type": "memory", "summary": "在鳴鏑古戰場的中層打倒鐵浮屠；他沒有說出名字，把鬼面交給了你。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
+                ],
                 "complete": true
               }
             }
@@ -47467,7 +47494,8 @@
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 12, "reason": "替無名的可汗找回了名字" },
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": -5, "reason": "說出了她抹掉的名字" },
-                  { "type": "memory", "summary": "在鳴鏑古戰場的底層打倒無名的可汗，對他說出他的名字阿勒坦；他回到了長生天，古戰場的號角停了。", "importance": 3 }
+                  { "type": "memory", "summary": "在鳴鏑古戰場的底層打倒無名的可汗，對他說出他的名字阿勒坦；他回到了長生天，古戰場的號角停了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -47477,7 +47505,10 @@
               "success": {
                 "text": "可汗點點頭：「那我再等一等。」他的身影淡去，號角卻沒有停。也許有一天，有人會把那個名字還給他——在對的時候、對的人面前。",
                 "set_flags": ["tdm_3_done", "tdm_waiting"],
-                "effects": [{ "type": "memory", "summary": "在鳴鏑古戰場的底層打倒無名的可汗；他的名字還沒找回來，他說他再等一等。", "importance": 3 }],
+                "effects": [
+                  { "type": "memory", "summary": "在鳴鏑古戰場的底層打倒無名的可汗；他的名字還沒找回來，他說他再等一等。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
+                ],
                 "complete": true
               }
             },
@@ -47488,7 +47519,8 @@
                 "set_flags": ["tdm_3_done", "tdm_to_khan"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 5, "reason": "把她的過去帶到她面前" },
-                  { "type": "memory", "summary": "在鳴鏑古戰場的底層打倒無名的可汗，要他去問天可汗自己的名字；那一夜金帳的燈亮到天亮。", "importance": 3 }
+                  { "type": "memory", "summary": "在鳴鏑古戰場的底層打倒無名的可汗，要他去問天可汗自己的名字；那一夜金帳的燈亮到天亮。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -47542,7 +47574,8 @@
             "set_flags": ["tdw_1_done"],
             "effects": [
               { "type": "affinity", "npc": "npc_td_batur", "delta": 12, "reason": "把表弟從雪窟帶回來" },
-              { "type": "memory", "summary": "到白狼雪窟的淺層救回蒼狼部進去行成年禮的少年；白狼放過了他，也放過了你。", "importance": 2 }
+              { "type": "memory", "summary": "到白狼雪窟的淺層救回蒼狼部進去行成年禮的少年；白狼放過了他，也放過了你。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
             ],
             "complete": true
           }
@@ -47601,7 +47634,10 @@
               "success": {
                 "text": "冰面上的字慢慢變了：「牠會問：我的子孫，現在怎麼樣了。」然後字消失了，巫師的眼睛也閉上了——這一次，像是睡著了。",
                 "set_flags": ["tdw_2_done", "tdw_question"],
-                "effects": [{ "type": "memory", "summary": "在白狼雪窟的深層打倒冰后；冰裡的巫師告訴你，蒼狼會問來的人：「我的子孫，現在怎麼樣了。」", "importance": 3 }],
+                "effects": [
+                  { "type": "memory", "summary": "在白狼雪窟的深層打倒冰后；冰裡的巫師告訴你，蒼狼會問來的人：「我的子孫，現在怎麼樣了。」", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
+                ],
                 "complete": true
               }
             },
@@ -47610,7 +47646,10 @@
               "success": {
                 "text": "你一刀劈在冰上。冰碎了，巫師的身體也跟著碎了——他在二十年前就死了，只剩下等待。一縷白氣從碎冰裡飄出來，往雪窟的最深處去了。",
                 "set_flags": ["tdw_2_done"],
-                "effects": [{ "type": "memory", "summary": "在白狼雪窟的深層打倒冰后，打碎了冰裡的巫師；他的魂往雪窟的最深處去了。", "importance": 3 }],
+                "effects": [
+                  { "type": "memory", "summary": "在白狼雪窟的深層打倒冰后，打碎了冰裡的巫師；他的魂往雪窟的最深處去了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
+                ],
                 "complete": true
               }
             }
@@ -47671,7 +47710,8 @@
                 "set_flags": ["tdw_3_done", "tdw_end_unity"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 6, "reason": "對蒼狼說草原統一了" },
-                  { "type": "memory", "summary": "在白狼雪窟的底層打倒蒼狼，告訴牠草原統一了；牠說等牠的子孫真的是一家人了，再叫醒牠。", "importance": 3 }
+                  { "type": "memory", "summary": "在白狼雪窟的底層打倒蒼狼，告訴牠草原統一了；牠說等牠的子孫真的是一家人了，再叫醒牠。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -47683,7 +47723,8 @@
                 "set_flags": ["tdw_3_done", "tdw_end_truth"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 8, "reason": "對蒼狼說了真話" },
-                  { "type": "memory", "summary": "在白狼雪窟的底層打倒蒼狼，告訴牠兄弟殺了兄弟；牠說蒼狼還記得每一個子孫。", "importance": 3 }
+                  { "type": "memory", "summary": "在白狼雪窟的底層打倒蒼狼，告訴牠兄弟殺了兄弟；牠說蒼狼還記得每一個子孫。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -47695,7 +47736,8 @@
                 "set_flags": ["tdw_3_done", "tdw_end_haidong"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 10, "reason": "讓蒼狼想起了海東部" },
-                  { "type": "memory", "summary": "在白狼雪窟的底層打倒蒼狼，告訴牠海東部還在鷹河邊；牠朝東方嚎了一聲，狼群替海東部的冬營守了一夜。", "importance": 3 }
+                  { "type": "memory", "summary": "在白狼雪窟的底層打倒蒼狼，告訴牠海東部還在鷹河邊；牠朝東方嚎了一聲，狼群替海東部的冬營守了一夜。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -47757,7 +47799,8 @@
             "effects": [
               { "type": "affinity", "npc": "npc_td_old_groom", "delta": 15, "reason": "替他修好了馬頭琴" },
               { "type": "affinity", "npc": "npc_td_qiqige", "delta": 3, "reason": "琴弦是她的尾毛" },
-              { "type": "memory", "summary": "替老馬倌討來國師其其格的尾毛與胡記的松香，修好了他在統一戰爭最後一夜拉斷的馬頭琴；他把琴送給了你。", "importance": 2 }
+              { "type": "memory", "summary": "替老馬倌討來國師其其格的尾毛與胡記的松香，修好了他在統一戰爭最後一夜拉斷的馬頭琴；他把琴送給了你。", "importance": 2 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
             ],
             "complete": true
           }
@@ -47798,7 +47841,11 @@
           "success": {
             "text": "他數了一把錢給你，又倒了一碗奶茶：「下次驛站有急事，我還找你。」",
             "set_flags": ["tdx_letter_done"],
-            "effects": [{ "type": "money", "amount": 60 }, { "type": "affinity", "npc": "npc_td_post_keeper", "delta": 8, "reason": "替驛站跑了一趟急信" }],
+            "effects": [
+              { "type": "money", "amount": 60 },
+              { "type": "affinity", "npc": "npc_td_post_keeper", "delta": 8, "reason": "替驛站跑了一趟急信" },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
+            ],
             "complete": true
           }
         }
@@ -47835,7 +47882,11 @@
           "success": {
             "text": "「謝謝你。」他抹著眼淚，「牠長大了會是一匹好馬。到時候，我讓牠認你。」",
             "set_flags": ["tdx_foal_done"],
-            "effects": [{ "type": "money", "amount": 30 }, { "type": "affinity", "npc": "npc_td_old_groom", "delta": 10, "reason": "找回了他的小馬" }],
+            "effects": [
+              { "type": "money", "amount": 30 },
+              { "type": "affinity", "npc": "npc_td_old_groom", "delta": 10, "reason": "找回了他的小馬" },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
+            ],
             "complete": true
           }
         }
@@ -47948,7 +47999,8 @@
             "effects": [
               { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 8, "reason": "替她看清了草原" },
               { "type": "affinity", "npc": "npc_td_chalan", "delta": 5, "reason": "在母親面前說了真話" },
-              { "type": "memory", "summary": "受天可汗烏蘭圖雅之託，看了南院的書、北院的刀與海東部的鷹，拿到可以進金帳的蒼狼金牌。", "importance": 3 }
+              { "type": "memory", "summary": "受天可汗烏蘭圖雅之託，看了南院的書、北院的刀與海東部的鷹，拿到可以進金帳的蒼狼金牌。", "importance": 3 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 4 }
             ],
             "complete": true
           }
@@ -48041,7 +48093,8 @@
               { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 10, "reason": "在忽里勒台上壓住了刀" },
               { "type": "affinity", "npc": "npc_td_tieya", "delta": -5, "reason": "在大會上沒有站在北院這邊" },
               { "type": "affinity", "npc": "npc_td_amur", "delta": 5, "reason": "在大會上替南院洗清了刺客的事" },
-              { "type": "memory", "summary": "忽里勒台上北院、南院與海東部吵了三天；夜襲南院的刺客是想讓草原分裂的人，刀沒有出鞘。", "importance": 3 }
+              { "type": "memory", "summary": "忽里勒台上北院、南院與海東部吵了三天；夜襲南院的刺客是想讓草原分裂的人，刀沒有出鞘。", "importance": 3 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 4 }
             ],
             "complete": true
           }
@@ -48153,7 +48206,7 @@
               "success": {
                 "text": "天可汗站了起來，金色的馬身在燈下像一團火：「好。我就等這句話。」她把那支金箭折成兩段，「廢南院，整軍。」帳外傳來消息：南院的死忠老將帶著弩手守住了南院大帳，說要收南院的印，先從他的屍首上拿。",
                 "set_flags": ["tdpol_route_khanate", "tdpol_3_done"],
-                "effects": [{ "type": "start_story", "story": "tdpol_end_khanate" }],
+                "effects": [{ "type": "start_story", "story": "tdpol_end_khanate" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             },
@@ -48163,7 +48216,7 @@
               "success": {
                 "text": "天可汗站了起來，金色的馬身在燈下像一團火：「好。我就等這句話。」她把那支金箭折成兩段，「廢南院，整軍。」帳外傳來消息：南院的死忠老將帶著弩手守住了南院大帳，說要收南院的印，先從他的屍首上拿。",
                 "set_flags": ["tdpol_route_khanate", "tdpol_3_done"],
-                "effects": [{ "type": "start_story", "story": "tdpol_end_khanate" }],
+                "effects": [{ "type": "start_story", "story": "tdpol_end_khanate" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             },
@@ -48173,7 +48226,7 @@
               "success": {
                 "text": "天可汗沉默了很久，久到燈芯爆了一聲。「十年前我在馬背上打下草原。」她把馬鞭放在寶座上，「也許是時候下馬了。」帳外傳來消息：怯薛的萬戶帶著北院的騎兵，要在詔令頒布之前「替天可汗清理南院」。",
                 "set_flags": ["tdpol_route_south", "tdpol_3_done"],
-                "effects": [{ "type": "start_story", "story": "tdpol_end_south" }],
+                "effects": [{ "type": "start_story", "story": "tdpol_end_south" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             },
@@ -48183,7 +48236,7 @@
               "success": {
                 "text": "天可汗沉默了很久，久到燈芯爆了一聲。「十年前我在馬背上打下草原。」她把馬鞭放在寶座上，「也許是時候下馬了。」帳外傳來消息：怯薛的萬戶帶著北院的騎兵，要在詔令頒布之前「替天可汗清理南院」。",
                 "set_flags": ["tdpol_route_south", "tdpol_3_done"],
-                "effects": [{ "type": "start_story", "story": "tdpol_end_south" }],
+                "effects": [{ "type": "start_story", "story": "tdpol_end_south" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             },
@@ -48441,7 +48494,8 @@
             "set_flags": ["nsp1_done"],
             "effects": [
               { "type": "affinity", "npc": "npc_td_su_shiyong", "delta": 10, "reason": "讓兩國的使節談了下去" },
-              { "type": "memory", "summary": "鷹河榷場的使節會談了三天，兩邊都沒走；可是場邊有兩國的人不想讓這桌談下去。", "importance": 3 }
+              { "type": "memory", "summary": "鷹河榷場的使節會談了三天，兩邊都沒走；可是場邊有兩國的人不想讓這桌談下去。", "importance": 3 },
+              { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
             ],
             "complete": true
           }
@@ -48516,7 +48570,8 @@
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_su_shiyong", "delta": 8, "reason": "當眾念出了密約" },
                   { "type": "affinity", "npc": "npc_td_wole", "delta": 5, "reason": "查出了燒榷場的人" },
-                  { "type": "memory", "summary": "鷹河榷場被兩國的主戰派聯手燒了；你在茶馬市當眾念出了他們的密約。", "importance": 3 }
+                  { "type": "memory", "summary": "鷹河榷場被兩國的主戰派聯手燒了；你在茶馬市當眾念出了他們的密約。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -48528,7 +48583,8 @@
                 "set_flags": ["nsp2_done", "nsp2_quiet"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_su_shiyong", "delta": 10, "reason": "把密約交給兩國自己處理" },
-                  { "type": "memory", "summary": "鷹河榷場被兩國的主戰派聯手燒了；你把他們的密約悄悄交給了兩國的使節。", "importance": 3 }
+                  { "type": "memory", "summary": "鷹河榷場被兩國的主戰派聯手燒了；你把他們的密約悄悄交給了兩國的使節。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 3 }
                 ],
                 "complete": true
               }
@@ -48591,7 +48647,7 @@
               "success": {
                 "text": "天可汗把銀碗摔在地上：「好。」龍安府來的人站起來，一言不發地走了。帳外傳來號角聲——黑纛升起來了。大燁的北伐軍也在茶馬路上集結。鷹河邊，要打一仗。",
                 "set_flags": ["nspol_route_war", "nspol_3_done"],
-                "effects": [{ "type": "start_story", "story": "nspol_end_war" }],
+                "effects": [{ "type": "start_story", "story": "nspol_end_war" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             },
@@ -48601,7 +48657,7 @@
               "success": {
                 "text": "龍安府來的人取出五席的信：朝廷、萍江、瑔州港各蓋了一個印。「五席不要打仗，也不怕打仗。」天可汗看完信，沉默了很久，把銀碗喝乾了。帳外有人不服——兩國的主戰派都在鷹河邊等著。",
                 "set_flags": ["nspol_route_alliance", "nspol_3_done"],
-                "effects": [{ "type": "start_story", "story": "nspol_end_alliance" }],
+                "effects": [{ "type": "start_story", "story": "nspol_end_alliance" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             },
@@ -48611,7 +48667,7 @@
               "success": {
                 "text": "天可汗把銀碗喝乾，推給龍安府來的人。他也喝了。蘇時雍的筆在國書上停了一下，寫下「互市」兩個字。帳外傳來消息：兩國的主戰派殘黨在鷹河邊會合了，要在立盟那天把榷場再燒一次。",
                 "set_flags": ["nspol_route_alliance", "nspol_3_done"],
-                "effects": [{ "type": "start_story", "story": "nspol_end_alliance" }],
+                "effects": [{ "type": "start_story", "story": "nspol_end_alliance" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             },
@@ -48621,7 +48677,7 @@
               "success": {
                 "text": "龍安府來的人說：公議會表決了，不再付歲幣。天可汗的手停在半空。帳外傳來消息：北院的殘部聽說了，不等王庭的令，已經往鷹河以南衝了。天可汗站起來：「草原的人，我管不住了。那就打。」",
                 "set_flags": ["nspol_route_war", "nspol_3_done"],
-                "effects": [{ "type": "start_story", "story": "nspol_end_war" }],
+                "effects": [{ "type": "start_story", "story": "nspol_end_war" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             },
@@ -48641,7 +48697,7 @@
               "success": {
                 "text": "龍安府來的人取出一封女帝的親筆信：「朕與海東部有約，可是朕寧可和天可汗談。」天可汗讀完，沉默了很久：「她比我想的還狠——也比我想的還聰明。」她把銀碗喝乾。帳外，兩國的主戰派都不肯。",
                 "set_flags": ["nspol_route_alliance", "nspol_3_done"],
-                "effects": [{ "type": "start_story", "story": "nspol_end_alliance" }],
+                "effects": [{ "type": "start_story", "story": "nspol_end_alliance" }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "complete": true
               }
             }
@@ -48954,7 +49010,7 @@
           "success": {
             "text": "老闆把銅牌擦亮，掛回驛站的門口：「仗打完了，驛站還是要開的。」鷹河兩岸的人慢慢回來了——有的人回來找家，有的人回來找仇。你把彎刀繫在腰上。",
             "set_flags": ["nspol_war", "nspol_done"],
-            "effects": [{ "type": "item", "name": "破陣彎刀", "qty": 1 }],
+            "effects": [{ "type": "item", "name": "破陣彎刀", "qty": 1 }, { "type": "reputation", "faction": "tidan_khanate", "delta": 5 }],
             "complete": true
           }
         }
@@ -49091,7 +49147,8 @@
                 "set_flags": ["tdcu_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 8, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "在冬獵當勢子，替天可汗烏蘭圖雅擋下偷馬的馬賊；她說明年冬獵還要你來。", "importance": 2 }
+                  { "type": "memory", "summary": "在冬獵當勢子，替天可汗烏蘭圖雅擋下偷馬的馬賊；她說明年冬獵還要你來。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49103,7 +49160,8 @@
                 "set_flags": ["tdcu_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "冬獵時問天可汗烏蘭圖雅：妳的箭沒有射偏過吧？她說沒有，要你下次站穩一點。", "importance": 2 }
+                  { "type": "memory", "summary": "冬獵時問天可汗烏蘭圖雅：妳的箭沒有射偏過吧？她說沒有，要你下次站穩一點。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49179,7 +49237,8 @@
                 "set_flags": ["tdcu_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "天可汗烏蘭圖雅的夜獵：追上了兩個當獵物的怯薛；她問你為什麼不怕她，你說因為她說話算話。", "importance": 2 }
+                  { "type": "memory", "summary": "天可汗烏蘭圖雅的夜獵：追上了兩個當獵物的怯薛；她問你為什麼不怕她，你說因為她說話算話。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49191,7 +49250,8 @@
                 "set_flags": ["tdcu_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 12, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "天可汗烏蘭圖雅的夜獵：你說你怕她，可是更想知道她在想什麼；她說下一場冬獵要你站在她旁邊。", "importance": 2 }
+                  { "type": "memory", "summary": "天可汗烏蘭圖雅的夜獵：你說你怕她，可是更想知道她在想什麼；她說下一場冬獵要你站在她旁邊。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49254,7 +49314,8 @@
                 "set_flags": ["tdcu_lover", "tdcu_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "最後一場冬獵，你擋在天可汗烏蘭圖雅的前面；她說她征服了一切，就是沒想過要一個不怕她的人——現在她想要了。", "importance": 3 }
+                  { "type": "memory", "summary": "最後一場冬獵，你擋在天可汗烏蘭圖雅的前面；她說她征服了一切，就是沒想過要一個不怕她的人——現在她想要了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -49266,7 +49327,8 @@
                 "set_flags": ["tdcu_lover", "tdcu_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "你對天可汗烏蘭圖雅說下一次還站在她前面；她把自己的角弓放在你手裡。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "你對天可汗烏蘭圖雅說下一次還站在她前面；她把自己的角弓放在你手裡。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -49322,7 +49384,8 @@
                 "set_flags": ["tdcu_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，烏蘭圖雅用天可汗的方式要了你，像在雪原上追獵物；最後她說，這是她第一次在獵場上輸了。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，烏蘭圖雅用天可汗的方式要了你，像在雪原上追獵物；最後她說，這是她第一次在獵場上輸了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "「那就照妳的方式。」她的眼神一下子亮了，像在雪原上看見獵物。她把你按在狼皮上，又重又急，強壯的馬身把燈影整個遮住；她要什麼就拿什麼，一聲比一聲大，像是要讓整個王庭都聽見。最後她喘著氣伏在你身上，長髮蓋住了兩個人：「……這是我第一次，在獵場上輸了。」",
@@ -49336,7 +49399,8 @@
                 "set_flags": ["tdcu_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜沒有天可汗，只有烏蘭圖雅：她第一次什麼令都沒下，抱著你在狼皮上睡到天亮。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜沒有天可汗，只有烏蘭圖雅：她第一次什麼令都沒下，抱著你在狼皮上睡到天亮。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "「今晚不用下令。」你接過她的碗放下，慢慢解開她的單衣。她一開始很僵，像不知道手該放哪裡；你吻她臉上那道箭疤，她閉上了眼睛。後來她不再撐著，任你帶著她，低聲一遍一遍叫你的名字，最後蜷在狼皮上，像一匹終於肯躺下來的馬，抱著你睡到天亮。"
@@ -49399,7 +49463,8 @@
                 "set_flags": ["tdcc_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 8, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "陪用假名「阿勒泰」報賽馬的察蘭練馬、追回她的備用馬；她把木牌交給你保管。", "importance": 2 }
+                  { "type": "memory", "summary": "陪用假名「阿勒泰」報賽馬的察蘭練馬、追回她的備用馬；她把木牌交給你保管。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49411,7 +49476,8 @@
                 "set_flags": ["tdcc_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "對察蘭說她是跑得比你快的人；她謝謝你沒說「天可汗的女兒」。", "importance": 2 }
+                  { "type": "memory", "summary": "對察蘭說她是跑得比你快的人；她謝謝你沒說「天可汗的女兒」。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49475,7 +49541,8 @@
                 "set_flags": ["tdcc_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 12, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "察蘭發現有人收錢讓她贏；她把錢還給每一個騎手，要他們決賽真的跑。", "importance": 2 }
+                  { "type": "memory", "summary": "察蘭發現有人收錢讓她贏；她把錢還給每一個騎手，要他們決賽真的跑。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49487,7 +49554,8 @@
                 "set_flags": ["tdcc_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "察蘭自己去天可汗面前揭發了收買騎手的北院百戶；她說母親第一次聽她把話說完。", "importance": 2 }
+                  { "type": "memory", "summary": "察蘭自己去天可汗面前揭發了收買騎手的北院百戶；她說母親第一次聽她把話說完。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49551,7 +49619,8 @@
                 "set_flags": ["tdcc_lover", "tdcc_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "察蘭用真名贏了那達慕，把寫著自己名字的木牌給了你：阿勒泰和察蘭，兩個都是你的。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "察蘭用真名贏了那達慕，把寫著自己名字的木牌給了你：阿勒泰和察蘭，兩個都是你的。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -49563,7 +49632,8 @@
                 "set_flags": ["tdcc_lover", "tdcc_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "察蘭用真名贏了那達慕；你說下次想贏她，她說那你一輩子都得陪她跑。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "察蘭用真名贏了那達慕；你說下次想贏她，她說那你一輩子都得陪她跑。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -49619,7 +49689,8 @@
                 "set_flags": ["tdcc_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，察蘭不肯認輸，笨手笨腳地要贏你；最後她問「我贏了嗎」，你說贏了。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，察蘭不肯認輸，笨手笨腳地要贏你；最後她問「我贏了嗎」，你說贏了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "「那就讓妳贏。」她咬著嘴唇把你推倒，笨手笨腳又不肯認輸，每一個動作都像在比賽；她的灰色馬身緊張得一直踏著地，被你碰到的時候又整個軟下來。最後她伏在你身上，喘著氣問：「我……贏了嗎？」你說贏了。她把臉埋進你的頸窩裡，笑了很久。",
@@ -49633,7 +49704,8 @@
                 "set_flags": ["tdcc_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，你對察蘭說這不是比賽；她說這一圈跑得好慢，她喜歡。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，你對察蘭說這不是比賽；她說這一圈跑得好慢，她喜歡。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "「這不是比賽。」你握住她的手，她愣了一下，慢慢放鬆下來。你吻她汗濕的頸後、手腕上那圈母親給的狼毛，她一開始緊張得發抖，後來抱緊了你，一聲一聲地叫你的名字，像在賽道上喊時間。天亮時，她蜷在你懷裡，小聲說：「……這一圈，跑得好慢。我喜歡。」"
@@ -49694,7 +49766,8 @@
                 "set_flags": ["tdcq_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "替國師其其格從古戰場拿回戰馬的骨，她從骨紋裡又看見了南方；她說你的骨紋很亂，她喜歡看。", "importance": 2 }
+                  { "type": "memory", "summary": "替國師其其格從古戰場拿回戰馬的骨，她從骨紋裡又看見了南方；她說你的骨紋很亂，她喜歡看。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49706,7 +49779,8 @@
                 "set_flags": ["tdcq_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 8, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "替國師其其格從古戰場拿回戰馬的骨；你問她看見了什麼，她說下次告訴你。", "importance": 2 }
+                  { "type": "memory", "summary": "替國師其其格從古戰場拿回戰馬的骨；你問她看見了什麼，她說下次告訴你。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49772,7 +49846,8 @@
                 "set_flags": ["tdcq_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 12, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "月黑的夜裡替其其格守火；她從骨紋裡看見一場會讓草原少一半人的大仗，只告訴了你。", "importance": 2 }
+                  { "type": "memory", "summary": "月黑的夜裡替其其格守火；她從骨紋裡看見一場會讓草原少一半人的大仗，只告訴了你。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49784,7 +49859,8 @@
                 "set_flags": ["tdcq_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "其其格從骨紋裡看見了一場大仗；你說那就讓它不要發生，她說也許你說得對。", "importance": 2 }
+                  { "type": "memory", "summary": "其其格從骨紋裡看見了一場大仗；你說那就讓它不要發生，她說也許你說得對。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -49849,7 +49925,8 @@
                 "set_flags": ["tdcq_lover", "tdcq_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "其其格把骨紋裡的戰爭說給天可汗聽，天可汗摔了碗，卻聽完了；她說她的骨紋裡多了一道很亂的紋，那一道是你。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "其其格把骨紋裡的戰爭說給天可汗聽，天可汗摔了碗，卻聽完了；她說她的骨紋裡多了一道很亂的紋，那一道是你。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -49861,7 +49938,8 @@
                 "set_flags": ["tdcq_lover", "tdcq_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "你對其其格說將來是有人陪她守敖包；她說渥都干不應該哭，今天不算。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "你對其其格說將來是有人陪她守敖包；她說渥都干不應該哭，今天不算。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -49917,7 +49995,8 @@
                 "set_flags": ["tdcq_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，其其格用手指一道一道讀你身上的紋，讀到哪裡吻到哪裡；最後她說你的紋只剩一道了。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，其其格用手指一道一道讀你身上的紋，讀到哪裡吻到哪裡；最後她說你的紋只剩一道了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "「那妳也讀我。」她的手指從你的額頭開始，慢慢往下，像在讀一塊骨頭上的每一道紋；讀到哪裡，就吻到哪裡。她一直很安靜，直到最後才失了分寸，咬著你的肩，銅鈴般的聲音一聲比一聲高。之後她伏在你胸口，小聲說：「讀完了。你的紋……只剩一道了。」",
@@ -49931,7 +50010,8 @@
                 "set_flags": ["tdcq_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，你沿著其其格只給長生天看的藍紋吻遍了她；她說長生天看見了，她不在乎。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，你沿著其其格只給長生天看的藍紋吻遍了她；她說長生天看見了，她不在乎。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "你沿著那些藍色的紋，從她的臉頰吻到鎖骨，再一路往下。她閉著眼睛，呼吸越來越亂，平常慢得像讀紋的聲音碎成一段一段的。最後她抱緊你，雪白的馬身在燈下輕輕發抖：「長生天……看見了。」她笑了，「我不在乎。」"
@@ -49994,7 +50074,8 @@
                 "set_flags": ["tdch_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "替海東部的首領海蘭救回被截的信差，沒有看那封信；她說她記住了。", "importance": 2 }
+                  { "type": "memory", "summary": "替海東部的首領海蘭救回被截的信差，沒有看那封信；她說她記住了。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50006,7 +50087,8 @@
                 "set_flags": ["tdch_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 8, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "替海蘭救回被截的信差；你問她想不想讓你看那封信，她說還不想，下次。", "importance": 2 }
+                  { "type": "memory", "summary": "替海蘭救回被截的信差；你問她想不想讓你看那封信，她說還不想，下次。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50072,7 +50154,8 @@
                 "set_flags": ["tdch_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 12, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "陪海蘭夜裡去見大燁的人，什麼都沒說出去；她讓她的白海東青阿爾斯蘭停在你的手臂上。", "importance": 2 }
+                  { "type": "memory", "summary": "陪海蘭夜裡去見大燁的人，什麼都沒說出去；她讓她的白海東青阿爾斯蘭停在你的手臂上。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50084,7 +50167,8 @@
                 "set_flags": ["tdch_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "陪海蘭去見大燁的人；你說你不會說出去，可是不贊成。她說她知道，可是她沒有別的路。", "importance": 2 }
+                  { "type": "memory", "summary": "陪海蘭去見大燁的人；你說你不會說出去，可是不贊成。她說她知道，可是她沒有別的路。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50150,7 +50234,8 @@
                 "set_flags": ["tdch_lover", "tdch_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "冬營裡有人把海蘭賣給北院，你替她找出了叛徒；她說她一直以為一輩子只能信鷹，原來還有你。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "冬營裡有人把海蘭賣給北院，你替她找出了叛徒；她說她一直以為一輩子只能信鷹，原來還有你。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -50162,7 +50247,8 @@
                 "set_flags": ["tdch_lover", "tdch_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "你在鷹房裡抱住從金帳回來的海蘭；她說海東部的人不說喜歡，只是不放手。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "你在鷹房裡抱住從金帳回來的海蘭；她說海東部的人不說喜歡，只是不放手。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -50218,7 +50304,8 @@
                 "set_flags": ["tdch_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，海蘭像在雪原上追獵物一樣，安靜又準確地要了你；天亮時她還是沒有放手。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，海蘭像在雪原上追獵物一樣，安靜又準確地要了你；天亮時她還是沒有放手。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "「妳想怎樣都可以。」她想了很久，然後像在雪原上追獵物一樣，又安靜又準確地靠過來；她不出聲，只有呼吸越來越重，最後咬著你的肩膀，整個人緊緊纏住你。天亮的時候，她還是沒有放手，只是低聲說：「……原來是這樣。」",
@@ -50232,7 +50319,8 @@
                 "set_flags": ["tdch_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，你吻遍海蘭身上的舊傷，一點一點教她；她像一隻剛捉來的鷹，慢慢在你懷裡放鬆下來。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，你吻遍海蘭身上的舊傷，一點一點教她；她像一隻剛捉來的鷹，慢慢在你懷裡放鬆下來。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "你吻她身上的每一道舊傷，告訴她哪裡會痛、哪裡會熱。她一開始全身繃緊，像一隻剛捉來的鷹；你很慢，她就一點一點地放鬆下來，最後在你懷裡發出一聲她自己都沒聽過的聲音，然後把臉埋進你的胸口，很久都不肯抬起來。"
@@ -50295,7 +50383,8 @@
                 "set_flags": ["tdct_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_toya", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "替馴鷹人托雅找回飛走的海東青「雪」；你陪她在鷹架下坐了很久。", "importance": 2 }
+                  { "type": "memory", "summary": "替馴鷹人托雅找回飛走的海東青「雪」；你陪她在鷹架下坐了很久。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50307,7 +50396,8 @@
                 "set_flags": ["tdct_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_toya", "delta": 8, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "替托雅找回海東青「雪」；你說還有十天，可以想很多辦法。", "importance": 2 }
+                  { "type": "memory", "summary": "替托雅找回海東青「雪」；你說還有十天，可以想很多辦法。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50372,7 +50462,8 @@
                 "set_flags": ["tdct_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_toya", "delta": 12, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "托雅把最好的海東青「雪」藏進白狼雪窟，換一隻灰色的去進貢；你說她只是捨不得。", "importance": 2 }
+                  { "type": "memory", "summary": "托雅把最好的海東青「雪」藏進白狼雪窟，換一隻灰色的去進貢；你說她只是捨不得。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50384,7 +50475,8 @@
                 "set_flags": ["tdct_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_toya", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "托雅把「雪」藏進了白狼雪窟；你說你陪她一起自私，她的臉紅到耳根。", "importance": 2 }
+                  { "type": "memory", "summary": "托雅把「雪」藏進了白狼雪窟；你說你陪她一起自私，她的臉紅到耳根。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50448,7 +50540,8 @@
                 "set_flags": ["tdct_lover", "tdct_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_toya", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "托雅放走了她養了三年的海東青「雪」；她問你可不可以不要飛走，你說不會。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "托雅放走了她養了三年的海東青「雪」；她問你可不可以不要飛走，你說不會。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -50460,7 +50553,8 @@
                 "set_flags": ["tdct_lover", "tdct_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_toya", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "托雅放走了「雪」之後，脫下皮護手讓你牽她的手；她說這隻手只牽過鷹，你是第一個人。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "托雅放走了「雪」之後，脫下皮護手讓你牽她的手；她說這隻手只牽過鷹，你是第一個人。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -50516,7 +50610,8 @@
                 "set_flags": ["tdct_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_toya", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，托雅在鷹房的閣樓上抱著你像抱著一隻怕飛走的鷹；她說原來被人捨不得是這種感覺。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，托雅在鷹房的閣樓上抱著你像抱著一隻怕飛走的鷹；她說原來被人捨不得是這種感覺。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "你一直沒有放開她的手。你吻她臉上的雀斑、她發燙的耳朵，她一開始緊張得一直道歉，後來慢慢不說話了，只是小聲地、斷斷續續地喘，抱著你像抱著一隻怕飛走的鷹。最後她在你懷裡哭了一下，又笑了：「原來……被人捨不得，是這種感覺。」",
@@ -50530,7 +50625,8 @@
                 "set_flags": ["tdct_x_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_toya", "delta": 15, "reason": "和你共度一夜" },
-                  { "type": "memory", "summary": "那一夜，托雅一點一點地試，每一步都先看你的臉；天亮時她說，雪看見了一定會笑她。", "importance": 3 }
+                  { "type": "memory", "summary": "那一夜，托雅一點一點地試，每一步都先看你的臉；天亮時她說，雪看見了一定會笑她。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "「妳準備好了再說。」她愣了很久，然後慢慢從你懷裡抬起頭，第一次主動吻了你——笨拙、輕輕的。她一點一點地試，每一步都先看你的臉；你點頭，她就再往前一點。天亮時，她趴在你身上，看著小窗外的天：「雪看見了，一定會笑我。」"
@@ -50598,7 +50694,8 @@
                 "effects": [
                   { "type": "affinity", "npc": "npc_yh_zhaohua", "delta": 10, "reason": "雙帝的會盟" },
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 10, "reason": "雙帝的會盟" },
-                  { "type": "memory", "summary": "大燁與媞丹立盟的那一夜，女帝燁昭華與天可汗烏蘭圖雅在金帳的內帳裡和你一起「立盟」，照的是盟約的第一條：有什麼，就一起分。", "importance": 3 }
+                  { "type": "memory", "summary": "大燁與媞丹立盟的那一夜，女帝燁昭華與天可汗烏蘭圖雅在金帳的內帳裡和你一起「立盟」，照的是盟約的第一條：有什麼，就一起分。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "time": { "until": "morning" },
@@ -50613,7 +50710,8 @@
                 "effects": [
                   { "type": "affinity", "npc": "npc_yh_zhaohua", "delta": 8, "reason": "雙帝的會盟" },
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 8, "reason": "雙帝的會盟" },
-                  { "type": "memory", "summary": "大燁與媞丹立盟的那一夜，女帝燁昭華與天可汗烏蘭圖雅在金帳的內帳裡比了一夜，誰也沒分出勝負，兩人都說自己贏了。", "importance": 3 }
+                  { "type": "memory", "summary": "大燁與媞丹立盟的那一夜，女帝燁昭華與天可汗烏蘭圖雅在金帳的內帳裡比了一夜，誰也沒分出勝負，兩人都說自己贏了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "time": { "until": "morning" },
@@ -50680,7 +50778,8 @@
                 "set_flags": ["tdwn_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 8, "reason": "替她保守秘密" },
-                  { "type": "memory", "summary": "撞見南院的可敦燁婉寧夜裡偷看摔跤手，替她保守秘密；她說她每一晚都會想起人馬族的身體——說的時候一直看著你。", "importance": 2 }
+                  { "type": "memory", "summary": "撞見南院的可敦燁婉寧夜裡偷看摔跤手，替她保守秘密；她說她每一晚都會想起人馬族的身體——說的時候一直看著你。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50692,7 +50791,8 @@
                 "set_flags": ["tdwn_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 10, "reason": "替她保守秘密" },
-                  { "type": "memory", "summary": "對燁婉寧說她想看的就在她面前；她碰了一下你的馬身，又紅著臉逃進了南院大帳。", "importance": 2 }
+                  { "type": "memory", "summary": "對燁婉寧說她想看的就在她面前；她碰了一下你的馬身，又紅著臉逃進了南院大帳。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50757,7 +50857,8 @@
                 "set_flags": ["tdwn_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 8, "reason": "替她保守秘密" },
-                  { "type": "memory", "summary": "撞見南院的可敦燁婉寧夜裡偷看人馬族的摔跤手，替她保守秘密；她說有你在，她比較不怕。", "importance": 2 }
+                  { "type": "memory", "summary": "撞見南院的可敦燁婉寧夜裡偷看人馬族的摔跤手，替她保守秘密；她說有你在，她比較不怕。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50769,7 +50870,8 @@
                 "set_flags": ["tdwn_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 10, "reason": "替她保守秘密" },
-                  { "type": "memory", "summary": "燁婉寧在你面前第一次承認：她想要的不只是看那些人馬族的摔跤手。", "importance": 2 }
+                  { "type": "memory", "summary": "燁婉寧在你面前第一次承認：她想要的不只是看那些人馬族的摔跤手。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -50840,7 +50942,8 @@
                 "set_flags": ["tdwn_2_done", "tdwn_pc"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 12, "reason": "讓她看著你" },
-                  { "type": "memory", "summary": "那達慕之後的夜，燁婉寧想走進摔跤手的營帳；你讓她看著你，她說原來不用去那麼遠。", "importance": 3 }
+                  { "type": "memory", "summary": "那達慕之後的夜，燁婉寧想走進摔跤手的營帳；你讓她看著你，她說原來不用去那麼遠。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "scene": "月光下的草坡上，燁婉寧第一次碰觸人馬族的身體：她從主角的胸口一路摸到馬身，端莊的可敦臉紅得說不出話，只敢用手、用唇一寸寸地確認；最後她靠在主角的馬身上，說她三年來第一次睡得著。"
@@ -50854,7 +50957,8 @@
                 "set_flags": ["tdwn_2_done", "tdwn_ntr"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 10, "reason": "在帳外等她" },
-                  { "type": "memory", "summary": "那達慕之後的夜，你在摔跤手的營帳外等燁婉寧到天亮；她出來的時候在笑，笑得像第一次活過來。", "importance": 3 }
+                  { "type": "memory", "summary": "那達慕之後的夜，你在摔跤手的營帳外等燁婉寧到天亮；她出來的時候在笑，笑得像第一次活過來。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "time": { "until": "morning" }
@@ -50925,7 +51029,8 @@
                 "set_flags": ["tdwn_lover", "tdwn_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "燁婉寧向阿穆爾坦白，選了你；那一夜她第一次在自己的帳裡，和她每一晚想起的身體在一起。", "importance": 3 }
+                  { "type": "memory", "summary": "燁婉寧向阿穆爾坦白，選了你；那一夜她第一次在自己的帳裡，和她每一晚想起的身體在一起。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "寢帳裡，端莊的可敦第一次放下所有的禮數：她從主角的胸口吻到馬身，害羞又貪心地確認每一寸她想了三年的身體，嬌小的身子貼著主角的馬腹發抖；最後她伏在主角背上，天青的細鱗泛著紅，說她終於不用再偷看了。",
@@ -50939,7 +51044,8 @@
                 "set_flags": ["tdwn_lover", "tdwn_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "燁婉寧向阿穆爾坦白，選了你；你把她抱上馬背，她說原來騎在上面是這種感覺。", "importance": 3 }
+                  { "type": "memory", "summary": "燁婉寧向阿穆爾坦白，選了你；你把她抱上馬背，她說原來騎在上面是這種感覺。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "主角把燁婉寧抱上馬背，在寢帳裡慢慢地走，她貼著主角的背喘息，宮裝一件一件落在地上；後來她被放進鋪著毛氈的榻上，又羞又急地拉著主角不放，一聲聲壓抑的呻吟混著琴弦被碰響的聲音，直到天亮。"
@@ -51013,7 +51119,8 @@
                 "set_flags": ["tdwn_club"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 15, "reason": "看見了還要她" },
-                  { "type": "memory", "summary": "燁婉寧帶你去了鷹河榷場的野馬帳，讓你看她在那裡的樣子；你說妳還是妳，我要妳。", "importance": 3 }
+                  { "type": "memory", "summary": "燁婉寧帶你去了鷹河榷場的野馬帳，讓你看她在那裡的樣子；你說妳還是妳，我要妳。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -51025,7 +51132,8 @@
                 "set_flags": ["tdwn_club"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 12, "reason": "讓她自己決定" },
-                  { "type": "memory", "summary": "燁婉寧帶你去了野馬帳；你讓她自己決定要不要回來，她說每一次都會回來。", "importance": 3 }
+                  { "type": "memory", "summary": "燁婉寧帶你去了野馬帳；你讓她自己決定要不要回來，她說每一次都會回來。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -51087,7 +51195,8 @@
                 "set_flags": ["tdur_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_urina", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "替烏日娜搶回了最烈的黑馬，還騎了十五下；她說下次換騎人。", "importance": 2 }
+                  { "type": "memory", "summary": "替烏日娜搶回了最烈的黑馬，還騎了十五下；她說下次換騎人。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "scene": "馬廄的乾草堆上，烏日娜把主角按在身下，像在試一匹新馬：她只用手和嘴，一下快一下慢，看主角能撐多久，每次主角快撐不住就停下來大笑；最後她才讓主角解脫，舔著嘴唇說「十五下，還不錯」。"
@@ -51100,7 +51209,8 @@
                 "set_flags": ["tdur_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_urina", "delta": 8, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "替烏日娜搶回了最烈的黑馬；她說下次要跟你比誰能撐得久。", "importance": 2 }
+                  { "type": "memory", "summary": "替烏日娜搶回了最烈的黑馬；她說下次要跟你比誰能撐得久。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -51167,7 +51277,8 @@
                 "set_flags": ["tdur_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_urina", "delta": 15, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "烏日娜在馬廄裡騎了你一整夜，最後她說平手，下次再比。", "importance": 2 }
+                  { "type": "memory", "summary": "烏日娜在馬廄裡騎了你一整夜，最後她說平手，下次再比。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "scene": "油燈下的乾草堆上，烏日娜跨坐在主角身上，像在馴一匹烈馬：她時快時慢、忽然停下又忽然加速，看主角在她身下失控，自己卻也漸漸撐不住，汗濕的黑色馬身一陣陣發抖；最後兩人一起倒在乾草裡，她還在喘著說「平手」。"
@@ -51180,7 +51291,8 @@
                 "set_flags": ["tdur_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_urina", "delta": 15, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "你在馬廄裡反過來騎了馴馬師烏日娜；天亮時她紅著臉說這次算你贏。", "importance": 2 }
+                  { "type": "memory", "summary": "你在馬廄裡反過來騎了馴馬師烏日娜；天亮時她紅著臉說這次算你贏。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "scene": "主角從身後抓住烏日娜的腰，像她教的那樣騎了上去；習慣馴服別人的馴馬師第一次被人馴服，黑色的馬身繃得發亮，抓著乾草的手越來越用力，挑釁的笑聲漸漸變成壓不住的叫聲，一次比一次更失控。"
@@ -51237,7 +51349,8 @@
                 "set_flags": ["tdur_lover", "tdur_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_urina", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "烏日娜趕走了來牽馬的怯薛，把她第一匹馬的韁繩交給你；你說不套，陪她跑。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "烏日娜趕走了來牽馬的怯薛，把她第一匹馬的韁繩交給你；你說不套，陪她跑。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "那一夜的馬廄裡，烏日娜第一次不比誰騎誰：她讓主角握著那條舊韁繩，卻沒有套在誰身上，兩人並肩倒在乾草裡，慢慢地、一次又一次地要著對方；天亮時她說，原來不用馴服也可以這麼好。",
@@ -51251,7 +51364,8 @@
                 "set_flags": ["tdur_lover", "tdur_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_urina", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "烏日娜把舊韁繩交給你；你把它輕輕繞上她的手腕，草原上最烈的馴馬師第一次讓人牽著走。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "烏日娜把舊韁繩交給你；你把它輕輕繞上她的手腕，草原上最烈的馴馬師第一次讓人牽著走。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "主角把那條舊韁繩輕輕繞上烏日娜的手腕，她的呼吸一下子亂了；那一夜，向來馴服別人的她順從地被主角牽著，羞恥又興奮地一次次失控，最後軟在主角懷裡，說她終於知道被馴服是什麼感覺。"
@@ -51320,7 +51434,8 @@
                 "set_flags": ["tdsr_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_sarilang", "delta": 10, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "幫牧女薩日朗接生了春天的第一匹小馬，在熱泉裡陪她泡到天亮。", "importance": 2 }
+                  { "type": "memory", "summary": "幫牧女薩日朗接生了春天的第一匹小馬，在熱泉裡陪她泡到天亮。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "scene": "熱泉裡，薩日朗大方地靠過來，豐腴溫熱的身子貼著主角，一邊說著接生的事，一邊用手慢條斯理地把主角弄得喘不過氣；她說這只是「洗乾淨」，真正的要等春天。"
@@ -51333,7 +51448,8 @@
                 "set_flags": ["tdsr_1_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_sarilang", "delta": 8, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "幫薩日朗接生了小馬；她說春天到了別怪她。", "importance": 2 }
+                  { "type": "memory", "summary": "幫薩日朗接生了小馬；她說春天到了別怪她。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true
               }
@@ -51399,7 +51515,8 @@
                 "set_flags": ["tdsr_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_sarilang", "delta": 15, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "配種的季節，薩日朗在馬棚裡和你過了整整一天的春天。", "importance": 2 }
+                  { "type": "memory", "summary": "配種的季節，薩日朗在馬棚裡和你過了整整一天的春天。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "scene": "馬棚的乾草上，發情的牧女再也忍不住，熱情又直接地把主角拉向自己：豐腴溫熱的身子緊貼著主角，栗色的牝馬身一次次迎上來，尾巴高高翹著，叫聲一點也不壓抑；從白天到天黑，她要了一次又一次，才終於滿足地躺下。"
@@ -51412,7 +51529,8 @@
                 "set_flags": ["tdsr_2_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_sarilang", "delta": 15, "reason": "一起經歷了一段事" },
-                  { "type": "memory", "summary": "薩日朗發情的那一天，你很慢、很溫柔地陪她過了春天。", "importance": 2 }
+                  { "type": "memory", "summary": "薩日朗發情的那一天，你很慢、很溫柔地陪她過了春天。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "scene": "主角不急，一次次地吊著發情的薩日朗，讓她急得扭著腰、搖著尾巴求主角；溫柔的節奏讓她在乾草上一次又一次地發抖，最後她抱著主角喘息，說從來沒有一個春天過得這麼慢、這麼好。"
@@ -51467,7 +51585,8 @@
                 "set_flags": ["tdsr_lover", "tdsr_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_sarilang", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "薩日朗的馬群保住了；她說她的馬群裡可以多一個不是馬的，你說不是春天也要。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "薩日朗的馬群保住了；她說她的馬群裡可以多一個不是馬的，你說不是春天也要。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "牧場的草地上，薩日朗不是因為春天，而是因為喜歡，第一次溫柔地要了主角：她把主角壓在柔軟的草上，豐腴的身子慢慢地動，栗色的尾巴輕輕甩著，一邊笑一邊吻；馬群在旁邊吃草，太陽落山時兩人還抱在一起。",
@@ -51481,7 +51600,8 @@
                 "set_flags": ["tdsr_lover", "tdsr_3_done"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_sarilang", "delta": 15, "reason": "在一起了" },
-                  { "type": "memory", "summary": "薩日朗的馬群保住了；她說她的馬群裡要多一個你，春天你就別想下床。從那天起，你們在一起了。", "importance": 3 }
+                  { "type": "memory", "summary": "薩日朗的馬群保住了；她說她的馬群裡要多一個你，春天你就別想下床。從那天起，你們在一起了。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "scene": "馬棚裡，薩日朗說要「先練習」，熱情又爽朗地把主角拉上乾草堆，像在示範什麼是牧女的春天：她一邊笑一邊教，栗色的牝馬身一次次迎上來，直到兩人都累得說不出話，她才心滿意足地說「春天還會更厲害」。"
@@ -51561,7 +51681,8 @@
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 10, "reason": "金帳的三人" },
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 12, "reason": "母親認可了她" },
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 10, "reason": "金帳的三人" },
-                  { "type": "memory", "summary": "冬獵之後的金帳，天可汗烏蘭圖雅、少主察蘭與國師其其格和你過了一夜；天可汗第一次讓女兒走在自己前面。", "importance": 3 }
+                  { "type": "memory", "summary": "冬獵之後的金帳，天可汗烏蘭圖雅、少主察蘭與國師其其格和你過了一夜；天可汗第一次讓女兒走在自己前面。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "time": { "until": "morning" },
@@ -51577,7 +51698,8 @@
                   { "type": "affinity", "npc": "npc_td_ulantuya", "delta": 12, "reason": "金帳的三人" },
                   { "type": "affinity", "npc": "npc_td_chalan", "delta": 10, "reason": "金帳的三人" },
                   { "type": "affinity", "npc": "npc_td_qiqige", "delta": 10, "reason": "金帳的三人" },
-                  { "type": "memory", "summary": "冬獵之後的金帳，天可汗烏蘭圖雅、少主察蘭與國師其其格和你過了一夜；母女倆的較勁換了一個戰場，誰也沒贏。", "importance": 3 }
+                  { "type": "memory", "summary": "冬獵之後的金帳，天可汗烏蘭圖雅、少主察蘭與國師其其格和你過了一夜；母女倆的較勁換了一個戰場，誰也沒贏。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true,
                 "time": { "until": "morning" },
@@ -51650,7 +51772,8 @@
                 "set_flags": ["tdwn_2_done", "tdwn_ntr"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_wanning", "delta": 10, "reason": "在帳外等她" },
-                  { "type": "memory", "summary": "那達慕之後的夜，你在摔跤手的營帳外等燁婉寧到天亮；她出來的時候在笑，笑得像第一次活過來。", "importance": 3 }
+                  { "type": "memory", "summary": "那達慕之後的夜，你在摔跤手的營帳外等燁婉寧到天亮；她出來的時候在笑，笑得像第一次活過來。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 1 }
                 ],
                 "complete": true,
                 "time": { "until": "morning" }
@@ -53513,7 +53636,8 @@
                 "effects": [
                   { "type": "money", "amount": 150 },
                   { "type": "affinity", "npc": "npc_td_sun_shetou", "delta": 5, "reason": "學得很認真" },
-                  { "type": "memory", "summary": "在鷹河榷場的通譯行，跟牙人孫舌頭學兩國的「床上話」，學到半夜。", "importance": 2 }
+                  { "type": "memory", "summary": "在鷹河榷場的通譯行，跟牙人孫舌頭學兩國的「床上話」，學到半夜。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "set_flags": ["tdtongue_1_done"],
                 "complete": true
@@ -53523,7 +53647,7 @@
               "label": "拿小的那份就好",
               "success": {
                 "text": "你把小的那份收進懷裡：「話我會自己學。」孫舌頭聳聳肩：「明天還有買賣，你會回來的。」",
-                "effects": [{ "type": "money", "amount": 60 }],
+                "effects": [{ "type": "money", "amount": 60 }, { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }],
                 "set_flags": ["tdtongue_1_done"],
                 "complete": true
               }
@@ -53590,7 +53714,8 @@
                   { "type": "money", "amount": 250 },
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "affinity", "npc": "npc_td_sun_shetou", "delta": 5, "reason": "談成了一筆大買賣" },
-                  { "type": "memory", "summary": "在鷹河榷場當「添頭」，先讓化龍族的茶商驗貨，再讓三個人馬族的馬販輪流上，談成了茶換戰馬的買賣。", "importance": 2 }
+                  { "type": "memory", "summary": "在鷹河榷場當「添頭」，先讓化龍族的茶商驗貨，再讓三個人馬族的馬販輪流上，談成了茶換戰馬的買賣。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "set_flags": ["tdtongue_2_done"],
                 "complete": true
@@ -53604,7 +53729,8 @@
                 "effects": [
                   { "type": "money", "amount": 180 },
                   { "type": "affinity", "npc": "npc_td_sun_shetou", "delta": 3, "reason": "談成了買賣" },
-                  { "type": "memory", "summary": "在鷹河榷場當「添頭」，用手和嘴打發了三個人馬族的馬販，談成了茶換戰馬的買賣。", "importance": 2 }
+                  { "type": "memory", "summary": "在鷹河榷場當「添頭」，用手和嘴打發了三個人馬族的馬販，談成了茶換戰馬的買賣。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "set_flags": ["tdtongue_2_done"],
                 "complete": true
@@ -53672,7 +53798,8 @@
                   { "type": "ability", "target": "pc", "ability": "lust_two_tongues" },
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "affinity", "npc": "npc_td_sun_shetou", "delta": 10, "reason": "撐完了秋市" },
-                  { "type": "memory", "summary": "鷹河榷場的秋市最後一夜，在篝火邊的茶磚堆上讓化龍族的茶商們輪了一整夜。孫舌頭把通譯的雙語耳墜給了你。", "importance": 3 }
+                  { "type": "memory", "summary": "鷹河榷場的秋市最後一夜，在篝火邊的茶磚堆上讓化龍族的茶商們輪了一整夜。孫舌頭把通譯的雙語耳墜給了你。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "time": { "until": "morning" },
                 "set_flags": ["tdtongue_done"],
@@ -53689,7 +53816,8 @@
                   { "type": "ability", "target": "pc", "ability": "lust_two_tongues" },
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "affinity", "npc": "npc_td_sun_shetou", "delta": 10, "reason": "撐完了秋市" },
-                  { "type": "memory", "summary": "鷹河榷場的秋市最後一夜，在篝火邊讓人馬族的馬販們輪了一整夜。孫舌頭把通譯的雙語耳墜給了你。", "importance": 3 }
+                  { "type": "memory", "summary": "鷹河榷場的秋市最後一夜，在篝火邊讓人馬族的馬販們輪了一整夜。孫舌頭把通譯的雙語耳墜給了你。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "time": { "until": "morning" },
                 "set_flags": ["tdtongue_done"],
@@ -53707,7 +53835,8 @@
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "condition", "target": "pc", "condition": "disheveled", "add": true },
                   { "type": "affinity", "npc": "npc_td_sun_shetou", "delta": 15, "reason": "讓兩邊都滿意了" },
-                  { "type": "memory", "summary": "鷹河榷場的秋市最後一夜，站在兩堆篝火中間讓化龍族的茶商和人馬族的馬販一起上了一整夜。孫舌頭把通譯的雙語耳墜給了你。", "importance": 3 }
+                  { "type": "memory", "summary": "鷹河榷場的秋市最後一夜，站在兩堆篝火中間讓化龍族的茶商和人馬族的馬販一起上了一整夜。孫舌頭把通譯的雙語耳墜給了你。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "time": { "until": "morning" },
                 "set_flags": ["tdtongue_done"],
@@ -54104,7 +54233,8 @@
                   { "type": "ability", "target": "pc", "ability": "lust_dragon_seed" },
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "affinity", "npc": "npc_yh_liu_mama", "delta": 10, "reason": "五方都借齊了" },
-                  { "type": "memory", "summary": "龍母祠求子香的最後一站，在鷹河榷場的敖包前讓人馬族的牧人們一個一個「添石」到天亮。劉嬤嬤把龍母的紅繩給了你。", "importance": 3 }
+                  { "type": "memory", "summary": "龍母祠求子香的最後一站，在鷹河榷場的敖包前讓人馬族的牧人們一個一個「添石」到天亮。劉嬤嬤把龍母的紅繩給了你。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "time": { "until": "morning" },
                 "set_flags": ["yhinc_done"],
@@ -54121,7 +54251,8 @@
                   { "type": "ability", "target": "pc", "ability": "lust_dragon_seed" },
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "affinity", "npc": "npc_yh_liu_mama", "delta": 15, "reason": "拉她一起借了" },
-                  { "type": "memory", "summary": "龍母祠求子香的最後一站，在鷹河榷場的敖包前把香頭劉嬤嬤也拉下來，兩個人一起讓人馬族的牧人們「添石」到天亮。她把龍母的紅繩給了你。", "importance": 3 }
+                  { "type": "memory", "summary": "龍母祠求子香的最後一站，在鷹河榷場的敖包前把香頭劉嬤嬤也拉下來，兩個人一起讓人馬族的牧人們「添石」到天亮。她把龍母的紅繩給了你。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "time": { "until": "morning" },
                 "set_flags": ["yhinc_done"],
@@ -54138,7 +54269,8 @@
                   { "type": "ability", "target": "pc", "ability": "lust_dragon_seed" },
                   { "type": "money", "amount": 300 },
                   { "type": "affinity", "npc": "npc_yh_liu_mama", "delta": 10, "reason": "成了合夥的香頭" },
-                  { "type": "memory", "summary": "龍母祠求子香的最後一站，在鷹河榷場的敖包前跟劉嬤嬤分帳，讓先付了錢的人馬族牧人們「添石」。她把龍母的紅繩給了你，說這條香路算你一份。", "importance": 3 }
+                  { "type": "memory", "summary": "龍母祠求子香的最後一站，在鷹河榷場的敖包前跟劉嬤嬤分帳，讓先付了錢的人馬族牧人們「添石」。她把龍母的紅繩給了你，說這條香路算你一份。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "time": { "until": "morning" },
                 "set_flags": ["yhinc_done"],
@@ -54982,7 +55114,8 @@
                 "effects": [
                   { "type": "money", "amount": 120 },
                   { "type": "affinity", "npc": "npc_td_wuliji", "delta": 5, "reason": "好彩頭" },
-                  { "type": "memory", "summary": "那達慕的射箭比完，讓七個人馬族射手一個一個上來把自己摸個夠。", "importance": 2 }
+                  { "type": "memory", "summary": "那達慕的射箭比完，讓七個人馬族射手一個一個上來把自己摸個夠。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "set_flags": ["tdnaadam_1_done"],
                 "complete": true
@@ -54996,7 +55129,8 @@
                 "effects": [
                   { "type": "money", "amount": 150 },
                   { "type": "affinity", "npc": "npc_td_wuliji", "delta": 5, "reason": "不按規矩的彩頭" },
-                  { "type": "memory", "summary": "那達慕的射箭比完，當著全場跪下來用嘴替射得最準的人馬族射手「領彩頭」。", "importance": 2 }
+                  { "type": "memory", "summary": "那達慕的射箭比完，當著全場跪下來用嘴替射得最準的人馬族射手「領彩頭」。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "set_flags": ["tdnaadam_1_done"],
                 "complete": true
@@ -55079,7 +55213,8 @@
                 "effects": [
                   { "type": "money", "amount": 180 },
                   { "type": "affinity", "npc": "npc_td_wuliji", "delta": 5, "reason": "伺候好了前三名" },
-                  { "type": "memory", "summary": "那達慕的賽馬比完，在營帳裡用手和嘴伺候人馬族的前三名。", "importance": 2 }
+                  { "type": "memory", "summary": "那達慕的賽馬比完，在營帳裡用手和嘴伺候人馬族的前三名。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "set_flags": ["tdnaadam_2_done"],
                 "complete": true
@@ -55094,7 +55229,8 @@
                   { "type": "money", "amount": 240 },
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "affinity", "npc": "npc_td_wuliji", "delta": 5, "reason": "撐過了前三名" },
-                  { "type": "memory", "summary": "那達慕的賽馬比完，在營帳裡讓人馬族的前三名輪流用馬身壓上來。", "importance": 2 }
+                  { "type": "memory", "summary": "那達慕的賽馬比完，在營帳裡讓人馬族的前三名輪流用馬身壓上來。", "importance": 2 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "set_flags": ["tdnaadam_2_done"],
                 "complete": true
@@ -55161,7 +55297,8 @@
                   { "type": "ability", "target": "pc", "ability": "lust_steppe_prize" },
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "affinity", "npc": "npc_td_wuliji", "delta": 10, "reason": "當了冠軍的彩頭" },
-                  { "type": "memory", "summary": "那達慕的最後一夜，只給摔跤的冠軍一個人，被他幹到天亮。烏力吉把彩頭的藍哈達給了你。", "importance": 3 }
+                  { "type": "memory", "summary": "那達慕的最後一夜，只給摔跤的冠軍一個人，被他幹到天亮。烏力吉把彩頭的藍哈達給了你。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "time": { "until": "morning" },
                 "set_flags": ["tdnaadam_done"],
@@ -55179,7 +55316,8 @@
                   { "type": "condition", "target": "pc", "condition": "drained", "add": true },
                   { "type": "condition", "target": "pc", "condition": "disheveled", "add": true },
                   { "type": "affinity", "npc": "npc_td_wuliji", "delta": 10, "reason": "被所有人搶過的彩頭" },
-                  { "type": "memory", "summary": "那達慕的最後一夜，在篝火邊的場中央讓三藝的優勝者一起上，全場的人馬族圍著看。烏力吉把彩頭的藍哈達給了你。", "importance": 3 }
+                  { "type": "memory", "summary": "那達慕的最後一夜，在篝火邊的場中央讓三藝的優勝者一起上，全場的人馬族圍著看。烏力吉把彩頭的藍哈達給了你。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "time": { "until": "morning" },
                 "set_flags": ["tdnaadam_done"],
@@ -56432,7 +56570,8 @@
                 "set_flags": ["yach_wild"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_yh_chihuan", "delta": 15, "reason": "一直押她" },
-                  { "type": "memory", "summary": "赤鬟在鷹河榷場外的野馬帳押了自己一把，撐到最後一匹公馬趴下；你說你一直押她。", "importance": 3 }
+                  { "type": "memory", "summary": "赤鬟在鷹河榷場外的野馬帳押了自己一把，撐到最後一匹公馬趴下；你說你一直押她。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -56444,7 +56583,8 @@
                 "set_flags": ["yach_wild"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_yh_chihuan", "delta": 12, "reason": "說要跟她押同一把" },
-                  { "type": "memory", "summary": "赤鬟在野馬帳押了自己一把，贏了鷹河的走私路線；你說下次跟她押同一把。", "importance": 3 }
+                  { "type": "memory", "summary": "赤鬟在野馬帳押了自己一把，贏了鷹河的走私路線；你說下次跟她押同一把。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -56515,7 +56655,8 @@
                 "set_flags": ["tdur_wild"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_urina", "delta": 15, "reason": "還要牽她的韁繩" },
-                  { "type": "memory", "summary": "烏日娜在鷹河榷場外的野馬帳把一整群公馬騎到認輸；你說她贏了、韁繩你還是要牽。", "importance": 3 }
+                  { "type": "memory", "summary": "烏日娜在鷹河榷場外的野馬帳把一整群公馬騎到認輸；你說她贏了、韁繩你還是要牽。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -56527,7 +56668,8 @@
                 "set_flags": ["tdur_wild"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_urina", "delta": 12, "reason": "說要一起馴" },
-                  { "type": "memory", "summary": "烏日娜在野馬帳把公馬騎到認輸；你說下次一起馴，她說最後騎你的只能是她。", "importance": 3 }
+                  { "type": "memory", "summary": "烏日娜在野馬帳把公馬騎到認輸；你說下次一起馴，她說最後騎你的只能是她。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -56597,7 +56739,8 @@
                 "set_flags": ["tdch_wild"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 15, "reason": "說不放手" },
-                  { "type": "memory", "summary": "海蘭在鷹河榷場外的野馬帳放下了首領的一切一夜，你替她拿著弓；你說你不放手。", "importance": 3 }
+                  { "type": "memory", "summary": "海蘭在鷹河榷場外的野馬帳放下了首領的一切一夜，你替她拿著弓；你說你不放手。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }
@@ -56609,7 +56752,8 @@
                 "set_flags": ["tdch_wild"],
                 "effects": [
                   { "type": "affinity", "npc": "npc_td_hailan", "delta": 12, "reason": "說要陪她一起放下" },
-                  { "type": "memory", "summary": "海蘭在野馬帳放下了首領的一切一夜；你說下次陪她一起放下，她說弓就放在帳門口。", "importance": 3 }
+                  { "type": "memory", "summary": "海蘭在野馬帳放下了首領的一切一夜；你說下次陪她一起放下，她說弓就放在帳門口。", "importance": 3 },
+                  { "type": "reputation", "faction": "tidan_khanate", "delta": 2 }
                 ],
                 "complete": true
               }

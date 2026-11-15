@@ -44,7 +44,7 @@
 | `park_outfits49.py` | `data/rules/gear.json`、`items.json`、`shops.json`、`enemies.json` | 主題體驗區的五件套服裝（每館一套）、乳牛比基尼拆成上衣與下著、每館一間換衣間（`costume_<館>`）、人馬族版的下身與蹄具（`wear_as`）、各園區層主掉落套裝（[LUST_PARK](../../../docs/LUST_PARK.md) 第 9 節）；排在 `park_experience48.py` 之後 |
 | `parasite_lures51.py` | `data/rules/travel_events.json`、`items.json` | 寄生物的取得（[ADULT_EVENTS](../../../docs/ADULT_EVENTS.md) 第 6 節）：帶來寄生物的四件地下城事件各加一件陽剛體型的版本（`dg_<id>_m`，結構與效果從原本的事件複製、只換文字，接在原本的後面），黑市賣的三件寄生物引子（`use.lure`，接在「馴服的魔導衣」後面）。要排在 `dungeon_events24.py`、`parasites25.py` 之後。可以重跑 |
 | `club_lines43.py` | `data/rules/stories.json`、`data/world/landmarks.json` | 特殊區域的延伸線・第二批：卡蓮、朧（黑檀之夜），卡蜜拉、零號（榮譽洞），赤鬟、烏日娜、海蘭（野馬帳），沈知瀾、瑤汀（無面樓），各一個任務與她們的場景。要排在 `club_lines42.py` 之後（它建立無面樓）。可以重跑 |
-| `rep_balance56.py` | `data/rules/stories.json` | 勢力聲望的補強：河谷鎮（人類諸國聯盟）與大燁朝廷的任務結局給自己勢力的聲望（逐條列在 `RIVERVALE`、`YANYE` 兩張表，表上寫的是最後的數字，同勢力原本的聲望換掉）。站在對方那邊的選擇、已經寫了聲望（偏金墨盟、扣大燁）的結局不給。要排在所有寫 stories.json 的腳本之後。可以重跑 |
+| `rep_balance56.py` | `data/rules/stories.json` | 勢力聲望的補強：河谷鎮（人類諸國聯盟）、大燁朝廷與媞丹汗國的任務結局給自己勢力的聲望（逐條列在 `RIVERVALE`、`YANYE`、`TIDAN` 三張表，表上寫的是最後的數字，同勢力原本的聲望換掉）。站在對方那邊的選擇、已經寫了聲望（偏金墨盟、扣大燁、削弱汗國）的結局不給。要排在所有寫 stories.json 的腳本之後。可以重跑 |
 | `docgear24.py` | `docs/ITEMS.md` 3.1.1 節 | 任務的獨特裝備表 |
 | `../../tools/flowdoc/flowdoc.py` | `worldgen/design/ElondiaQuestFlows.html` | 任務線走向（上面任何一個改過之後都要重跑） |
 | `../../tools/guide/guide.py` | `docs/guide/` | 給玩家的遊戲攻略，同步到 wiki（`data/` 改過之後都要重跑；沒重跑時測試 `guide.spec.ts` 會失敗） |
