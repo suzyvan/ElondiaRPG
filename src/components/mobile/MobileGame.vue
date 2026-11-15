@@ -165,10 +165,6 @@ function onFocusOut(e: FocusEvent) {
       <GameIcon name="warning" :size="14" /> {{ game.saveWarning }}
       <button class="small" @click="emit('open', 'saves')">存讀檔</button>
     </div>
-    <div v-if="game.error" class="error banner">
-      <GameIcon name="warning" :size="14" /> {{ game.error }}
-      <button class="small ghost" aria-label="關閉" @click="game.error = null"><GameIcon name="close" :size="12" /></button>
-    </div>
 
     <template v-if="inCombat">
       <!-- 戰鬥：CombatView 的手機版（上方列、戰場、行動區），不顯示狀態列與底部分頁列（計畫 6 節） -->

@@ -94,6 +94,7 @@ import { AI_FEATURES, judgeTimeout, useSettings, type AiFeature } from './settin
 import { archiveOldReports, mergeUsage } from './logArchive'
 import { actionInputOf, firstNewReport, midTurn, restoreTurn, UNDO_STEPS, type UndoStep } from './undo'
 import { withoutIcons } from '@/engine/itemIcons'
+import { joinError, splitError, type ErrorParts } from '@/narrator/errorText'
 import {
   AUTO_SLOTS, currentStore, parseSaveFile, QUICK_SLOT, saveFileName, slotMeta, slotStore, slotTitle, takePreloaded,
   type CurrentData, type SaveData, type SlotMeta,
@@ -277,6 +278,28 @@ export const useGame = defineStore('game', () => {
   /** token 用量：日誌 id（或 OTHER_USAGE）→ 累計 */
   const usage = ref<Record<string, UsageEntry>>({})
   const error = ref<string | null>(null)
+  /**
+   * 錯誤泡泡（右上角，components/ToastHost.vue）：error 一變成新的訊息就跳一則，先只顯示摘要、細節收在摺疊裡。
+   * error 本身照舊保留（有些地方用它判斷動作有沒有成功）；關掉泡泡時，error 還是同一則就清掉
+   */
+  interface Toast extends ErrorParts { id: number; text: string; count: number }
+  const toasts = ref<Toast[]>([])
+  let toastSeq = 0
+  watch(error, (text) => {
+    if (!text) return
+    const same = toasts.value.find((t) => t.text === text)
+    if (same) {
+      same.count++
+      toasts.value = [...toasts.value.filter((t) => t !== same), same]
+      return
+    }
+    toasts.value = [...toasts.value, { id: ++toastSeq, text, count: 1, ...splitError(text) }].slice(-4)
+  })
+  function dismissToast(id: number) {
+    const t = toasts.value.find((x) => x.id === id)
+    toasts.value = toasts.value.filter((x) => x.id !== id)
+    if (t && error.value === t.text) error.value = null
+  }
   /** 有進行中的遊戲（已經載入，或還沒按「繼續」） */
   const hasProgress = computed(() => !!state.value || !!resume.value)
   /** 自動保存失敗：一直顯示到下一次保存成功 */
@@ -549,7 +572,8 @@ export const useGame = defineStore('game', () => {
       npcLife.applyNewsStories(s, Array.isArray(raw.news) ? raw.news : [])
       save()
     } catch (e) {
-      error.value = `AI 寫 NPC 近況失敗：${e instanceof Error ? e.message : String(e)}（先用簡短的近況）`
+      const { summary, detail } = splitError(e instanceof Error ? e.message : String(e))
+      error.value = joinError(`AI 寫 NPC 近況失敗，先用簡短的近況：${summary}`, detail)
     } finally {
       for (const x of items) polishing.delete(x.id)
     }
@@ -1440,6 +1464,8 @@ export const useGame = defineStore('game', () => {
   }
 
   return {
+    toasts,
+    dismissToast,
     /** 在動作的保護下改狀態：出錯時還原、顯示訊息（測試與少數元件用） */
     runAction: run,
     undoReports, redoInput, undo, redo, dismissRedo: () => (redoInput.value = null),

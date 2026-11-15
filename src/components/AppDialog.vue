@@ -88,10 +88,6 @@ function onClick(e: MouseEvent) {
         <button v-if="!isMobile" class="close ghost" aria-label="關閉" @click="emit('close')"><GameIcon name="close" :size="16" /></button>
       </header>
       <div class="dialog-body">
-        <p v-if="open && game.error && !inlineError" class="dialog-error small row">
-          <GameIcon name="warning" :size="14" /> {{ game.error }}
-          <button class="small ghost" style="margin-left: auto" aria-label="關閉" @click="game.error = null"><GameIcon name="close" :size="12" /></button>
-        </p>
         <slot v-if="open" />
       </div>
     </div>

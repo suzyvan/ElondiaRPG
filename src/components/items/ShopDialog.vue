@@ -209,8 +209,7 @@ function buy(d: Deal) {
       </div>
       <strong class="money"><GameIcon name="coins" :size="16" />{{ formatMoney(s.money_cc) }}</strong>
     </div>
-    <p v-if="game.error" class="error small"><GameIcon name="warning" :size="13" /> {{ game.error }}</p>
-    <p v-else-if="last" class="last small"><GameIcon name="check" :size="13" /> {{ last }}</p>
+    <p v-if="last" class="last small"><GameIcon name="check" :size="13" /> {{ last }}</p>
 
     <!-- 電腦版左右兩欄；手機版變成「店裡的商品｜你的行囊」兩個分頁，可以左右滑 -->
     <SwipeTabs v-model="side" :tabs="SIDES" :swipe="isMobile" :bar="isMobile" all class="cols">

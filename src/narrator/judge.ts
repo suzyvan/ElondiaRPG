@@ -45,6 +45,7 @@ import {
   type CustomLength, type LengthScale, type LoreLike, type Pov, type Prompt,
 } from './prompt'
 import type { Continuity } from './continuity'
+import { joinError } from './errorText'
 import type { PromptEntry } from './promptConfig'
 import { genderSwapNote } from '@/engine/genderSwap'
 import { contractOf, tattoosOf, tattooSummary } from '@/engine/tattoos'
@@ -59,8 +60,23 @@ export function extractJson(text: string): unknown {
   const body = fenced ? fenced[1]! : text
   const start = body.indexOf('{')
   const end = body.lastIndexOf('}')
-  if (start < 0 || end <= start) throw new Error('AI 沒有回傳 JSON')
-  return JSON.parse(body.slice(start, end + 1))
+  // 出錯時寫清楚是哪一種、AI 實際回了什麼（玩家回報：只看到「AI 沒有回傳 JSON」，看不出是被擋、被截斷還是模型不照格式）。
+  // 第一行是摘要，細節換行接在後面（錯誤泡泡先只顯示摘要，narrator/errorText.ts）
+  if (!text.trim()) throw new Error(joinError('AI 沒有回傳 JSON（回了空白）', '可能被服務的安全審查擋下，或思考把輸出上限用完了。可以調高「最大輸出 tokens」，或換一個模型。'))
+  if (start < 0) throw new Error(joinError('AI 沒有回傳 JSON（沒照格式回答）', preview(text)))
+  if (end <= start) throw new Error(joinError('AI 沒有回傳 JSON（回應被截斷）', `可能是輸出上限太小，或被服務切掉。\n${preview(text)}`))
+  try {
+    return JSON.parse(body.slice(start, end + 1))
+  } catch (e) {
+    throw new Error(joinError('AI 回傳的 JSON 格式不對', `${e instanceof Error ? e.message : String(e)}\n${preview(text)}`))
+  }
+}
+
+/** AI 回應的開頭與結尾（錯誤訊息用） */
+function preview(text: string): string {
+  const t = text.trim().replace(/\s+/g, ' ')
+  const n = t.length
+  return n <= 120 ? `AI 回的是：「${t}」` : `AI 回了 ${n} 字，開頭：「${t.slice(0, 60)}…」\n結尾：「…${t.slice(-40)}」`
 }
 
 function signed(n: number) {

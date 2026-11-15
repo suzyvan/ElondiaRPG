@@ -13,6 +13,7 @@ import { useSettings } from '@/stores/settings'
 import { useContent } from '@/stores/content'
 import HomeView from '@/components/HomeView.vue'
 import AppDialog from '@/components/AppDialog.vue'
+import ToastHost from '@/components/ToastHost.vue'
 import NotebookView from '@/components/NotebookView.vue'
 import CraftDialog from '@/components/CraftDialog.vue'
 import ContractDialog from '@/components/ContractDialog.vue'
@@ -325,10 +326,8 @@ onBeforeUnmount(() => {
     <button class="small" style="margin-left: auto" @click="showSaves = true">存讀檔</button>
   </div>
 
-  <div v-if="game.error" class="error row">
-    <span><GameIcon name="warning" :size="15" /> {{ game.error }}</span>
-    <button class="small ghost" style="margin-left: auto" aria-label="關閉" @click="game.error = null"><GameIcon name="close" :size="14" /></button>
-  </div>
+  <!-- 錯誤訊息：右上角的泡泡（ToastHost），不插在畫面中間 -->
+  <ToastHost />
 
   <template v-if="!game.state">
     <HomeView
