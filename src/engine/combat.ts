@@ -17,7 +17,7 @@ import { fusedWeapon } from './fusion'
 import { settleArena } from './arena'
 import { checkBonus, perkModifiers } from './perks'
 import {
-  apMaxFor, apRegenFor, attrOf, attrsOf, carriedAbilities, castingAttr, evadeFloor, gearAffinities, luckyThreshold, mod, proficiency, slotMaxFor, slotsLeft, snapshot, weaponFor,
+  apMaxFor, apRegenFor, attrOf, attrsOf, carriedAbilities, castingAttr, combatBonuses, evadeFloor, gearAffinities, luckyThreshold, mod, proficiency, slotMaxFor, slotsLeft, snapshot, weaponFor,
 } from './character'
 import {
   abilities, abilityDef, armorDef, ATTR_IDS, attrName, PARK_STAMP_PREFIX, townQuestTemplates, classDef, combatRules, companionRules, contractDef, damageType, damageTypeName, damageTypes, dungeonEncounters, DUNGEON_LAYER_IDS, enemies, isLayerBoss, itemDef,
@@ -516,31 +516,25 @@ function initLust(state: GameState, fighters: Combatant[], mult: number) {
     if (t.floor) f.lustMods.floor = t.floor
     if (t.climax_heal) f.lustMods.climaxHeal = t.climax_heal
     if (Object.keys(t.wounded).length) f.lustMods.wounded = t.wounded
-    const addMods = (m: Mods) => { for (const [k, x] of Object.entries(m)) f.baseMods[k as keyof Mods] = (f.baseMods[k as keyof Mods] ?? 0) + (x ?? 0) }
+    // 流派、宿主、雙面效應、淫服、懷孕、寄生物帶進戰鬥的固定加減（和角色卡共用 lustCombatMods）
     // 奴之誓：主人和自己同一邊上場
     const master = contractOf(ch)?.master
-    if (master && fighters.some((o) => o.side === f.side && (o.id === master || o.npcId === master) && o !== f)) addMods(t.master)
-    if (bound) addMods(t.bound)
-    // 獸蟲派的宿主加成（身上的寄生物、苗床）
-    addMods(hostMods(ch))
+    const withMaster = !!master && fighters.some((o) => o.side === f.side && (o.id === master || o.npcId === master) && o !== f)
+    for (const { mods } of lustCombatMods(state, ch, withMaster)) {
+      for (const [k, x] of Object.entries(mods)) f.baseMods[k as keyof Mods] = (f.baseMods[k as keyof Mods] ?? 0) + (x ?? 0)
+    }
     const tf = twoFaceCombat(ch, state)
-    addMods(tf.mods)
-    // 淫服的雙面效應：縱欲、露出派每件淫服有加成，禁慾派反過來
-    const of = outfitCombat(ch)
-    addMods(of.mods)
-    f.lustMods.bonus += of.lustBonus
-    // 懷孕的雙面效應（docs/FAMILY.md 第 4.3 節）：修了流派的人，察覺之後依階段有加成；後期在有隊友倒下時傷害再加
+    // 淫服的雙面效應：縱欲、露出派每件淫服另外加慾望
+    f.lustMods.bonus += outfitCombat(ch).lustBonus
+    // 懷孕的雙面效應（docs/FAMILY.md 第 4.3 節）：後期在有隊友倒下時傷害再加
     const preg = pregnancyTwoFace(ch)
-    addMods(preg.mods)
     if (preg.allyDown) f.lustMods.allyDown = preg.allyDown
     // 泌乳（docs/FAMILY.md 第 10 節）：修了流派的人慾望上限與受到的慾望都多一點，肉體派更多
     const lac = lactationCombat(state, ch)
     if (lac.max) f.lustMax = Math.round(f.lustMax * (1 + lac.max))
     if (lac.taken) f.lustMods.taken *= 1 + lac.taken
-    // 寄生類的雙面效應：修了流派的人，還沒馴服的寄生物依階段有加成
-    const pt = parasiteTwoFace(ch)
-    addMods(pt.mods)
-    f.lustMods.bonus += pt.lustBonus
+    // 寄生類的雙面效應：還沒馴服的寄生物另外加慾望
+    f.lustMods.bonus += parasiteTwoFace(ch).lustBonus
     f.initiative += tf.initiative
     if (tf.immune.length) f.immune = tf.immune
     const faith = mod(f.attrs.fai) * L.faith_resist
@@ -559,6 +553,48 @@ function initLust(state: GameState, fighters: Combatant[], mult: number) {
     // 縱欲派（慾焰）：帶著下限的慾望上場
     f.lust = Math.max(f.lust, Math.min(f.lustMax - 1, Math.max(0, lustFloor(f))))
   }
+}
+
+/**
+ * 流派與各種雙面效應帶進戰鬥的固定加減（docs/LEWD_STATS.md 第 6、7 節）：開戰時（initLust）與角色卡（fieldCombatBonuses）共用。
+ * withMaster：主人和自己同一邊（奴之誓）。慾望戰鬥關掉（存檔規則 lustMult 0）時這些都不算，呼叫的地方自己判斷
+ */
+export function lustCombatMods(state: GameState, ch: Character, withMaster: boolean): { src: string; mods: Mods }[] {
+  const t = lustTotals(ch)
+  const school: Mods = {}
+  for (const m of [withMaster ? t.master : {}, lockedBound(ch) ? t.bound : {}]) {
+    for (const [k, x] of Object.entries(m)) school[k as keyof Mods] = (school[k as keyof Mods] ?? 0) + (x ?? 0)
+  }
+  return [
+    { src: '流派', mods: school },
+    // 獸蟲派的宿主加成（身上的寄生物、苗床）
+    { src: '宿主', mods: hostMods(ch) },
+    { src: '雙面效應', mods: twoFaceCombat(ch, state).mods },
+    // 淫服的雙面效應：縱欲、露出派每件淫服有加成，禁慾派反過來
+    { src: '淫服', mods: outfitCombat(ch).mods },
+    // 懷孕的雙面效應：修了流派的人，察覺之後依階段有加成
+    { src: '懷孕', mods: pregnancyTwoFace(ch).mods },
+    // 寄生類的雙面效應：還沒馴服的寄生物依階段有加成
+    { src: '寄生物', mods: parasiteTwoFace(ch).mods },
+  ]
+}
+
+/**
+ * 角色卡、角色詳情、酒館招募預覽的戰鬥加值：combatBonuses 再加上開戰時才算的流派與雙面效應（和戰鬥同一套算法）。
+ * 只看隊伍外的條件（主人在隊伍裡、慾望戰鬥有沒有開）；戰鬥中才知道的（生命低於一半、隊友倒下）不算
+ */
+export function fieldCombatBonuses(state: GameState | null | undefined, c: Character): ReturnType<typeof combatBonuses> {
+  const b = combatBonuses(c)
+  if (!state || gameRule(state, 'lustMult') <= 0) return b
+  const master = contractOf(c)?.master
+  const extra = lustCombatMods(state, c, !!master && state.party.some((m) => m.id === master && m.hp > 0 && !isNoncombatant(m)))
+  const out = { ...b }
+  for (const key of Object.keys(b) as (keyof typeof b)[]) {
+    const parts = [...b[key].parts, ...extra.map(({ src, mods }) => ({ src, v: mods[key] ?? 0 })).filter((p) => p.v)]
+    const total = parts.reduce((s, p) => s + p.v, 0)
+    out[key] = { parts, total: key === 'ap_regen' ? Math.max(0, total) : total }
+  }
+  return out
 }
 
 function lustOn(combat: CombatState): boolean {

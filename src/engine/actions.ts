@@ -771,7 +771,10 @@ export function resolveAction(state: GameState, judgment: Judgment | null): Repo
   const lead = `${kind.name}${p.targetName ? `（${p.targetName}）` : ''}：${DEGREE_NAME[degree]}。`
   report.outcome = {
     result: success ? 'success' : degree === 'partial' ? 'neutral' : 'failure',
-    summary: [lead, mechanical, judgment?.summary ?? intentSummary(p), ...notes].filter(Boolean).join(''),
+    // 雇用、聊天、奉承：玩家打的字是說出口的話，放在結果前面（「你說：『……』」）；其他行動接在後面當「想做的事」
+    summary: (judgment?.summary || !SPOKEN_KINDS.has(p.kind)
+      ? [lead, mechanical, judgment?.summary ?? intentSummary(p), ...notes]
+      : [lead, spokenSummary(p), mechanical, ...notes]).filter(Boolean).join(''),
     tags: [kind.name, DEGREE_NAME[degree], ...(judgment?.trivial ? ['日常小事'] : []), ...(judgment?.twist ? ['出乎預料'] : [])],
   }
   const committed = commitReport(state, report)
@@ -788,10 +791,21 @@ export function resolveAction(state: GameState, judgment: Judgment | null): Repo
  * 只有自由行動與自己描述的行動才有玩家的文字；太長時截斷
  */
 function intentSummary(p: ActionPending): string {
+  const t = clipIntent(p)
+  return t ? `想做的事：${t}。` : ''
+}
+
+/** 玩家打的字就是對對方說的話的行動（雇用、聊天、奉承） */
+const SPOKEN_KINDS = new Set<string>(['hire', 'chat', 'flatter'])
+function spokenSummary(p: ActionPending): string {
+  const t = clipIntent(p)
+  return t ? `你說：「${t}」` : ''
+}
+function clipIntent(p: ActionPending): string {
   const t = p.text?.trim().replace(/\s+/g, ' ')
   if (!t) return ''
   const max = 60
-  return `想做的事：${t.length > max ? `${t.slice(0, max)}…` : t}。`
+  return t.length > max ? `${t.slice(0, max)}…` : t
 }
 
 /**

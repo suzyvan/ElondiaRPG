@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { apMaxFor, attrsOf, combatBonuses, mod } from '@/engine/character'
+import { apMaxFor, attrsOf, mod } from '@/engine/character'
+import { fieldCombatBonuses } from '@/engine/combat'
 import { askingFor, invitable, joinableSquads, partyOffersHere, proposeDc, squadOptions, underworldProposalBlocked, waitChance } from '@/engine/companions'
 import { abilityDef, attributeRules, className, companionRules, conditionName, genderName, raceName, slaveryRules } from '@/engine/data'
 import { landmarkHidden } from '@/engine/grid'
@@ -271,7 +272,7 @@ const TITLES: Record<Section, string> = { meals: '用餐', recruit: '招募冒�
                 <div class="vitals small">
                   <span><span class="label">HP</span> <b>{{ pv(c.npc).maxHp }}</b></span>
                   <template v-if="!isNoncombatant(pv(c.npc))">
-                    <span><span class="label">AP</span> <b>{{ apMaxFor(pv(c.npc).level, attrsOf(pv(c.npc))) }}</b><small class="muted">（每回合 +{{ combatBonuses(pv(c.npc)).ap_regen.total }}）</small></span>
+                    <span><span class="label">AP</span> <b>{{ apMaxFor(pv(c.npc).level, attrsOf(pv(c.npc))) }}</b><small class="muted">（每回合 +{{ fieldCombatBonuses(game.state, pv(c.npc)).ap_regen.total }}）</small></span>
                     <span v-if="spellSlots(pv(c.npc)).length"><span class="label">法術環</span> {{ spellSlots(pv(c.npc)).map((x) => `${x.circle}環×${x.max}`).join('・') }}</span>
                   </template>
                 </div>

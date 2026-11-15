@@ -237,6 +237,16 @@ describe('tavern hiring', () => {
     expect(state.memories?.at(-1)?.summary).toContain('重新開鋒')
   })
 
+  it('puts what was said to the other person before the result for hire (rules judging)', () => {
+    const state = game(8)
+    const c = tavernCandidates(state).find((x) => x.npc.startsWith('adv_'))!
+    prepareAction(state, { kind: 'hire', target: c.npc, offer_cc: 0, text: '我們一起去北方礦坑吧' })
+    forceRoll(state, 1)
+    const report = resolveAction(state, null)
+    expect(report.outcome.summary).toMatch(/^雇傭談判（[^）]+）：大失敗。你說：「我們一起去北方礦坑吧」/)
+    expect(report.outcome.summary).not.toContain('想做的事')
+  })
+
   it('makes a counter-offer on a partial success and refuses on a failure', () => {
     const state = game(9)
     // 等級低的人比較好談（參考 DC 不會高到只有大成功才過）
