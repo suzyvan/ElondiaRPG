@@ -4,7 +4,7 @@ import { apRegenFor, combatBonuses, mod, proficiency, attrsOf, weaponFor } from 
 import { armorDef } from '@/engine/data'
 import { gearBonuses, gearSummary } from '@/engine/gear'
 import { newGame } from '@/engine/state'
-import { startCombat } from '@/engine/combat'
+import { fieldCombatBonuses, startCombat } from '@/engine/combat'
 import { enterLocation } from '@/engine/grid'
 
 describe('combat bonuses in the character sheet', () => {
@@ -40,6 +40,22 @@ describe('combat bonuses in the character sheet', () => {
     const combat = startCombat(state, [['goblin', 1]])
     const me = combat.combatants.find((c) => c.id === pc.id)!
     expect(me.apRegen + (me.baseMods?.ap_regen ?? 0)).toBe(b.ap_regen.total)
+  })
+})
+
+describe('school and two-face bonuses on the character card', () => {
+  it('matches what combat gives each turn when a locked leg binder triggers the bondage two-face effect', () => {
+    const state = newGame({ name: '北眺', race: 'human', classId: 'ranger', seed: 4, birthplace: 'soriel', gender: '女', body: 'fem' })
+    enterLocation(state)
+    const pc = state.party[0]!
+    pc.perks = [...(pc.perks ?? []), 'school_bondage']
+    pc.gear = { ...(pc.gear ?? {}), legs: { name: '腿縛', spec: { base: 'leg_binder', material: 'leather' }, lock: 'gold' } } as never
+    const field = fieldCombatBonuses(state, pc)
+    const combat = startCombat(state, [['goblin', 1]])
+    const me = combat.combatants.find((c) => c.id === pc.id)!
+    for (const k of ['ap_regen', 'hit', 'save', 'damage'] as const) expect(field[k].total, k).toBe((k === 'ap_regen' ? me.apRegen : 0) + (me.baseMods?.[k] ?? 0) + (k === 'hit' ? proficiency(pc.level) + mod(me.attrs[weaponFor(pc).attr]) : 0))
+    // 角色卡以前沒算流派的雙面效應，會比戰鬥少
+    expect(field.ap_regen.total).toBeGreaterThan(combatBonuses(pc).ap_regen.total)
   })
 })
 

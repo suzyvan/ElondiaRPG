@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import {
-  abilityQuality, apMaxFor, attrsOf, carriedAbilities, castingAttr, combatBonuses, countsForLoadout, evadeFloor, gearAffinities, hasRerollPool, luckyThreshold, mod, proficiency, rerollsLeft, weaponFor, xpToNext,
+  abilityQuality, apMaxFor, attrsOf, carriedAbilities, castingAttr, countsForLoadout, evadeFloor, gearAffinities, hasRerollPool, luckyThreshold, mod, proficiency, rerollsLeft, weaponFor, xpToNext,
 } from '@/engine/character'
+import { fieldCombatBonuses } from '@/engine/combat'
 import { abilityDef, armorDef, attributeRules, attrName, classDef, damageTypeName, genderName, locationById, progression, slaveryRules, statusDef, tagDef } from '@/engine/data'
 import { XP_SINKS, xpSinkBlocked, xpSinkCost, xpSinkName } from '@/engine/xpSinks'
 import PcTagPicker from '../PcTagPicker.vue'
@@ -61,7 +62,7 @@ watch([tabs, () => props.tab, () => props.open], () => {
   if (props.open && !tabs.value.some((t) => t.id === props.tab)) emit('update:tab', 'stats')
 }, { immediate: true })
 
-const b = computed(() => combatBonuses(m.value))
+const b = computed(() => fieldCombatBonuses(game.state, m.value))
 const sources = (parts: { src: string; v: number }[]) => parts.map((p) => `${p.src} ${signed(p.v)}`).join('・')
 const combat = computed<StatItem[]>(() => {
   const x = m.value
