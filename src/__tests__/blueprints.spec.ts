@@ -57,4 +57,15 @@ describe('圖紙（R21 K6）', () => {
     const rng = new Rng(1)
     for (let i = 0; i < 50; i++) expect(randomBlueprint(s, rng)).not.toBe(base)
   })
+
+  it('takes a blueprint off today’s shelf once you get it somewhere else', () => {
+    const s = game()
+    standOn(s, 'smithy')
+    const d = shopState(s, 'smithy').deals.find((x) => x.id.startsWith('blueprint:'))!
+    const base = d.id.slice(10)
+    // 敵人身上搜到、別間店買到、任務給的
+    grantBlueprint(s, base)
+    expect(shopState(s, 'smithy').deals.find((x) => x.id === d.id)!.stock).toBe(0)
+    expect(() => buyDeal(s, 'smithy', d.id)).toThrow('已經沒有了')
+  })
 })

@@ -771,7 +771,7 @@ export function resolveAction(state: GameState, judgment: Judgment | null): Repo
   const lead = `${kind.name}${p.targetName ? `（${p.targetName}）` : ''}：${DEGREE_NAME[degree]}。`
   report.outcome = {
     result: success ? 'success' : degree === 'partial' ? 'neutral' : 'failure',
-    summary: [lead, mechanical, judgment?.summary ?? '', ...notes].filter(Boolean).join(''),
+    summary: [lead, mechanical, judgment?.summary ?? intentSummary(p), ...notes].filter(Boolean).join(''),
     tags: [kind.name, DEGREE_NAME[degree], ...(judgment?.trivial ? ['日常小事'] : []), ...(judgment?.twist ? ['出乎預料'] : [])],
   }
   const committed = commitReport(state, report)
@@ -781,6 +781,17 @@ export function resolveAction(state: GameState, judgment: Judgment | null): Repo
     applyPendingMove(state)
   }
   return committed
+}
+
+/**
+ * 沒有 AI 判定的摘要時（規則判定、AI 漏寫）：用玩家描述的行動當摘要，冒險記憶才不會只剩「自由行動：成功」。
+ * 只有自由行動與自己描述的行動才有玩家的文字；太長時截斷
+ */
+function intentSummary(p: ActionPending): string {
+  const t = p.text?.trim().replace(/\s+/g, ' ')
+  if (!t) return ''
+  const max = 60
+  return `想做的事：${t.length > max ? `${t.slice(0, max)}…` : t}。`
 }
 
 /**

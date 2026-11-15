@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { blueprintName, blueprintRules } from '@/engine/blueprints'
+import { blueprintName, blueprintRules, hasBlueprint } from '@/engine/blueprints'
 import { computed, onMounted, ref, watch } from 'vue'
 import { attrName, craftRules, damageTypeName, itemDef } from '@/engine/data'
 import { canCraftHere, commissionHere, craftMaxCount, craftPlan, craftRarity, craftTarget, forgeOf, isAdultCraft, makeTarget, outfitCommission, selfFeeName, selfLewdBonus, supplyMaxTier, type AuxItem } from '@/engine/craft'
@@ -17,6 +17,7 @@ import EffectLine from './items/EffectLine.vue'
 import AppDialog from './AppDialog.vue'
 import BuildingMenu, { type MenuItem } from './place/BuildingMenu.vue'
 import Hint from './ui/Hint.vue'
+import GameIcon from './ui/GameIcon.vue'
 import ContentIcon from './icons/ContentIcon.vue'
 import ItemIcon from './items/ItemIcon.vue'
 import CraftCard, { type CardOutcome, type CardReq, type CardTag } from './craft/CraftCard.vue'
@@ -286,7 +287,7 @@ function craft() {
       <span class="lab">底材</span>
       <div class="bases">
         <button v-for="b in list" :key="b.id" class="base" :class="{ on: base === b.id }" @click="basePick = b.id">
-          <b>{{ b.name }}</b>
+          <b>{{ b.name }}<GameIcon v-if="hasBlueprint(s, b.id)" name="scroll" :size="13" class="bp" title="有圖紙：自己打造不用加 DC" aria-label="有圖紙" /></b>
           <span class="muted">{{ MATERIAL_KIND_NAME[b.kind] }}<template v-if="statsOf(b.id, firstMaterial(b.kind))">・{{ statsOf(b.id, firstMaterial(b.kind)) }}</template></span>
         </button>
       </div>
@@ -409,6 +410,8 @@ function craft() {
 .base { text-align: left; display: grid; gap: 2px; padding: 6px 9px; }
 .base.on { outline: 2px solid var(--accent); outline-offset: -1px; }
 .base .muted { font-size: var(--fs-xs); }
+/* 有圖紙的底材：名字後面一個小卷軸 */
+.base .bp { margin-left: 4px; vertical-align: -2px; color: var(--accent); }
 table { width: 100%; border-collapse: collapse; }
 .mats th, .need th { text-align: left; font-weight: 600; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--border); }
 .mats td, .need td { padding: 4px 6px; border-bottom: 1px dashed color-mix(in srgb, currentColor 15%, transparent); vertical-align: top; }

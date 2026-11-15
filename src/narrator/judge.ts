@@ -251,8 +251,8 @@ function judgeRules(lang: string, narrative: boolean): string {
   const caps = actionRules.caps
   const adj = actionRules.dc_adjust
   const write = narrative
-    ? `10. narrative 用${lang}寫出這次行動的經過與結果，視角與篇幅依最後的「本次要求」，分段；不要寫出骰值、DC 或親密度數字，結果要與 degree 和 mechanics 一致。summary 用一兩句話概括（≤ ${caps.summary_chars} 字）。`
-    : `10. 不需要寫經過：narrative 填空字串（經過會由另一位寫手依你的判定撰寫）。summary 用${lang}一兩句話概括結果（≤ ${caps.summary_chars} 字），rationale 寫清楚判定的理由，讓寫手能照著寫。`
+    ? `10. narrative 用${lang}寫出這次行動的經過與結果，視角與篇幅依最後的「本次要求」，分段；不要寫出骰值、DC 或親密度數字，結果要與 degree 和 mechanics 一致。summary 必填：用一兩句話概括誰做了什麼、結果如何（≤ ${caps.summary_chars} 字；會記進冒險記憶，日後回想時只看得到這一句，不要只寫「成功」「失敗」）。`
+    : `10. 不需要寫經過：narrative 填空字串（經過會由另一位寫手依你的判定撰寫）。summary 必填：用${lang}一兩句話概括誰做了什麼、結果如何（≤ ${caps.summary_chars} 字；會記進冒險記憶，日後回想時只看得到這一句，不要只寫「成功」「失敗」），rationale 寫清楚判定的理由，讓寫手能照著寫。`
   return `你是奇幻 RPG《埃隆迪亞大陸》的${narrative ? '判定者兼敘事者' : '判定者'}。玩家描述了主角主動要做的事，骰子已經擲好。你會拿到完整的角色資料、隊伍狀態、人際關係、共同記憶、場景與骰值，請直接決定結果${narrative ? '並寫出經過' : ''}，只輸出一個 JSON 物件。
 
 判定方式：

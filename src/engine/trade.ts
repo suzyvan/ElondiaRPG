@@ -29,7 +29,7 @@ import { openFor } from './storyFlags'
 import { condMet } from './storyFlags'
 import { addHours, commitReport, newReportId, withRng } from './state'
 import { shopTitle } from './shopNames'
-import { blueprintDeals, blueprintName } from './blueprints'
+import { blueprintDeals, blueprintName, hasBlueprint } from './blueprints'
 import { marketMult, marketRules, pctText, tradeCategory, tradeCategoryName } from './market'
 import { gameRule } from './gameRules'
 import type { Deal, GameState, NpcRecord, Report, ShopState } from './types'
@@ -298,6 +298,8 @@ export function shopState(state: GameState, type: ShopType): ShopState {
   if (cur && cur.day === state.time.day) {
     // 情報商今天的線索：之後自己遇到、打聽到、讀情報物品知道或已經結束的，就不再賣
     for (const d of cur.deals) {
+      // 圖紙：今天上架之後才拿到的（別間店買的、敵人身上搜到、任務給的），不再賣
+      if (d.stock > 0 && d.gets.some((g) => g.type === 'blueprint' && !!g.base && hasBlueprint(state, g.base))) d.stock = 0
       if (!d.id.startsWith('info:lead:') || d.stock <= 0) continue
       const lead = leadById(state, d.id.slice('info:lead:'.length))
       if (!lead || lead.status !== 'active' || lead.known) d.stock = 0

@@ -444,26 +444,16 @@
     {
      "title": "上晚班",
      "desc": "穿著制服端一整晚的酒，客人的手隨便伸。",
-     "scene": "主角穿著看板娘的制服端了一整晚的酒，屁股和胸口被每一桌的客人摸過一輪；常客照例把主角叫到桌子底下，一個接一個塞進主角嘴裡，打烊時圍裙口袋塞滿了小費。",
+     "scene": "{role}穿著看板娘的制服端了一整晚的酒，屁股和胸口被每一桌的客人摸過一輪；常客照例把{role}叫到桌子底下，一個接一個塞進{role}嘴裡，打烊時圍裙口袋塞滿了小費。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 4,
      "effects": [
       {
        "type": "money",
        "amount": 120
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -471,22 +461,33 @@
        "inn_done"
       ]
      },
-     "wear": [
-      "dress"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "dress"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "包場的夜",
      "desc": "冒險者包下整間店，你是今晚的獎品。",
-     "scene": "一隊剛領了賞金的冒險者包下銀鱗旅店，主角被放上長桌當今晚的獎品，整桌的人輪流上，{cast}收完錢也脫了圍裙一起加入；天亮時主角躺在酒漬裡數錢。",
+     "scene": "一隊剛領了賞金的冒險者包下銀鱗旅店，{role}被放上長桌當今晚的獎品，整桌的人輪流上，{cast}收完錢也脫了圍裙一起加入；天亮時{role}躺在酒漬裡數錢。",
      "tags": [
       "adult",
       "non_virgin",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -498,18 +499,6 @@
       {
        "type": "money",
        "amount": 260
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "disheveled",
-       "add": true
       }
      ],
      "affinity": 1,
@@ -518,9 +507,30 @@
        "inn_done"
       ]
      },
-     "wear": [
-      "dress"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "dress"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       },
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "disheveled",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -1239,26 +1249,16 @@
     {
      "title": "市集的舞",
      "desc": "在市集跳舞，讓人把錢塞進舞衣。",
-     "scene": "主角穿著薄紗、搖著腳鍊在市集中央跳舞，看熱鬧的男人把錢塞進舞衣裡，手指順便伸進去，跳完一場薄紗底下全是錢和指印。",
+     "scene": "{role}穿著薄紗、搖著腳鍊在市集中央跳舞，看熱鬧的男人把錢塞進舞衣裡，手指順便伸進去，跳完一場薄紗底下全是錢和指印。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 3,
      "effects": [
       {
        "type": "money",
        "amount": 150
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -1266,23 +1266,34 @@
        "dance_done"
       ]
      },
-     "wear": [
-      "sheer_negligee",
-      "anklet_bell"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "sheer_negligee",
+       "anklet_bell"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "帳篷裡的加場",
      "desc": "和娜希拉一起，在帳篷裡收真正的價錢。",
-     "scene": "跳完舞，主角和{cast}一起被帶進後面的帳篷，兩個人並排跪著侍奉一整帳篷的客人，輪完一圈換姿勢再來一圈，腳鍊的鈴聲響了一整個下午。",
+     "scene": "跳完舞，{role}和{cast}一起被帶進後面的帳篷，兩個人並排跪著侍奉一整帳篷的客人，輪完一圈換姿勢再來一圈，腳鍊的鈴聲響了一整個下午。",
      "tags": [
       "adult",
       "non_virgin",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -1294,12 +1305,6 @@
       {
        "type": "money",
        "amount": 320
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
       }
      ],
      "affinity": 1,
@@ -1308,10 +1313,25 @@
        "dance_done"
       ]
      },
-     "wear": [
-      "sheer_negligee",
-      "anklet_bell"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "sheer_negligee",
+       "anklet_bell"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -2855,26 +2875,16 @@
     {
      "title": "發牌的夜班",
      "desc": "穿著兔女郎裝發一整晚的牌。",
-     "scene": "主角穿著兔女郎裝發了一整晚的牌，賭客把籌碼塞進胸口和胯下，贏了錢的就把主角拉到大腿上摸個夠，輸了的拉到桌底下出氣。",
+     "scene": "{role}穿著兔女郎裝發了一整晚的牌，賭客把籌碼塞進胸口和胯下，贏了錢的就把{role}拉到大腿上摸個夠，輸了的拉到桌底下出氣。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 5,
      "effects": [
       {
        "type": "money",
        "amount": 200
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -2882,22 +2892,33 @@
        "dice_done"
       ]
      },
-     "wear": [
-      "bunny_suit",
-      "bunny_ears"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "bunny_suit",
+       "bunny_ears"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "貴賓室的轉運",
      "desc": "貴賓室今晚手氣不好，要你去轉運。",
-     "scene": "{cast}把主角推進貴賓室替輸錢的貴賓「轉運」，主角跪在賭桌上被一圈貴賓輪流幹，每幹一個就擲一次骰子，擲到天亮。",
+     "scene": "{cast}把{role}推進貴賓室替輸錢的貴賓「轉運」，{role}跪在賭桌上被一圈貴賓輪流幹，每幹一個就擲一次骰子，擲到天亮。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -2909,18 +2930,6 @@
       {
        "type": "money",
        "amount": 400
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "disheveled",
-       "add": true
       }
      ],
      "requires": {
@@ -2928,10 +2937,31 @@
        "dice_done"
       ]
      },
-     "wear": [
-      "bunny_suit",
-      "bunny_ears"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "bunny_suit",
+       "bunny_ears"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       },
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "disheveled",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -2957,14 +2987,10 @@
     {
      "title": "見習女僕的一天",
      "desc": "掃地被少爺掀裙子，晚上替伯爵洗澡。",
-     "scene": "主角穿著改造女僕裝打掃了一整天，盧卡斯少爺每經過一次就掀一次裙子、把主角按在牆上玩；晚上替伯爵洗澡，用身體洗，洗到伯爵在浴池裡射了兩次。",
+     "scene": "{role}穿著改造女僕裝打掃了一整天，盧卡斯少爺每經過一次就掀一次裙子、把{role}按在牆上玩；晚上替伯爵洗澡，用身體洗，洗到伯爵在浴池裡射了兩次。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -2979,12 +3005,6 @@
       {
        "type": "money",
        "amount": 180
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -2992,22 +3012,33 @@
        "maid_done"
       ]
      },
-     "wear": [
-      "lewd_maid",
-      "maid_headdress"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "lewd_maid",
+       "maid_headdress"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "父子的晚上",
      "desc": "伯爵和少爺今晚都要你。",
-     "scene": "伯爵和盧卡斯少爺把主角叫進同一間寢室，一個從前面一個從後面，父子倆比誰撐得久，主角被夾在中間幹到天亮，女僕裝撕成了碎布。",
+     "scene": "伯爵和盧卡斯少爺把{role}叫進同一間寢室，一個從前面一個從後面，父子倆比誰撐得久，{role}被夾在中間幹到天亮，女僕裝撕成了碎布。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -3022,18 +3053,6 @@
       {
        "type": "money",
        "amount": 300
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "disheveled",
-       "add": true
       }
      ],
      "requires": {
@@ -3041,10 +3060,31 @@
        "maid_done"
       ]
      },
-     "wear": [
-      "lewd_maid",
-      "maid_headdress"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "lewd_maid",
+       "maid_headdress"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       },
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "disheveled",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -3172,14 +3212,10 @@
     {
      "title": "再走一次朝聖大道",
      "desc": "只穿網襪，光著身子走一趟，貝托收賭金。",
-     "scene": "主角又一次只穿著網襪走上朝聖大道，從澡堂走到聖所，整條街的人吹口哨、伸手摸，{cast}在後面跟著收賭金，走到半路被拉進巷子裡的不止一個。",
+     "scene": "{role}又一次只穿著網襪走上朝聖大道，從澡堂走到聖所，整條街的人吹口哨、伸手摸，{cast}在後面跟著收賭金，走到半路被拉進巷子裡的不止一個。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -3191,18 +3227,6 @@
       {
        "type": "money",
        "amount": 150
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "disheveled",
-       "add": true
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -3210,9 +3234,30 @@
        "expo_done"
       ]
      },
-     "wear": [
-      "fishnet"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "fishnet"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "disheveled",
+        "add": true
+       },
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -3238,26 +3283,16 @@
     {
      "title": "搓背的班",
      "desc": "替水手搓背，哪裡都要搓。",
-     "scene": "主角只貼著乳貼、穿著丁字褲替一整排水手搓背，搓完背搓前面，客人要哪裡就搓哪裡，最後在石板上用嘴收尾，一個接一個。",
+     "scene": "{role}只貼著乳貼、穿著丁字褲替一整排水手搓背，搓完背搓前面，客人要哪裡就搓哪裡，最後在石板上用嘴收尾，一個接一個。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 4,
      "effects": [
       {
        "type": "money",
        "amount": 160
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -3265,40 +3300,39 @@
        "bath_done"
       ]
      },
-     "wear": [
-      "pasties",
-      "thong"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "pasties",
+       "thong"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "深池的常客",
      "desc": "常客們在深池等你。",
-     "scene": "常客們在深池等著，主角一下水就被拖到池中央，水裡一個接一個輪流上，浮上來喘口氣又被按下去，泡到手指發皺。",
+     "scene": "常客們在深池等著，{role}一下水就被拖到池中央，水裡一個接一個輪流上，浮上來喘口氣又被按下去，泡到手指發皺。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 5,
      "effects": [
       {
        "type": "money",
        "amount": 300
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "sensitive",
-       "add": true
       }
      ],
      "requires": {
@@ -3306,10 +3340,31 @@
        "bath_done"
       ]
      },
-     "wear": [
-      "pasties",
-      "thong"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "pasties",
+       "thong"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       },
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "sensitive",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -3335,26 +3390,16 @@
     {
      "title": "混浴的幫工",
      "desc": "穿著浴衣幫工，客人叫你就要下池。",
-     "scene": "主角穿著浴衣在溫泉旅館幫工，醉醺醺的礦工一叫就要脫掉浴衣下池，在熱水裡被摸遍、被拉到大腿上坐，一晚下來泡得渾身通紅。",
+     "scene": "{role}穿著浴衣在溫泉旅館幫工，醉醺醺的礦工一叫就要脫掉浴衣下池，在熱水裡被摸遍、被拉到大腿上坐，一晚下來泡得渾身通紅。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 4,
      "effects": [
       {
        "type": "money",
        "amount": 180
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -3362,21 +3407,32 @@
        "onsen_done"
       ]
      },
-     "wear": [
-      "yukata"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "yukata"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "礦工的發薪夜",
      "desc": "發薪夜，整座礦場的人都來泡。",
-     "scene": "發薪夜整座礦場的礦工都擠進溫泉，主角在池邊的石床上被排隊的礦工一個接一個幹，{cast}在旁邊收錢、喊下一個，排到天亮還沒排完。",
+     "scene": "發薪夜整座礦場的礦工都擠進溫泉，{role}在池邊的石床上被排隊的礦工一個接一個幹，{cast}在旁邊收錢、喊下一個，排到天亮還沒排完。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -3388,18 +3444,6 @@
       {
        "type": "money",
        "amount": 320
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "disheveled",
-       "add": true
       }
      ],
      "requires": {
@@ -3407,9 +3451,30 @@
        "onsen_done"
       ]
      },
-     "wear": [
-      "yukata"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "yukata"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       },
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "disheveled",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -3435,14 +3500,10 @@
     {
      "title": "特別服務",
      "desc": "穿著旗袍按摩，最後一步另外算錢。",
-     "scene": "主角穿著旗袍替客人按摩，按到最後一步就爬上床，用手、用嘴、用身體收尾，一個客人接一個客人，{cast}在門外數錢。",
+     "scene": "{role}穿著旗袍替客人按摩，按到最後一步就爬上床，用手、用嘴、用身體收尾，一個客人接一個客人，{cast}在門外數錢。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -3454,12 +3515,6 @@
       {
        "type": "money",
        "amount": 170
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -3467,33 +3522,38 @@
        "massage_done"
       ]
      },
-     "wear": [
-      "qipao"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "qipao"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "三人套餐",
      "desc": "三個客人一起點了你。",
-     "scene": "三個客人一起點了主角的「三人套餐」，旗袍被掀到腰上，一個在前面一個在後面一個在嘴裡，換了好幾輪位子才付錢走人。",
+     "scene": "三個客人一起點了{role}的「三人套餐」，旗袍被掀到腰上，一個在前面一個在後面一個在嘴裡，換了好幾輪位子才付錢走人。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 5,
      "effects": [
       {
        "type": "money",
        "amount": 300
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
       }
      ],
      "requires": {
@@ -3501,9 +3561,24 @@
        "massage_done"
       ]
      },
-     "wear": [
-      "qipao"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "qipao"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -3629,32 +3704,16 @@
     {
      "title": "見習館的夜課",
      "desc": "魅魔們今晚教新的服侍方法，你當教材。",
-     "scene": "侍寢見習館的魅魔們把主角當教材，教新來的見習生怎麼服侍男人，主角被一個個客人輪流示範用，魅魔在旁邊講解哪裡要夾緊、哪裡要叫。",
+     "scene": "侍寢見習館的魅魔們把{role}當教材，教新來的見習生怎麼服侍男人，{role}被一個個客人輪流示範用，魅魔在旁邊講解哪裡要夾緊、哪裡要叫。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 4,
      "effects": [
       {
        "type": "money",
        "amount": 250
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "afterglow",
-       "add": true
       }
      ],
      "requires": {
@@ -3662,21 +3721,38 @@
        "court_done"
       ]
      },
-     "wear": [
-      "sheer_negligee"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "sheer_negligee"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       },
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "afterglow",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "宮廷的晚宴",
      "desc": "今晚的宴會，你是主菜。",
-     "scene": "宮廷的晚宴上主角被端上長桌當主菜，赴宴的貴族輪流享用，{cast}在主位上看著，酒杯一舉就換下一個人。",
+     "scene": "宮廷的晚宴上{role}被端上長桌當主菜，赴宴的貴族輪流享用，{cast}在主位上看著，酒杯一舉就換下一個人。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -3688,12 +3764,6 @@
       {
        "type": "money",
        "amount": 450
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
       }
      ],
      "requires": {
@@ -3701,9 +3771,24 @@
        "court_done"
       ]
      },
-     "wear": [
-      "sheer_negligee"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "sheer_negligee"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -5671,26 +5756,16 @@
     {
      "title": "秋闈的夜課",
      "desc": "替溫書的舉子研墨點香，他念到哪裡就摸到哪裡。",
-     "scene": "主角穿著褙子替溫書的舉子研了一整夜的墨，每一間的書生都把主角拉到腿上念艷詩，念一句摸一處，最後用嘴替他們「解乏」收尾。",
+     "scene": "{role}穿著褙子替溫書的舉子研了一整夜的墨，每一間的書生都把{role}拉到腿上念艷詩，念一句摸一處，最後用嘴替他們「解乏」收尾。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 4,
      "effects": [
       {
        "type": "money",
        "amount": 130
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -5698,21 +5773,32 @@
        "yhink_done"
       ]
      },
-     "wear": [
-      "beizi"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "beizi"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "謝恩的包場",
      "desc": "新科進士回來謝恩，整桌輪流題詩再幹。",
-     "scene": "一桌新科進士回到狀元客舍謝恩，把主角剝光了放上酒桌，輪流用毛筆在主角身上題詩，題完一首幹一回，{cast}在旁邊收錢、記下每一首詩。",
+     "scene": "一桌新科進士回到狀元客舍謝恩，把{role}剝光了放上酒桌，輪流用毛筆在{role}身上題詩，題完一首幹一回，{cast}在旁邊收錢、記下每一首詩。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -5724,18 +5810,6 @@
       {
        "type": "money",
        "amount": 280
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "disheveled",
-       "add": true
       }
      ],
      "affinity": 1,
@@ -5744,9 +5818,30 @@
        "yhink_done"
       ]
      },
-     "wear": [
-      "beizi"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "beizi"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       },
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "disheveled",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -5789,26 +5884,16 @@
     {
      "title": "搖一趟櫓",
      "desc": "穿著旗袍搖一趟櫓，客人在船上隨便摸，回碼頭前吹一曲。",
-     "scene": "主角穿著高衩旗袍在船尾搖了一趟櫓，船上的客人從背後掀開開衩摸個夠，回碼頭前把主角叫進船艙「吹簫」，一人一曲。",
+     "scene": "{role}穿著高衩旗袍在船尾搖了一趟櫓，船上的客人從背後掀開開衩摸個夠，回碼頭前把{role}叫進船艙「吹簫」，一人一曲。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 3,
      "effects": [
       {
        "type": "money",
        "amount": 140
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -5816,21 +5901,32 @@
        "yhboat_done"
       ]
      },
-     "wear": [
-      "qipao"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "qipao"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "包船的夜",
      "desc": "鹽商包下整艘畫舫，船娘只有你一個。",
-     "scene": "一群鹽商包下三篙畫舫遊了一整夜的運河，主角被放上船艙的長桌輪流幹，船搖一下頂一下，{cast}在船尾撐篙、收錢。",
+     "scene": "一群鹽商包下三篙畫舫遊了一整夜的運河，{role}被放上船艙的長桌輪流幹，船搖一下頂一下，{cast}在船尾撐篙、收錢。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -5842,12 +5938,6 @@
       {
        "type": "money",
        "amount": 300
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
       }
      ],
      "affinity": 1,
@@ -5856,9 +5946,24 @@
        "yhboat_done"
       ]
      },
-     "wear": [
-      "qipao"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "qipao"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       }
+      ]
+     }
     }
    ]
   },
@@ -5900,26 +6005,16 @@
     {
      "title": "冬天的珠船",
      "desc": "纏著裹胸下海采珠，上來讓船工們取暖。",
-     "scene": "主角只纏著裹胸下了一整天的海，每次凍得發抖地爬上船，就被赤膊的船工們夾在中間搓揉取暖，搓到最後總有人要主角用嘴謝他。",
+     "scene": "{role}只纏著裹胸下了一整天的海，每次凍得發抖地爬上船，就被赤膊的船工們夾在中間搓揉取暖，搓到最後總有人要{role}用嘴謝他。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "hours": 5,
      "effects": [
       {
        "type": "money",
        "amount": 180
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "aroused",
-       "add": true
       }
      ],
      "requires": {
@@ -5927,21 +6022,32 @@
        "yhpearl_done"
       ]
      },
-     "wear": [
-      "breast_band"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "breast_band"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "aroused",
+        "add": true
+       }
+      ]
+     }
     },
     {
      "title": "船艙的取暖",
      "desc": "收工之後，全船的人在船艙裡替你「取暖」。",
-     "scene": "收工後珠船的船艙裡燒著炭盆，船工們把主角剝光了一個一個「取暖」，{cast}在一旁開蚌數珠，誰幹完了誰就去撬下一個蚌。",
+     "scene": "收工後珠船的船艙裡燒著炭盆，船工們把{role}剝光了一個一個「取暖」，{cast}在一旁開蚌數珠，誰幹完了誰就去撬下一個蚌。",
      "tags": [
       "adult",
       "male_partner"
-     ],
-     "pc_body": [
-      "fem",
-      "andro"
      ],
      "cast": [
       {
@@ -5953,12 +6059,6 @@
       {
        "type": "money",
        "amount": 320
-      },
-      {
-       "type": "condition",
-       "target": "pc",
-       "condition": "drained",
-       "add": true
       }
      ],
      "affinity": 1,
@@ -5967,9 +6067,24 @@
        "yhpearl_done"
       ]
      },
-     "wear": [
-      "breast_band"
-     ]
+     "role": {
+      "name": "幫工",
+      "wear": [
+       "breast_band"
+      ],
+      "body": [
+       "fem",
+       "andro"
+      ],
+      "effects": [
+       {
+        "type": "condition",
+        "target": "pc",
+        "condition": "drained",
+        "add": true
+       }
+      ]
+     }
     }
    ],
    "interior": "sm_yh_chihuan_hold",

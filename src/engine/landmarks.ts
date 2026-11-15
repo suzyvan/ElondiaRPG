@@ -377,7 +377,11 @@ export function playLandmarkScene(state: GameState, index: number): Report {
   if (sc.own_cooldown) (r.scenes ??= {})[sc.title] = state.time.day
   else r.scene = state.time.day
   report.outcome = { result: 'success', summary: `在${l.name}${sc.title}：${text}` }
-  if (sc.tags?.includes('adult')) report.narration = { ...report.narration, length: 'long', adult_scene: text }
+  if (sc.tags?.includes('adult')) {
+    // 身分只有隊友（主角沒穿制服，隊友去上工）：場景的主角是那位隊友（淫亂成長、性經歷記在他身上）
+    const actor = sc.role && who.length && !who.some((c) => c.isPlayer) ? who[0]!.id : undefined
+    report.narration = { ...report.narration, length: 'long', adult_scene: text, ...(actor ? { adult_actor: actor } : {}) }
+  }
   // 限定體型的內容：主角也參加時（陽剛體型打開了設定），一樣提醒 AI 照主角的身體寫
   if (sc.pc_body?.length || (sc.role?.body?.length && who.some((c) => c.isPlayer))) report.narration = { ...report.narration, body_limited: true }
   return commitReport(state, report)

@@ -228,6 +228,15 @@ describe('tavern hiring', () => {
     expect(state.money_cc).toBe(500)
   })
 
+  it('keeps what the player tried in the summary (and the memory) when there is no AI summary', () => {
+    const state = game(8)
+    prepareAction(state, { kind: 'free', text: '把磨鈍的短劍拿去鐵匠鋪重新開鋒' })
+    forceRoll(state, 15)
+    const report = resolveAction(state, null)
+    expect(report.outcome.summary).toContain('想做的事：把磨鈍的短劍拿去鐵匠鋪重新開鋒。')
+    expect(state.memories?.at(-1)?.summary).toContain('重新開鋒')
+  })
+
   it('makes a counter-offer on a partial success and refuses on a failure', () => {
     const state = game(9)
     // 等級低的人比較好談（參考 DC 不會高到只有大成功才過）

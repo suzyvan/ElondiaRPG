@@ -12,7 +12,10 @@ import { specialMapUsage } from '@/engine/specialMapMods'
 import { ambushChance } from '@/engine/rest'
 import { currentArea, currentCell } from '@/engine/grid'
 import { applyContent, emptyMods, normalizeMods } from '@/engine/mods'
-import { addItem, newGame } from '@/engine/state'
+import { addItem, newGame, withRng } from '@/engine/state'
+import { joinParty } from '@/engine/party'
+import { generateNpc } from '@/engine/npcs'
+import { gearRules } from '@/engine/gear'
 import { equipItem } from '@/engine/inventory'
 import { pcOf } from '@/engine/party'
 import { setFlag } from '@/engine/storyFlags'
@@ -521,7 +524,8 @@ describe('work-line scenes', () => {
       for (const sc of scenes) {
         expect(sc.requires?.flags?.[0], `${id} ${sc.title}`).toMatch(/_done$/)
         expect(sc.tags, sc.title).toContain('male_partner')
-        expect(sc.pc_body, sc.title).toEqual(['fem', 'andro'])
+        // 穿制服的打工：體型看上工的人（身分），沒有制服的看主角
+        expect(sc.pc_body ?? sc.role?.body, sc.title).toEqual(['fem', 'andro'])
         expect(sc.effects?.find((e) => e.type === 'money'), sc.title).toBeTruthy()
         expect(sanitizeScene(sc, landmarks[id]!.interior)).toEqual(sc)
       }
@@ -594,5 +598,30 @@ describe('work-line scenes', () => {
     expect(state.money_cc).toBeGreaterThan(money)
     expect(report.narration?.adult_scene).toBeTruthy()
     expect(sceneBlocked(state, i)).toContain('天後')
+  })
+
+  it('let a companion in the uniform go to work instead (the scene and its growth are about her)', () => {
+    const l = landmarks.lm_ironforge_onsen!
+    const state = newGame({ name: '艾倫', race: 'human', classId: 'fighter', seed: 4, birthplace: l.location, gender: '男', body: 'masc' })
+    state.time.hour = 21
+    state.guild = { rank: 'S', merit: 999 }
+    pcOf(state).level = 20
+    enterLocation(state)
+    expect(standOn(state, 'lm_ironforge_onsen' as never)).toBe(true)
+    setFlag(state, 'onsen_done')
+    const mate = joinParty(state, withRng(state, (rng) => generateNpc(state, rng, { level: 3, kind: 'adventurer', location: state.location, gender: '女' })), 'voluntary')
+    mate.body = 'fem'
+    // 陽剛體型的主角看得到場景（上工的人是隊友），但要有人穿著浴衣
+    const i = scenesHere(state).find((x) => x.scene.title === '混浴的幫工')!.index
+    expect(sceneBlocked(state, i)).toContain('隊伍裡要有人')
+    expect(sceneBlocked(state, i)).toContain('浴衣')
+    const yukata = Object.entries(gearRules.bases).find(([id]) => id === 'yukata')![0]
+    mate.gear = { ...(mate.gear ?? {}), body: { name: '浴衣', spec: { base: yukata, material: 'cotton' } } }
+    expect(sceneBlocked(state, i)).toBeUndefined()
+    expect(sceneText(state, l.scenes!.find((x) => x.title === '混浴的幫工')!)).toContain(mate.name)
+    const report = playLandmarkScene(state, i)
+    expect(report.narration?.adult_actor).toBe(mate.id)
+    expect(mate.status).toContain('aroused')
+    expect(pcOf(state).status ?? []).not.toContain('aroused')
   })
 })
