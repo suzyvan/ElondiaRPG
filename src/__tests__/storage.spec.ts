@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { craftRules, homeRules, itemDef } from '@/engine/data'
 import { prepareAction, resolveAction } from '@/engine/actions'
+import { finishCombat, startCombat } from '@/engine/combat'
 import { toolAccess } from '@/engine/crafting'
 import { plant, seedsFor } from '@/engine/garden'
 import { produceTarget, recipePlan } from '@/engine/recipes'
@@ -182,6 +183,20 @@ describe('保險箱', () => {
     withdrawMoney(state, safe.area, safe.x, safe.y, 3000)
     expect(state.money_cc).toBe(before)
     expect(safe.cell.storage).toBeUndefined()
+  })
+
+  it('戰敗只損失身上的錢，保險箱裡的不動', () => {
+    const state = game()
+    const home = bought(state)
+    const safe = chest(state, home, '保險箱')
+    state.money_cc = 10000
+    depositMoney(state, safe.area, safe.x, safe.y, 6000)
+    startCombat(state, [['goblin', 1]])
+    for (const c of state.combat!.combatants) if (c.side === 'party') c.hp = 0
+    state.combat!.status = 'defeat'
+    finishCombat(state)
+    expect(state.money_cc).toBe(3600)
+    expect(storedMoney(safe.cell)).toBe(6000)
   })
 })
 
