@@ -137,4 +137,47 @@ describe('record sex after an intimate scene', () => {
     expect(providers.completeText).toHaveBeenCalledTimes(1)
     expect(sexLogged(g.state!, r.report_id)).toBe(true)
   })
+
+  it('records again on request, replacing what this log added instead of adding twice', async () => {
+    const { g, providers } = await setup()
+    const { sexRecordOf, canRerecord, sexRecordToast } = await import('@/engine/sexRecord')
+    const r = scene(g.state!)
+    reply = '{"records":[{"id":"pc","sex":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"第一夜","first_time":"和莉娜，在旅店"}]}'
+    await g.narrate(r)
+    await vi.waitFor(() => expect(sexRecordOf(g.state!, 'pc').times).toBe(1))
+    expect(canRerecord(g.state!, r.report_id)).toBe(true)
+    expect(sexRecordToast(g.state!, g.state!.sexLedger![r.report_id]!)).toBe('📒 記下性經歷：艾倫：性交 1 次（新對象 1 人）、初體驗')
+    // 續寫之後重記：兩次，一樣是初體驗、一樣只算莉娜一個人
+    reply = '{"records":[{"id":"pc","sex":2,"service":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"第一夜，天亮前又一次","first_time":"和莉娜，在旅店"}]}'
+    await g.recordSex(r, '兩人在旅店的房間裡度過了第一夜。天亮前又纏在一起。', { manual: true, rerecord: true })
+    const rec = sexRecordOf(g.state!, 'pc')
+    expect(rec).toMatchObject({ virgin: false, partners: 1, times: 2, serviceTimes: 1, first: { with: '莉娜' } })
+    expect(rec.recent.filter((x) => x.report === r.report_id)).toHaveLength(1)
+    expect(vi.mocked(providers.completeText).mock.calls.at(-1)![2]).toMatchObject({ user: expect.stringContaining('天亮前又纏在一起') })
+    // 重記成「沒有發生」：拿掉這則記的，回到處子
+    reply = '{"records":[]}'
+    await g.recordSex(r, '……', { manual: true, rerecord: true })
+    expect(sexRecordOf(g.state!, 'pc')).toMatchObject({ virgin: true, partners: 0, times: 0, serviceTimes: 0 })
+    expect(sexRecordOf(g.state!, 'pc').first).toBeUndefined()
+    expect(canRerecord(g.state!, r.report_id)).toBe(true)
+  })
+
+  it('keeps the old record when the AI fails, and does not re-record old logs without a ledger', async () => {
+    const { g, providers } = await setup()
+    const { sexRecordOf, canRerecord, markSexLogged } = await import('@/engine/sexRecord')
+    const r = scene(g.state!)
+    reply = '{"records":[{"id":"pc","sex":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"第一夜"}]}'
+    await g.recordSex(r, '……', { manual: true })
+    expect(sexRecordOf(g.state!, 'pc').times).toBe(1)
+    vi.mocked(providers.completeText).mockRejectedValueOnce(new Error('連線失敗'))
+    await g.recordSex(r, '……', { manual: true, rerecord: true })
+    expect(sexRecordOf(g.state!, 'pc').times).toBe(1)
+    // 這次改版之前記過的日誌：沒有帳本，不能重記（會重複加）
+    const old = scene(g.state!)
+    markSexLogged(g.state!, old.report_id)
+    expect(canRerecord(g.state!, old.report_id)).toBe(false)
+    vi.mocked(providers.completeText).mockClear()
+    await g.recordSex(old, '……', { manual: true, rerecord: true })
+    expect(providers.completeText).not.toHaveBeenCalled()
+  })
 })

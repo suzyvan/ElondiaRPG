@@ -323,6 +323,27 @@ export interface SexEncounter {
 }
 
 /** 性經歷（成人向，docs/LEWD_STATS.md 第 29 節）：主角、夥伴與 NPC 都有；AI 在親密場景之後記下 */
+/** 一則日誌記下性經歷時，對一個人造成的變化（重新記錄時扣回來；sexRecord.ts 的 rerecord） */
+export interface SexLedgerEntry {
+  id: string
+  times: number
+  partners: number
+  /** 這次新記住的對象（性交、性侍奉各自） */
+  known: string[]
+  serviceTimes: number
+  servicePartners: number
+  serviceKnown: string[]
+  solo: number
+  forced: number
+  /** 這次是初體驗（處子變成不是）：扣回時恢復處子、拿掉初體驗、退回初體驗的成長 */
+  first?: boolean
+  /** 自慰最近一天原本的值（null：原本沒有）；沒變時不寫 */
+  soloLast?: number | null
+  /** 最喜歡的人、性癖：這次改成 set，原本是 prev */
+  favorite?: { prev?: string; set: string }
+  notes?: { prev?: string; set: string }
+}
+
 export interface SexRecord {
   /** 還沒有性交的經驗（性侍奉不算） */
   virgin: boolean
@@ -1088,6 +1109,8 @@ export interface GameState {
   sexRecords?: Record<string, SexRecord>
   /** 已經請 AI 記下性經歷的日誌（報告 id，最近 50 則）：同一則不重複記 */
   sexLogged?: string[]
+  /** 這幾則日誌（sexLogged 裡的）各自加了誰多少（sexRecord.ts 的 SexLedgerEntry）：重新記錄時照這個扣回來再重記 */
+  sexLedger?: Record<string, SexLedgerEntry[]>
   /** 拍賣會今天的拍品（auction.ts；每天、每個地方重新抽） */
   auction?: { day: number; location: string; lots: { name: string; start: number; rival: number; won?: number; lost?: boolean }[] }
   /** 淫鬥場的連勝：城（地點 id）→ 擂臺 → 目前的連勝與最好的紀錄（docs/LEWD_STATS.md 第 21 節） */

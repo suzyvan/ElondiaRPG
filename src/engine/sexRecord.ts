@@ -7,7 +7,7 @@ import { tagsAllowed } from './content'
 import { genderName, lewdRules, namedNpcById, stories, type NpcSexSeed, type SexSeedRule, type StoryDef } from './data'
 import { npcRecord } from './npcs'
 import { maybeConceive } from './pregnancy'
-import type { Character, GameState, LewdStat, Report, SexEncounter, SexRecord } from './types'
+import type { Character, GameState, LewdStat, Report, SexEncounter, SexLedgerEntry, SexRecord } from './types'
 
 const rules = () => lewdRules.experience
 
@@ -220,6 +220,82 @@ export function markSexLogged(state: GameState, reportId: string) {
   const list = (state.sexLogged ??= [])
   if (!list.includes(reportId)) list.push(reportId)
   if (list.length > 50) list.splice(0, list.length - 50)
+  // 帳本只留還記得的日誌
+  if (state.sexLedger) for (const id of Object.keys(state.sexLedger)) if (!list.includes(id)) delete state.sexLedger[id]
+}
+
+/** 這則日誌能不能重新記錄：記過、而且有帳本（帳本之前就記過的舊日誌扣不回來，不能重記，免得重複加） */
+export function canRerecord(state: GameState, reportId: string): boolean {
+  return sexLogged(state, reportId) && !!state.sexLedger?.[reportId]
+}
+
+/**
+ * 把這則日誌之前記下的性經歷扣回來（重新記錄的第一步）：次數、人數、記住的對象、非自願、自慰、
+ * 初體驗（恢復處子、退回初體驗的成長）、最喜歡的人與性癖（還是這次改的才換回去）、最近幾次裡這則的那一筆。
+ * 受孕不退（已經擲過）。之後在角色詳情手動改過的數字照樣扣，扣到 0 為止
+ */
+export function undoSexRecord(state: GameState, reportId: string) {
+  for (const e of state.sexLedger?.[reportId] ?? []) {
+    const rec = ensureRecord(state, e.id)
+    rec.times = Math.max(0, rec.times - e.times)
+    rec.partners = Math.max(0, rec.partners - e.partners)
+    rec.serviceTimes = Math.max(0, rec.serviceTimes - e.serviceTimes)
+    rec.servicePartners = Math.max(0, rec.servicePartners - e.servicePartners)
+    if (rec.known) rec.known = rec.known.filter((k) => !e.known.includes(k))
+    if (rec.serviceKnown) rec.serviceKnown = rec.serviceKnown.filter((k) => !e.serviceKnown.includes(k))
+    if (e.solo) rec.solo = Math.max(0, (rec.solo ?? 0) - e.solo)
+    if (e.soloLast !== undefined) {
+      if (e.soloLast === null) delete rec.soloLast
+      else rec.soloLast = e.soloLast
+    }
+    if (e.forced) rec.forced = Math.max(0, (rec.forced ?? 0) - e.forced)
+    if (e.first) {
+      rec.virgin = true
+      delete rec.first
+      const c = characterOf(state, e.id)
+      if (c) for (const [k, v] of Object.entries(rules().first_time)) if (v) bumpLewd(c, k as LewdStat, -v)
+    }
+    if (e.favorite && rec.favorite === e.favorite.set) {
+      if (e.favorite.prev) rec.favorite = e.favorite.prev
+      else delete rec.favorite
+    }
+    if (e.notes && rec.notes === e.notes.set) {
+      if (e.notes.prev) rec.notes = e.notes.prev
+      else delete rec.notes
+    }
+    rec.recent = rec.recent.filter((x) => x.report !== reportId)
+  }
+  if (state.sexLedger) delete state.sexLedger[reportId]
+}
+
+/** 兩份記錄的差：這一則日誌對這個人造成的變化 */
+function ledgerOf(id: string, before: SexRecord, after: SexRecord): SexLedgerEntry {
+  const added = (a: string[] | undefined, b: string[] | undefined) => (b ?? []).filter((k) => !(a ?? []).includes(k))
+  const e: SexLedgerEntry = {
+    id, times: after.times - before.times, partners: after.partners - before.partners, known: added(before.known, after.known),
+    serviceTimes: after.serviceTimes - before.serviceTimes, servicePartners: after.servicePartners - before.servicePartners,
+    serviceKnown: added(before.serviceKnown, after.serviceKnown), solo: (after.solo ?? 0) - (before.solo ?? 0), forced: (after.forced ?? 0) - (before.forced ?? 0),
+  }
+  if (before.virgin && !after.virgin) e.first = true
+  if (after.soloLast !== before.soloLast) e.soloLast = before.soloLast ?? null
+  if (after.favorite && after.favorite !== before.favorite) e.favorite = { ...(before.favorite ? { prev: before.favorite } : {}), set: after.favorite }
+  if (after.notes && after.notes !== before.notes) e.notes = { ...(before.notes ? { prev: before.notes } : {}), set: after.notes }
+  return e
+}
+
+/** 記錄成功時的提示：每個人這次加了什麼（「莉娜：性交 2 次（初體驗）、性侍奉 1 次」） */
+export function sexRecordToast(state: GameState, entries: SexLedgerEntry[], rerecorded = false): string {
+  const parts = entries.map((e) => {
+    const bits = [
+      e.times ? `性交 ${e.times} 次${e.partners ? `（新對象 ${e.partners} 人）` : ''}` : '',
+      e.serviceTimes ? `性侍奉 ${e.serviceTimes} 次` : '',
+      e.solo ? `自慰 ${e.solo} 次` : '',
+      e.forced ? '非自願' : '',
+      e.first ? '初體驗' : '',
+    ].filter(Boolean)
+    return `${nameFor(state, e.id)}${bits.length ? `：${bits.join('、')}` : ''}`
+  })
+  return `📒 ${rerecorded ? '重新記下性經歷（取代這則之前的記錄）' : '記下性經歷'}：${parts.join('；')}`
 }
 
 /** AI 回傳的一筆：誰、這次性交與性侍奉幾次、和誰、經過、是不是初體驗…… */
@@ -340,7 +416,7 @@ export function addEncounter(state: GameState, id: string, e: EncounterInput): b
  * 套用 AI 回傳的性經歷（驗證後加進記錄）：只收 candidates 裡的人；次數、對象有上限；
  * 第一次性交時記下初體驗，有角色資料的人照 experience.first_time 成長。回傳更新了誰
  */
-export function applySexUpdates(state: GameState, raw: unknown, ctx: { report: Report; candidates: string[] }): string[] {
+export function applySexUpdates(state: GameState, raw: unknown, ctx: { report: Report; candidates: string[]; noConceive?: boolean }): string[] {
   const caps = rules().caps
   const list = Array.isArray(raw) ? (raw as SexUpdate[]) : []
   const updated: string[] = []
@@ -349,6 +425,7 @@ export function applySexUpdates(state: GameState, raw: unknown, ctx: { report: R
     if (!u || typeof u !== 'object' || typeof u.id !== 'string') continue
     const id = u.id === state.party.find((m) => m.isPlayer)?.id ? 'pc' : u.id
     if (!ctx.candidates.includes(id) || updated.includes(id)) continue
+    const before = JSON.parse(JSON.stringify(ensureRecord(state, id))) as SexRecord
     const sex = nonNeg(u.sex, caps.times) ?? 0
     const service = nonNeg(u.service, caps.times) ?? 0
     const solo = nonNeg(u.solo, caps.times) ?? 0
@@ -374,14 +451,18 @@ export function applySexUpdates(state: GameState, raw: unknown, ctx: { report: R
       firstNote: text(u.first_time, 120), report: ctx.report.report_id, anonKey: `anon:${ctx.report.report_id}`,
     })
     // 受孕只在這裡判定（AI 記下的經歷）；NPC 私生活走 addEncounter，不會受孕（docs/FAMILY.md）
-    if (sex) maybeConceive(state, { report: ctx.report, mother: id, partners, times: sex, forced: u.forced === true })
+    if (sex && !ctx.noConceive) maybeConceive(state, { report: ctx.report, mother: id, partners, times: sex, forced: u.forced === true })
     const rec = ensureRecord(state, id)
     const favorite = text(u.favorite, 16)
     if (favorite) rec.favorite = favorite
     const notes = text(u.notes, 120)
     if (notes) rec.notes = notes
     updated.push(id)
+    // 帳本：這則日誌對這個人造成的變化（重新記錄時扣回來）
+    ;((state.sexLedger ??= {})[ctx.report.report_id] ??= []).push(ledgerOf(id, before, rec))
   }
+  // 沒有人要記也留一筆空的帳本：之後可以重新記錄
+  ;(state.sexLedger ??= {})[ctx.report.report_id] ??= []
   return updated
 }
 

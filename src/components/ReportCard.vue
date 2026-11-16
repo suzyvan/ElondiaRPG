@@ -14,7 +14,7 @@ import { usePrompts } from '@/stores/prompts'
 import { usageFeatureName, usageSourceLabel, useGame } from '@/stores/game'
 import { undoConfirmText } from '@/stores/undo'
 import { inventedIn } from '@/engine/invention'
-import { intimateReport, sexLogged } from '@/engine/sexRecord'
+import { canRerecord, intimateReport, sexLogged } from '@/engine/sexRecord'
 import { useSettings } from '@/stores/settings'
 import { useImageSettings } from '@/stores/image'
 import { sceneKey, useScenes } from '@/stores/scenes'
@@ -30,7 +30,15 @@ const game = useGame()
 const settings = useSettings()
 // 親密場景還沒記下性經歷（自動記關著、失敗時，可以手動記；docs/LEWD_STATS.md 第 29 節）
 // 每則日誌都可以手動記（規則判定、休息、移動……寫出了性愛場景卻沒標到的時候）；親密場景以外的寫在說明裡
-const canRecordSex = computed(() => !!game.state && settings.sexRecords && settings.ready('sexlog') && !sexLogged(game.state, props.report.report_id))
+// 記過的日誌：有帳本的可以重新記錄（覆蓋這則之前記下的；續寫、改寫之後依新的正文重記）
+const logged = computed(() => !!game.state && sexLogged(game.state, props.report.report_id))
+const rerecordable = computed(() => !!game.state && canRerecord(game.state, props.report.report_id))
+const canRecordSex = computed(() => !!game.state && settings.sexRecords && settings.ready('sexlog') && (!logged.value || rerecordable.value))
+function onSexRecord() {
+  if (recordingSex.value) return
+  if (logged.value && !window.confirm('重新記錄這則日誌的性經歷？\n會依現在的正文重記一次，取代這則之前記下的次數、對象與經過（受孕不會重擲）。')) return
+  void game.recordSex(props.report, undefined, { manual: true, ...(logged.value ? { rerecord: true } : {}) })
+}
 const intimate = computed(() => intimateReport(props.report))
 const recordingSex = computed(() => game.recordingSex.has(props.report.report_id))
 // 記錄中不設 disabled（有些瀏覽器停用的按鈕不顯示滑過的說明），改成閃動、按了不重送
@@ -38,8 +46,10 @@ const sexTitle = computed(() => recordingSex.value
   ? '正在記下性經歷…（等「性經歷記錄」的模型回應；太久沒回應會依「AI 判定逾時」放棄，之後可以再按）'
   : narration.value?.status === 'streaming'
     ? '經過寫完之後才能記下性經歷'
-    : intimate.value
-      ? '記下性經歷：請「性經歷記錄」的模型讀這段經過，記下誰和誰發生了關係、性侍奉、初體驗（每則日誌只記一次）'
+    : logged.value
+      ? '重新記錄性經歷：依現在的正文（續寫、改寫之後）重記一次，取代這則之前記下的次數、對象與經過（受孕不會重擲）'
+      : intimate.value
+      ? '記下性經歷：請「性經歷記錄」的模型讀這段經過，記下誰和誰發生了關係、性侍奉、初體驗（每則日誌只記一次，之後可以重新記錄）'
       : '記下性經歷：這則日誌沒有標成親密場景；經過裡寫到了性愛場景卻沒自動記下時按這裡，請「性經歷記錄」的模型讀這段經過記下來（每則日誌只記一次）')
 
 // 回退（stores/undo.ts）：最近幾輪的日誌可以撤銷，連同之後的日誌
@@ -327,9 +337,9 @@ async function copyPrompt() {
         @click="openDirect"
       ><GameIcon name="message" :size="15" /></button>
       <button
-        v-if="canRecordSex" class="small ghost tool" :class="{ recording: recordingSex }" :disabled="!recordingSex && narration?.status === 'streaming'"
-        :aria-disabled="recordingSex" :aria-label="recordingSex ? '正在記下性經歷…' : '記下性經歷'" :title="sexTitle"
-        @click="!recordingSex && game.recordSex(report, undefined, { manual: true })"
+        v-if="canRecordSex" class="small ghost tool" :class="{ recording: recordingSex, logged }" :disabled="!recordingSex && narration?.status === 'streaming'"
+        :aria-disabled="recordingSex" :aria-label="recordingSex ? '正在記下性經歷…' : logged ? '重新記錄性經歷' : '記下性經歷'" :title="sexTitle"
+        @click="onSexRecord"
       ><GameIcon name="heart" :size="15" /></button>
       <button
         v-if="canContinue" class="small ghost tool" :class="{ active: continuing }" aria-label="續寫"
@@ -412,6 +422,8 @@ async function copyPrompt() {
 .tool { display: grid; place-items: center; width: 28px; height: 26px; padding: 0; color: var(--muted); }
 .tool:hover:not(:disabled) { color: var(--accent); }
 /* 正在記下性經歷：心形閃動 */
+/* 記過的（可以重新記錄）：心是粉紅色的 */
+.tool.logged { color: #e07aa8; }
 .tool.recording { color: #ff8cc8; cursor: progress; animation: sex-pulse 1.1s ease-in-out infinite; }
 @keyframes sex-pulse { 50% { opacity: 0.35; transform: scale(0.85); } }
 :global(html[data-fx='off']) .tool.recording { animation: none; }

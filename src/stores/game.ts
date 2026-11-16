@@ -586,11 +586,13 @@ export const useGame = defineStore('game', () => {
    * 請「性經歷記錄」的模型讀這則親密場景（報告與寫好的經過），記下誰和誰做了什麼。
    * 自動：設定開啟、來源設定好、這則還沒記過時才送；manual：玩家在日誌上按的（不看開關，記過的不再記）
    */
-  async function recordSex(report: Report, narrative?: string, opts: { manual?: boolean } = {}) {
+  async function recordSex(report: Report, narrative?: string, opts: { manual?: boolean; rerecord?: boolean } = {}) {
     const s = state.value
     const settings = useSettings()
+    // 重新記錄（手動）：記過、有帳本的日誌，依現在的正文重記，取代這則之前記下的（sexRecord.ts 的 undoSexRecord）
+    const rerecord = !!opts.rerecord && !!opts.manual && !!s && sexRecord.canRerecord(s, report.report_id)
     // 自動：只記親密場景（判定或寫手標出的）；手動：玩家在任何日誌上按都送（規則判定、沒標到的漏網之魚）
-    if (!s || (!opts.manual && !sexRecord.intimateReport(report)) || sexRecord.sexLogged(s, report.report_id) || recordingSex.value.has(report.report_id)) return
+    if (!s || (!opts.manual && !sexRecord.intimateReport(report)) || (sexRecord.sexLogged(s, report.report_id) && !rerecord) || recordingSex.value.has(report.report_id)) return
     if (!settings.sexRecords || !settings.ready('sexlog') || (!opts.manual && !settings.sexRecordAi)) return
     const text = narrative ?? narrations.value[report.report_id]?.text ?? ''
     const { buildSexLogPrompt } = await import('@/narrator/sexLog')
@@ -615,11 +617,16 @@ export const useGame = defineStore('game', () => {
       const raw = extractJson(await completeText(src.provider, src.config, prompt, controller.signal, (u) => addUsage(report.report_id, u, originOf('sexlog', src)), alive, alive)) as { records?: unknown }
       clearTimeout(idle)
       // 等 AI 的時候讀了別的檔、或回退掉這則日誌：不要寫進去
-      if (state.value !== s || !s.reports.some((r) => r.report_id === report.report_id) || sexRecord.sexLogged(s, report.report_id)) return
-      const updated = sexRecord.applySexUpdates(s, raw.records, { report, candidates: built.candidates })
+      if (state.value !== s || !s.reports.some((r) => r.report_id === report.report_id)) return
+      if (rerecord ? !sexRecord.canRerecord(s, report.report_id) : sexRecord.sexLogged(s, report.report_id)) return
+      // 重新記錄：AI 回來了才把這則之前記下的扣掉（失敗時舊的記錄不動），受孕不重擲
+      if (rerecord) sexRecord.undoSexRecord(s, report.report_id)
+      const updated = sexRecord.applySexUpdates(s, raw.records, { report, candidates: built.candidates, ...(rerecord ? { noConceive: true } : {}) })
       sexRecord.markSexLogged(s, report.report_id)
       save()
-      if (updated.length) flash(`📒 記下性經歷：${updated.map((id) => social.nameOf(s, id)).join('、')}`)
+      // 每個人這次加了什麼：字比較多，停久一點
+      if (updated.length) flash(sexRecord.sexRecordToast(s, s.sexLedger?.[report.report_id] ?? [], rerecord), 5000)
+      else if (rerecord) flash('📒 重新記錄：這段經過沒有需要記下的性經歷（已拿掉這則之前的記錄）')
       else if (opts.manual) flash('📒 這段經過沒有需要記下的性經歷')
     } catch (e) {
       error.value = timedOut
