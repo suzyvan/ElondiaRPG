@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { craftRules, genderName, homeRules, itemDef, raceName } from '@/engine/data'
+import { craftRules, genderName, homeRules, itemDef, itemRules, raceName } from '@/engine/data'
 import {
   comfortOf, describeHome, furnitureIn, hasBed, homeOfArea, lotHere, lotPrice, ownHomeOfArea, PLACE_NAME, placeOf, residents, stayRefusal,
 } from '@/engine/homes'
 import { cropStatus, plotPlace, seedsFor } from '@/engine/garden'
+import { depositRefusal, storageSlots, storageSpec, storedItems, storedMoney } from '@/engine/storage'
 import { formatMoney } from '@/engine/money'
 import { childrenAtHome, hasTemple } from '@/engine/children'
 import { useGame } from '@/stores/game'
@@ -78,6 +79,25 @@ function uprootIt() {
   if (crop.value && confirm(`拔掉還沒成熟的${crop.value.seed}？種子不會退回。`)) game.uproot()
 }
 
+// 儲物箱：站在箱子上存取（不花時間）
+const chest = computed(() => (home.value && (storageSpec(cell.value) || storedItems(cell.value).length || storedMoney(cell.value)) ? cell.value : undefined))
+const chestSpec = computed(() => storageSpec(chest.value))
+const boxItems = computed(() => storedItems(chest.value))
+const boxQty = ref<number | ''>('')
+const boxCat = ref('')
+const categories = computed(() => Object.entries(itemRules.categories).filter(([id]) => s.value.inventory.some((i) => i.qty > 0 && itemDef(i.name)?.category === id)))
+const bagItems = computed(() => s.value.inventory.filter((i) => i.qty > 0 && (!boxCat.value || itemDef(i.name)?.category === boxCat.value)))
+const refusal = (name: string) => (chest.value ? depositRefusal(s.value, chest.value, name) : undefined)
+const sameCount = computed(() => s.value.inventory.filter((i) => i.qty > 0 && boxItems.value.some((b) => b.name === i.name)).length)
+const qtyArg = () => (typeof boxQty.value === 'number' && boxQty.value > 0 ? boxQty.value : undefined)
+const money = ref<number | ''>('')
+function moveMoney(dir: 'in' | 'out') {
+  if (typeof money.value !== 'number' || money.value <= 0) return
+  if (dir === 'in') game.depositMoney(money.value)
+  else game.withdrawMoney(money.value)
+  money.value = ''
+}
+
 function placeIt() {
   if (!pick.value) return
   game.placeFurniture(pick.value)
@@ -124,7 +144,7 @@ function rename() {
     <div class="spot">
       <template v-if="cell.furniture">
         <span>這一格：{{ itemDef(cell.furniture)?.furniture?.icon ?? '🪑' }} {{ cell.furniture }}</span>
-        <button v-if="!cell.crop" class="small" @click="game.takeFurniture()">收起</button>
+        <button v-if="!cell.crop && !chest?.storage" class="small" @click="game.takeFurniture()">收起</button>
       </template>
       <template v-else-if="place">
         <span>這一格（{{ PLACE_NAME[place] }}）是空的</span>
@@ -138,6 +158,51 @@ function rename() {
         <span v-else class="muted">行囊裡沒有能放在{{ PLACE_NAME[place] }}的家具（雜貨店、鐵匠鋪、裁縫店、珠寶店有賣）。</span>
       </template>
       <span v-else class="muted">站在空的地板或院子上可以擺家具。</span>
+    </div>
+
+    <div v-if="chest" class="spot chest">
+      <div class="row head">
+        <b>{{ chestSpec ? `${chestSpec.icon ?? '📦'} ${chest.furniture}` : '箱子' }}</b>
+        <span class="muted small">放了 {{ boxItems.length }}／{{ storageSlots(chest) }} 種<template v-if="chestSpec?.money">・存款 {{ formatMoney(storedMoney(chest)) }}</template></span>
+        <Hint text="存進去、拿出來不花時間。每個箱子能放的種類有限，同一種的數量不限；情報要帶在身上才讀得到，不能放進箱子。在這棟房子裡做工藝、播種時，箱子裡的材料與種子也算。箱子裡還有東西時不能收起。" />
+      </div>
+      <div v-if="chestSpec?.money || storedMoney(chest)" class="row">
+        <input v-model.number="money" type="number" min="1" placeholder="金額（白鸛）" />
+        <button v-if="chestSpec?.money" class="small" :disabled="!money || money > s.money_cc" @click="moveMoney('in')">存錢</button>
+        <button class="small" :disabled="!money || money > storedMoney(chest)" @click="moveMoney('out')">領錢</button>
+        <span class="muted small">存在保險箱的錢戰敗時不會損失</span>
+      </div>
+      <div class="row">
+        <label class="small">數量 <input v-model.number="boxQty" type="number" min="1" placeholder="全部" class="qty" /></label>
+        <button class="small" :disabled="!sameCount" :title="sameCount ? '' : '行囊裡沒有箱子裡已經有的東西'" @click="game.depositMany({ same: true })">同樣的東西全部放進去</button>
+        <select v-model="boxCat">
+          <option value="">行囊：全部分類</option>
+          <option v-for="[id, n] in categories" :key="id" :value="id">{{ n }}</option>
+        </select>
+        <button v-if="boxCat && chestSpec" class="small" @click="game.depositMany({ category: boxCat })">這一類全部放進去</button>
+      </div>
+      <div class="cols">
+        <div>
+          <h4 class="sub">箱子裡</h4>
+          <ul class="plain">
+            <li v-for="i in boxItems" :key="i.name" class="row">
+              <span>{{ i.name }} ×{{ i.qty }}</span>
+              <button class="small" @click="game.withdraw(i.name, qtyArg())">拿出來</button>
+            </li>
+            <li v-if="!boxItems.length" class="muted">空的。</li>
+          </ul>
+        </div>
+        <div v-if="chestSpec">
+          <h4 class="sub">行囊</h4>
+          <ul class="plain">
+            <li v-for="i in bagItems" :key="i.name" class="row">
+              <span>{{ i.name }} ×{{ i.qty }}</span>
+              <button class="small" :disabled="!!refusal(i.name)" :title="refusal(i.name)" @click="game.deposit(i.name, qtyArg())">放進去</button>
+            </li>
+            <li v-if="!bagItems.length" class="muted">沒有東西。</li>
+          </ul>
+        </div>
+      </div>
     </div>
 
     <div v-if="plot" class="spot">
@@ -187,7 +252,7 @@ function rename() {
 
     <FoldMenu id="home.furniture" icon="sofa" label="家具" detail="擺在這棟房子裡的家具" :badge="all.length">
       <ul class="plain">
-        <li v-for="f in all" :key="`${f.area}:${f.x},${f.y}`">{{ itemDef(f.name)?.furniture?.icon }} {{ f.name }} <span class="muted">（{{ floorName(f.area) }}）</span></li>
+        <li v-for="f in all" :key="`${f.area}:${f.x},${f.y}`">{{ itemDef(f.name)?.furniture?.icon }} {{ f.name }} <span class="muted">（{{ floorName(f.area) }}<template v-if="f.stored">・放了 {{ f.stored }} 種</template>）</span></li>
         <li v-if="!all.length" class="muted">還沒有家具。</li>
       </ul>
     </FoldMenu>
@@ -204,4 +269,9 @@ function rename() {
 .spot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px; border: 1px dashed var(--border); border-radius: 6px; }
 .home ul { margin: 0; }
 .home li.row { justify-content: space-between; }
+.chest { display: grid; gap: 6px; }
+.chest .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+.chest .cols ul { max-height: 220px; overflow-y: auto; }
+.chest .qty { width: 5em; }
+.chest .sub { margin: 0 0 2px; }
 </style>

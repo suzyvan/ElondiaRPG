@@ -2413,11 +2413,18 @@ export const CRAFT_IDS = Object.keys(craftRules.skills) as CraftId[]
 
 export type FurniturePlace = 'indoor' | 'yard' | 'basement'
 
+export const FURNITURE_FUNCTIONS = ['bed', 'workbench', 'garden', 'training', 'crib', 'storage'] as const
+export type FurnitureFunction = (typeof FURNITURE_FUNCTIONS)[number]
+
 export interface FurnitureSpec {
   places: FurniturePlace[]
-  /** bed：在家長休；workbench：高階工作台（craft）；garden：可以播種的苗圃；training：調教室的家具（docs/LEWD_STATS.md 第 19 節）；crib：搖籃（家裡的嬰兒，docs/FAMILY.md） */
-  function?: 'bed' | 'workbench' | 'garden' | 'training' | 'crib'
+  /** bed：在家長休；workbench：高階工作台（craft）；garden：可以播種的苗圃；training：調教室的家具（docs/LEWD_STATS.md 第 19 節）；crib：搖籃（家裡的嬰兒，docs/FAMILY.md）；storage：儲物箱（slots、money，docs/HOMES.md） */
+  function?: FurnitureFunction
   craft?: CraftId
+  /** 儲物箱：能放幾種東西（同一種的數量不限） */
+  slots?: number
+  /** 儲物箱：可以存錢（保險箱） */
+  money?: boolean
   /** 調教室的家具：在家調教時的檢定加值 */
   training?: number
   comfort?: number

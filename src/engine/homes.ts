@@ -2,7 +2,7 @@
 // - 每座聚落有幾塊待售的空地：從固定地圖上挑臨街的建築格（同一座城一直一樣），買下後變成房子的門。
 // - 房子的地圖依地段生成（樓層、院子、地下室，房間用隔牆分開），買下時存進存檔。
 // - 樓梯與門都是通道（link）：走上去就到另一層或回到街上。
-// - 家具擺在格子上：床讓你在家長休、高階工作台讓你處理第四、五級的材料，舒適度高時睡得香甜。
+// - 家具擺在格子上：床讓你在家長休、高階工作台讓你處理第四、五級的材料，舒適度高時睡得香甜，儲物箱收東西（storage.ts）。
 // - 夥伴可以留在家裡（不算離隊）：不佔隊伍人數、不參加戰鬥，回家時可以帶上。
 
 import { snapshot } from './character'
@@ -17,6 +17,7 @@ import { locationMult } from './trade'
 import { formatMoney } from './money'
 import { cribRefusal } from './children'
 import { resolveMasterHome } from './homeResolver'
+import { storageInUse, storedItems } from './storage'
 import type { Character, GameState, Home, Report } from './types'
 
 // ---- 空地 ----
@@ -404,15 +405,20 @@ export const PLACE_NAME: Record<FurniturePlace, string> = { indoor: '室內', ya
 export function furnitureSummary(f: FurnitureSpec | undefined): string {
   if (!f) return ''
   const fn = f.function === 'bed' ? '床' : f.function === 'workbench' ? `${f.craft ? craftRules.skills[f.craft].name : ''}的高階工作台`
-    : f.function === 'garden' ? '苗圃' : f.function === 'training' ? `調教室（在家調教 +${f.training ?? 0}）` : f.function === 'crib' ? '搖籃' : ''
+    : f.function === 'garden' ? '苗圃' : f.function === 'training' ? `調教室（在家調教 +${f.training ?? 0}）` : f.function === 'crib' ? '搖籃'
+    : f.function === 'storage' ? `儲物箱（${f.slots ?? 0} 種${f.money ? '，可以存錢' : ''}）` : ''
   return [fn, f.comfort ? `舒適 +${f.comfort}` : '', `放在${f.places.map((p) => PLACE_NAME[p]).join('、')}`].filter(Boolean).join('，')
 }
 
 /** 房子裡所有的家具 */
-export function furnitureIn(home: Home): { name: string; area: string; x: number; y: number }[] {
-  const out: { name: string; area: string; x: number; y: number }[] = []
+export function furnitureIn(home: Home): { name: string; area: string; x: number; y: number; stored?: number }[] {
+  const out: { name: string; area: string; x: number; y: number; stored?: number }[] = []
   for (const a of Object.values(home.areas)) {
-    a.cells.forEach((c, i) => { if (c.furniture) out.push({ name: c.furniture, area: a.key, x: i % a.width, y: Math.floor(i / a.width) }) })
+    a.cells.forEach((c, i) => {
+      if (!c.furniture) return
+      const stored = storedItems(c).length
+      out.push({ name: c.furniture, area: a.key, x: i % a.width, y: Math.floor(i / a.width), ...(stored ? { stored } : {}) })
+    })
   }
   return out
 }
@@ -464,6 +470,7 @@ export function takeFurniture(state: GameState, area: Area, x: number, y: number
   const cell = area.cells[y * area.width + x]
   if (!cell?.furniture) throw new Error('這一格沒有家具')
   if (cell.crop) throw new Error('苗圃上還種著東西，先收成或拔掉')
+  if (storageInUse(cell)) throw new Error('箱子裡還有東西，先拿出來')
   if (itemDef(cell.furniture)?.furniture?.function === 'crib') {
     const refused = cribRefusal(state, ownHomeOfArea(state, area)!)
     if (refused) throw new Error(refused)

@@ -4,6 +4,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { cellAt, CELL_ICON, CELL_NAME, cellName, isRevealed, linkTargetName, position, sight, type Cell } from '@/engine/grid'
 import { forCostumeShops, isCustomShopId, itemDef, landmarkDef, locationById } from '@/engine/data'
 import { cropStatus } from '@/engine/garden'
+import { storedItems, storedMoney } from '@/engine/storage'
+import { formatMoney } from '@/engine/money'
 import { homeById } from '@/engine/homes'
 import { isHostile, type PresentNpc } from '@/engine/population'
 import { useGame } from '@/stores/game'
@@ -97,6 +99,10 @@ function baseLabel(cell: Cell): string {
   if (cell.crop && game.state) {
     const c = cropStatus(game.state, cell)
     return `${cell.furniture}：種著${cell.crop.seed}${c?.ready ? '，可以收成了' : `，還要 ${c?.hoursLeft ?? 0} 小時`}`
+  }
+  if (cell.furniture && cell.storage) {
+    const n = storedItems(cell).length
+    return `${cell.furniture}：${n ? `放了 ${n} 種東西` : ''}${n && storedMoney(cell) ? '、' : ''}${storedMoney(cell) ? `存了 ${formatMoney(storedMoney(cell))}` : ''}`
   }
   if (cell.furniture) return `家具：${cell.furniture}`
   if (cell.dir) return { up: '往樓上', down: '往樓下', out: '出門' }[cell.dir]

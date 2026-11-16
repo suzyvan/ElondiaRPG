@@ -15,7 +15,7 @@ import { formatMoney } from '@/engine/money'
 import { inferTradeCategory, marketRules, tradeCategoryName } from '@/engine/market'
 import { inferMaterialTier, maxMaterialTier } from '@/engine/materialInfo'
 import { TOOL_KINDS, toolSummary } from '@/engine/tools'
-import { choosablePerks, CRAFT_IDS, craftRules, homeRules, type FurniturePlace } from '@/engine/data'
+import { choosablePerks, CRAFT_IDS, craftRules, FURNITURE_FUNCTIONS, homeRules, type FurnitureFunction, type FurniturePlace } from '@/engine/data'
 import { PLACE_NAME } from '@/engine/homes'
 import { CONTENT_TAGS, FILTER_TAGS } from '@/engine/content'
 import { categoryIconSource, gearIconSource, type IconSource } from '@/engine/itemIcons'
@@ -164,12 +164,17 @@ const toolText = computed(() => toolSummary(draft.value.tool))
 // 家具
 const furn = computed(() => (draft.value.furniture ??= { places: ['indoor'] }))
 function setFurnFunction(v: string) {
-  if (v === 'bed' || v === 'workbench' || v === 'garden' || v === 'training' || v === 'crib') furn.value.function = v
+  if ((FURNITURE_FUNCTIONS as readonly string[]).includes(v)) furn.value.function = v as FurnitureFunction
   else delete furn.value.function
   if (v === 'workbench') furn.value.craft ??= 'smithing'
   else delete furn.value.craft
   if (v === 'training') furn.value.training ??= 1
   else delete furn.value.training
+  if (v === 'storage') furn.value.slots ??= 12
+  else {
+    delete furn.value.slots
+    delete furn.value.money
+  }
 }
 function toggleFurnPlace(p: FurniturePlace) {
   const list = furn.value.places
@@ -647,8 +652,11 @@ function setFuel(v: string) {
             <option value="garden">苗圃（可以播種）</option>
             <option value="training">調教室（成人向：在家調教加值、奴隸每天順從 +1）</option>
             <option value="crib">搖籃（家裡的嬰兒睡在這裡；可有可無）</option>
+            <option value="storage">儲物箱（收東西；保險箱還能存錢）</option>
           </select>
         </label>
+        <label v-if="furn.function === 'storage'">能放幾種 <input v-model.number="furn.slots" type="number" min="1" max="99" title="不同的東西各算一種，同一種的數量不限" /></label>
+        <label v-if="furn.function === 'storage'" class="check"><input type="checkbox" :checked="!!furn.money" @change="($event.target as HTMLInputElement).checked ? (furn.money = true) : delete furn.money" /> 可以存錢（保險箱）</label>
         <label v-if="furn.function === 'training'">調教加值 <input v-model.number="furn.training" type="number" min="1" max="3" /></label>
         <label v-if="furn.function === 'workbench'">工藝
           <select v-model="furn.craft">
@@ -664,7 +672,7 @@ function setFuel(v: string) {
           <input type="checkbox" :checked="furn.places.includes(p)" @change="toggleFurnPlace(p)" /> {{ PLACE_NAME[p] }}
         </label>
       </div>
-      <p class="small muted">家具擺在自己房子的格子上。床讓你在家長休；舒適度加總達到 {{ homeRules.comfort_rested }} 時，在家長休後睡得香甜；高階工作台讓這種工藝能處理第四、五級的材料；苗圃可以種下種子（種子的「能種在」要和苗圃擺的地方一樣）。</p>
+      <p class="small muted">家具擺在自己房子的格子上。床讓你在家長休；舒適度加總達到 {{ homeRules.comfort_rested }} 時，在家長休後睡得香甜；高階工作台讓這種工藝能處理第四、五級的材料；苗圃可以種下種子（種子的「能種在」要和苗圃擺的地方一樣）；儲物箱收行囊裡的東西（容量算種類，在這棟房子做工藝、播種時箱子裡的也算），保險箱還能存錢。</p>
     </FoldSet>
 
     <FoldSet v-if="draft.category !== 'equipment'">

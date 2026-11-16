@@ -76,6 +76,7 @@ import * as homes from '@/engine/homes'
 import * as away from '@/engine/away'
 import * as partyEngine from '@/engine/party'
 import * as garden from '@/engine/garden'
+import * as storage from '@/engine/storage'
 import * as invention from '@/engine/invention'
 import * as fieldCast from '@/engine/fieldCast'
 import type { CustomDifficulty, DefeatLoot, Difficulty, GameState, GearSlot, LewdStat, NpcNews, Report, TattooPlace } from '@/engine/types'
@@ -1747,6 +1748,27 @@ export const useGame = defineStore('game', () => {
     uproot: () => run((s) => {
       const p = grid.position(s)
       garden.uproot(s, grid.currentArea(s), p.x, p.y)
+    }),
+    // 儲物箱（storage.ts）：站在箱子上存取，不花時間
+    deposit: (name: string, qty?: number) => run((s) => {
+      const p = grid.position(s)
+      storage.depositItem(s, grid.currentArea(s), p.x, p.y, name, qty)
+    }),
+    withdraw: (name: string, qty?: number) => run((s) => {
+      const p = grid.position(s)
+      storage.withdrawItem(s, grid.currentArea(s), p.x, p.y, name, qty)
+    }),
+    depositMany: (by: { same: true } | { category: string }) => run((s) => {
+      const p = grid.position(s)
+      storage.depositMany(s, grid.currentArea(s), p.x, p.y, by)
+    }),
+    depositMoney: (amount: number) => run((s) => {
+      const p = grid.position(s)
+      storage.depositMoney(s, grid.currentArea(s), p.x, p.y, amount)
+    }),
+    withdrawMoney: (amount: number) => run((s) => {
+      const p = grid.position(s)
+      storage.withdrawMoney(s, grid.currentArea(s), p.x, p.y, amount)
     }),
     /** 地下城的緊急撤退（失敗會被追上打一場） */
     retreat: () => run(grid.retreat),

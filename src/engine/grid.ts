@@ -40,7 +40,7 @@ import { bestTool } from './tools'
 import { restrainPc } from './forcedGear'
 import { pcOf } from './party'
 import { addHours, advanceTime, commitReport, newReportId, player, withRng } from './state'
-import type { Character, GameState, GameTime, Quest, Report } from './types'
+import type { Character, GameState, GameTime, InventoryItem, Quest, Report } from './types'
 import { gameRule, rewardMoney } from './gameRules'
 import { attrParts, checkParts, rollBreakdown, sumParts } from './rollParts'
 
@@ -95,6 +95,8 @@ export interface Cell {
   furniture?: string
   /** 苗圃上種的東西：種子與播種的時間（見 garden.ts） */
   crop?: { seed: string; planted: GameTime }
+  /** 儲物箱裡放的東西與錢（見 storage.ts） */
+  storage?: { items: InventoryItem[]; money_cc?: number }
 }
 
 /** 旅途格子上的事件：auto 原本的旅途事件、normal 普通事件、advanced 高階事件、special 特殊任務的開頭、master 主人的事件 */
