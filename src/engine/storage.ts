@@ -247,3 +247,17 @@ export function removeFromHome(home: Home, name: string, qty: number): number {
   }
   return Math.max(0, Math.floor(qty)) - left
 }
+
+/** 從這棟房子的保險箱直接拿錢（管家付工錢），回傳拿到多少 */
+export function takeHomeMoney(home: Home, amount: number): number {
+  let left = Math.max(0, Math.floor(amount))
+  for (const { cell } of chestsIn(home)) {
+    if (left <= 0) break
+    const n = Math.min(storedMoney(cell), left)
+    if (!n) continue
+    cell.storage!.money_cc = storedMoney(cell) - n
+    left -= n
+    tidy(cell)
+  }
+  return Math.max(0, Math.floor(amount)) - left
+}

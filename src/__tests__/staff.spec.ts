@@ -6,7 +6,7 @@ import { homeRules } from '@/engine/data'
 import { enterLocation, placeAt, type Area } from '@/engine/grid'
 import { buyHome, comfortOf, lotsOf, placeFurniture } from '@/engine/homes'
 import { plant } from '@/engine/garden'
-import { depositItem, homeStock } from '@/engine/storage'
+import { depositItem, depositMoney, homeMoney, homeStock } from '@/engine/storage'
 import { peopleHere } from '@/engine/population'
 import { longRest } from '@/engine/rest'
 import {
@@ -236,5 +236,61 @@ describe('園丁（H2）', () => {
     advanceTime(state, 24 * 4)
     expect(plot.crop?.seed).toBe('莓果苗')
     expect(home.staffNotes?.some((n) => n.text.includes('箱子滿了'))).toBe(true)
+  })
+})
+
+describe('管家（H3）', () => {
+  /** 一樓擺保險箱、存錢 */
+  function safe(state: GameState, home: Home, money: number) {
+    const g = ground(home)
+    const p = spot(g, 3)
+    addItem(state.inventory, '保險箱', 1)
+    placeFurniture(state, g, p.x, p.y, '保險箱')
+    if (money) depositMoney(state, g, p.x, p.y, money)
+  }
+
+  it('上限 +1', () => {
+    const state = game()
+    const home = moveIn(state)
+    const base = staffCap(state, home)
+    hire(state, home, 'steward')
+    expect(staffCap(state, home)).toBe(base + homeRules.staff.steward_bonus)
+  })
+
+  it('每天從保險箱付工錢，家僕不會辭職；錢不夠時寫進「你不在的時候」', () => {
+    const state = game()
+    const home = moveIn(state)
+    const maid = hire(state, home, 'maid')
+    const steward = hire(state, home, 'steward')
+    const daily = state.npcs![maid]!.staff!.wage_cc + state.npcs![steward]!.staff!.wage_cc
+    safe(state, home, daily * 10)
+    enterLocation(state)
+    advanceTime(state, 24 * 10)
+    expect(homeOwed(state, home.id)).toBe(0)
+    expect(homeMoney(home)).toBe(0)
+    expect(home.staffNotes?.some((n) => n.tag === '付工錢' && n.text.includes('保險箱'))).toBe(true)
+    advanceTime(state, 24 * 3)
+    expect(homeOwed(state, home.id)).toBe(daily * 3)
+    expect(home.staffNotes?.some((n) => n.text.includes('不夠'))).toBe(true)
+    expect(staffOf(state, home.id)).toHaveLength(2)
+  })
+
+  it('提醒：快要辭職的人、可以收成的作物', () => {
+    const state = game()
+    const home = moveIn(state)
+    const maid = hire(state, home, 'maid')
+    hire(state, home, 'steward')
+    const g = ground(home)
+    const i = g.cells.findIndex((c) => c.kind === 'yard')
+    addItem(state.inventory, '菜圃', 1)
+    placeFurniture(state, g, i % g.width, Math.floor(i / g.width), '菜圃')
+    addItem(state.inventory, '莓果苗', 1)
+    placeAt(state, g, i % g.width, Math.floor(i / g.width))
+    plant(state, g, i % g.width, Math.floor(i / g.width), '莓果苗')
+    enterLocation(state)
+    advanceTime(state, 24 * homeRules.staff.quit_days)
+    const texts = (home.staffNotes ?? []).map((n) => n.text)
+    expect(texts.some((t) => t.includes(state.npcs![maid]!.name) && t.includes('明天再不付'))).toBe(true)
+    expect(texts.filter((t) => t.includes('可以收成了'))).toHaveLength(1)
   })
 })

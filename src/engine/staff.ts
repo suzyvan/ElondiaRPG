@@ -16,7 +16,7 @@ import { Rng } from './rng'
 import { addMemory, ensureRelationship, setAffinity } from './social'
 import { commitReport, withRng } from './state'
 import { plotPlace, seedOf } from './garden'
-import { removeFromHome, storeInHome } from './storage'
+import { homeMoney, removeFromHome, storeInHome, takeHomeMoney } from './storage'
 import { locationMult } from './trade'
 import type { GameState, GameTime, Home, NpcRecord, Report } from './types'
 
@@ -185,9 +185,9 @@ export function hireStaff(state: GameState, id: string): Report {
   return commitReport(state, report)
 }
 
-/** 欠了幾天工錢 */
-export function owedDays(state: GameState, rec: NpcRecord): number {
-  return rec.staff ? Math.max(0, state.time.day - rec.staff.paidUntil) : 0
+/** 欠了幾天工錢（day：算到第幾天，預設今天） */
+export function owedDays(state: GameState, rec: NpcRecord, day = state.time.day): number {
+  return rec.staff ? Math.max(0, day - rec.staff.paidUntil) : 0
 }
 
 export function owedWage(state: GameState, rec: NpcRecord): number {
@@ -203,10 +203,10 @@ export function homeOwed(state: GameState, homeId: string): number {
  * 用 budget 付工錢：從欠最久的人開始，付得了幾天就付幾天。回傳付了多少。
  * 回家結清（身上的錢）與管家（保險箱）共用。
  */
-export function payFrom(state: GameState, homeId: string, budget: number): number {
+export function payFrom(state: GameState, homeId: string, budget: number, day = state.time.day): number {
   let left = budget
   for (const r of staffOf(state, homeId).sort((a, b) => a.staff!.paidUntil - b.staff!.paidUntil)) {
-    const days = Math.min(owedDays(state, r), Math.floor(left / Math.max(1, r.staff!.wage_cc)))
+    const days = Math.min(owedDays(state, r, day), Math.floor(left / Math.max(1, r.staff!.wage_cc)))
     if (days <= 0) continue
     r.staff!.paidUntil += days
     left -= days * r.staff!.wage_cc
@@ -261,6 +261,7 @@ export function fireStaff(state: GameState, id: string): Report {
 // ---- 每天 ----
 
 function note(home: Home, day: number, text: string, tag: string) {
+  if (home.staffNotes?.some((n) => n.text === text)) return
   ;(home.staffNotes ??= []).push({ text, tag, day })
   if (home.staffNotes.length > 40) home.staffNotes.splice(0, home.staffNotes.length - 40)
 }
@@ -281,6 +282,33 @@ function quit(state: GameState, home: Home, rec: NpcRecord, day: number) {
 
 const minutesOf = (t: GameTime) => ((t.day - 1) * 24 + (t.hour ?? 0)) * 60 + (t.minute ?? 0)
 const timeAt = (m: number): GameTime => ({ day: Math.floor(m / 1440) + 1, hour: Math.floor((m % 1440) / 60), minute: m % 60 })
+
+/** 管家的一天：從保險箱付工錢（到 day 為止欠的）；回傳付了多少，錢不夠時 short 為 true */
+function stewardPays(state: GameState, home: Home, day: number): { paid: number; short: boolean } {
+  if (!staffOf(state, home.id).some((r) => r.staff!.job === 'steward')) return { paid: 0, short: false }
+  const owed = staffOf(state, home.id).reduce((n, r) => n + owedDays(state, r, day) * r.staff!.wage_cc, 0)
+  if (!owed) return { paid: 0, short: false }
+  const paid = payFrom(state, home.id, homeMoney(home), day)
+  takeHomeMoney(home, paid)
+  return { paid, short: paid < owed }
+}
+
+/** 管家的提醒：再一天就要辭職的人、剛成熟的作物（沒有園丁時） */
+function stewardWarns(state: GameState, home: Home, day: number, from: number, until: number) {
+  if (!staffOf(state, home.id).some((r) => r.staff!.job === 'steward')) return
+  for (const r of staffOf(state, home.id)) {
+    if (owedDays(state, r, day) === rules().quit_days) note(home, day, `管家提醒：${r.name}已經欠了 ${rules().quit_days} 天工錢，明天再不付就要辭職了。`, '提醒')
+  }
+  if (hasWorker(state, home.id, 'gardener')) return
+  for (const a of Object.values(home.areas)) {
+    for (const c of a.cells) {
+      const spec = c.crop && plotPlace(a, c) ? seedOf(c.crop.seed) : undefined
+      if (!spec) continue
+      const ripe = minutesOf(c.crop!.planted) + spec.days * 1440
+      if (ripe > from && ripe <= until) note(home, day, `管家提醒：${c.furniture}的${c.crop!.seed}可以收成了。`, '提醒')
+    }
+  }
+}
 
 /** 園丁的一天：把到 until（分鐘）為止成熟的作物收進箱子；箱子裡有同樣的種子時，在成熟的那一刻重新播種 */
 interface GardenLog { got: Map<string, number>; replanted: number; full: boolean }
@@ -322,13 +350,23 @@ export function staffDaily(state: GameState, fromDay: number, toDay: number) {
   const start = Math.max(fromDay + 1, toDay - 60)
   const now = minutesOf(state.time)
   const logs = new Map<string, GardenLog>()
+  const pay = new Map<string, { paid: number; short: boolean }>()
   for (let day = start; day <= toDay; day++) {
     for (const home of Object.values(state.homes)) {
+      // 管家先從保險箱付錢，付不出來的才會欠到辭職
+      const p = stewardPays(state, home, day)
+      const sum = pay.get(home.id) ?? { paid: 0, short: false }
+      pay.set(home.id, { paid: sum.paid + p.paid, short: sum.short || p.short })
       for (const rec of staffOf(state, home.id)) if (day - rec.staff!.paidUntil > rules().quit_days) quit(state, home, rec, day)
+      // 這一天的範圍（第一天往前包含上一次跨日的那天，重複的提醒在 note 裡略過）
+      stewardWarns(state, home, day, (day === start ? day - 2 : day - 1) * 1440, Math.min(day * 1440, now))
       const log = logs.get(home.id) ?? { got: new Map(), replanted: 0, full: false }
       logs.set(home.id, log)
       tendGarden(state, home, Math.min(day * 1440, now), log)
     }
+  }
+  for (const [id, p] of pay) {
+    if (p.paid || p.short) note(state.homes[id]!, toDay, `${p.paid ? `管家從保險箱付了 ${formatMoney(p.paid)} 工錢。` : ''}${p.short ? '保險箱的錢不夠付工錢。' : ''}`, '付工錢')
   }
   for (const [id, log] of logs) {
     if (!log.got.size && !log.full) continue

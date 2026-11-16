@@ -5,7 +5,7 @@ import {
   comfortOf, describeHome, furnitureIn, hasBed, homeOfArea, lotHere, lotPrice, ownHomeOfArea, PLACE_NAME, placeOf, residents, stayRefusal,
 } from '@/engine/homes'
 import { cropStatus, plotPlace, seedsFor } from '@/engine/garden'
-import { depositRefusal, storageSlots, storageSpec, storedItems, storedMoney } from '@/engine/storage'
+import { depositRefusal, homeMoney, storageSlots, storageSpec, storedItems, storedMoney } from '@/engine/storage'
 import { candidates, hireRefusal, jobDef, jobName, owedDays, owedWage, staffCap, staffOf, wageHere } from '@/engine/staff'
 import { isBound } from '@/engine/party'
 import { formatMoney } from '@/engine/money'
@@ -107,6 +107,7 @@ const owedTotal = computed(() => staffList.value.reduce((n, r) => n + owedWage(s
 const applicants = computed(() => (home.value && !isBound(s.value) ? candidates(s.value, home.value.location) : []))
 const hireBlocked = computed(() => (home.value ? hireRefusal(s.value, home.value) : undefined))
 const notes = computed(() => home.value?.staffNotes ?? [])
+const steward = computed(() => staffList.value.some((r) => r.staff!.job === 'steward'))
 /** 同一個職位的第二個人起：效果不疊加 */
 const duplicate = (i: number) => staffList.value.slice(0, i).some((r) => r.staff!.job === staffList.value[i]!.staff!.job)
 function fire(id: string, name: string) {
@@ -263,6 +264,7 @@ function rename() {
 
     <FoldMenu id="home.staff" icon="users" label="家僕" :detail="`雇普通人做家務：不入隊，工錢按天欠著、回家結清（${staffList.length}／${cap} 人）`" :badge="staffList.length" :open="staffList.length > 0">
       <p class="small muted">工錢欠著，回到家再結清 <Hint :text="`家僕住在這棟房子裡，不入隊。工錢每天累積，回家時按「結清」；欠超過 ${homeRules.staff.quit_days} 天的人會辭職（親密度下降）。同一個職位雇好幾個人時效果不疊加。`" /></p>
+      <p v-if="steward" class="small muted">管家每天從保險箱付工錢（保險箱裡有 {{ formatMoney(homeMoney(home)) }}）{{ homeMoney(home) ? '' : '：先在保險箱存點錢' }}。</p>
       <div v-if="owedTotal" class="row">
         <span>欠工錢 {{ formatMoney(owedTotal) }}</span>
         <button class="small primary" :disabled="s.money_cc <= 0" @click="game.payWages()">結清</button>
