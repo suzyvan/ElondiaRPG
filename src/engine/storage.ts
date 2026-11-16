@@ -220,3 +220,30 @@ export function withHomeStorage(state: GameState, scene: string): string {
   const list = [...homeStock(home)].sort((a, b) => b[1] - a[1]).slice(0, 10)
   return list.length ? `${scene}・家裡的箱子收著：${list.map(([n, q]) => `${n}×${q}`).join('、')}` : scene
 }
+
+// ---- 家僕直接用箱子（staff.ts：園丁收成、播種） ----
+
+/** 把東西直接放進這棟房子的箱子（先找已經有這種東西的，再找還有空位的；不經過行囊）。放不下時回傳 false */
+export function storeInHome(state: GameState, home: Home, name: string, qty: number, quality?: string): boolean {
+  if (qty <= 0) return true
+  const chests = chestsIn(home).filter((c) => storageSpec(c.cell))
+  const target = chests.find((c) => storedItems(c.cell).some((i) => i.name === name))
+    ?? chests.find((c) => !depositRefusal(state, c.cell, name))
+  if (!target) return false
+  target.cell.storage ??= { items: [] }
+  addItem(target.cell.storage.items, name, qty, quality)
+  return true
+}
+
+/** 從這棟房子的箱子直接拿掉（不經過行囊），回傳拿掉的數量 */
+export function removeFromHome(home: Home, name: string, qty: number): number {
+  let left = Math.max(0, Math.floor(qty))
+  for (const { cell } of chestsIn(home)) {
+    if (left <= 0) break
+    const have = storedItems(cell).find((i) => i.name === name)
+    if (!have) continue
+    left -= removeItem(cell.storage!.items, name, Math.min(have.qty, left))
+    tidy(cell)
+  }
+  return Math.max(0, Math.floor(qty)) - left
+}

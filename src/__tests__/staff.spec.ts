@@ -5,6 +5,8 @@ import schema from '../../schemas/report.schema.json'
 import { homeRules } from '@/engine/data'
 import { enterLocation, placeAt, type Area } from '@/engine/grid'
 import { buyHome, comfortOf, lotsOf, placeFurniture } from '@/engine/homes'
+import { plant } from '@/engine/garden'
+import { depositItem, homeStock } from '@/engine/storage'
 import { peopleHere } from '@/engine/population'
 import { longRest } from '@/engine/rest'
 import {
@@ -188,5 +190,51 @@ describe('效果', () => {
     addItem(state.inventory, '石砌大灶', 1)
     placeFurniture(state, g, stove.x, stove.y, '石砌大灶')
     expect(breakfastOf(state, home)).toBe('fed_fine')
+  })
+})
+
+describe('園丁（H2）', () => {
+  /** 院子擺菜圃、種莓果苗；一樓擺木箱 */
+  function garden(state: GameState, home: Home, withChest: boolean) {
+    const g = ground(home)
+    const i = g.cells.findIndex((c) => c.kind === 'yard')
+    const yard = { x: i % g.width, y: Math.floor(i / g.width) }
+    addItem(state.inventory, '菜圃', 1)
+    placeFurniture(state, g, yard.x, yard.y, '菜圃')
+    addItem(state.inventory, '莓果苗', 3)
+    placeAt(state, g, yard.x, yard.y)
+    plant(state, g, yard.x, yard.y, '莓果苗')
+    if (withChest) {
+      const box = spot(g, 2)
+      addItem(state.inventory, '木箱', 1)
+      placeFurniture(state, g, box.x, box.y, '木箱')
+      depositItem(state, g, box.x, box.y, '莓果苗')
+    }
+    return g.cells[i]!
+  }
+
+  it('每天把成熟的作物收進箱子，箱子裡有種子就重新播種；回家時看到', () => {
+    const state = game()
+    const home = moveIn(state)
+    const plot = garden(state, home, true)
+    hire(state, home, 'gardener')
+    state.money_cc = 100000
+    enterLocation(state)
+    advanceTime(state, 24 * 7)
+    // 莓果苗 3 天：第 3、6 天各收一輪，每輪用箱子裡的一份種子重新播種（第三輪還在長）
+    expect(homeStock(home).get('野莓')).toBeGreaterThanOrEqual(4)
+    expect(homeStock(home).has('莓果苗')).toBe(false)
+    expect(plot.crop?.seed).toBe('莓果苗')
+    expect(home.staffNotes?.some((n) => n.tag === '收成' && n.text.includes('野莓'))).toBe(true)
+  })
+
+  it('沒有箱子時留在苗圃上', () => {
+    const state = game()
+    const home = moveIn(state)
+    const plot = garden(state, home, false)
+    hire(state, home, 'gardener')
+    advanceTime(state, 24 * 4)
+    expect(plot.crop?.seed).toBe('莓果苗')
+    expect(home.staffNotes?.some((n) => n.text.includes('箱子滿了'))).toBe(true)
   })
 })

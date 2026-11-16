@@ -14,9 +14,11 @@ import { assertFree, gainCondition } from './party'
 import { buildHaunts } from './population'
 import { Rng } from './rng'
 import { addMemory, ensureRelationship, setAffinity } from './social'
-import { commitReport } from './state'
+import { commitReport, withRng } from './state'
+import { plotPlace, seedOf } from './garden'
+import { removeFromHome, storeInHome } from './storage'
 import { locationMult } from './trade'
-import type { GameState, Home, NpcRecord, Report } from './types'
+import type { GameState, GameTime, Home, NpcRecord, Report } from './types'
 
 const rules = () => homeRules.staff
 
@@ -277,17 +279,61 @@ function quit(state: GameState, home: Home, rec: NpcRecord, day: number) {
   note(home, day, `${rec.name}（${jobName(job)}）被欠了 ${days} 天工錢，辭職了。`, '辭職')
 }
 
+const minutesOf = (t: GameTime) => ((t.day - 1) * 24 + (t.hour ?? 0)) * 60 + (t.minute ?? 0)
+const timeAt = (m: number): GameTime => ({ day: Math.floor(m / 1440) + 1, hour: Math.floor((m % 1440) / 60), minute: m % 60 })
+
+/** 園丁的一天：把到 until（分鐘）為止成熟的作物收進箱子；箱子裡有同樣的種子時，在成熟的那一刻重新播種 */
+interface GardenLog { got: Map<string, number>; replanted: number; full: boolean }
+function tendGarden(state: GameState, home: Home, until: number, log: GardenLog) {
+  if (!hasWorker(state, home.id, 'gardener')) return
+  for (const a of Object.values(home.areas)) {
+    for (const c of a.cells) {
+      if (!c.crop || !plotPlace(a, c)) continue
+      // 一次可能跨過好幾輪（短天數的作物、很久沒回來）
+      for (let guard = 0; c.crop && guard < 30; guard++) {
+        const spec = seedOf(c.crop.seed)
+        if (!spec) break
+        const ripe: number = minutesOf(c.crop.planted) + spec.days * 1440
+        if (ripe > until) break
+        const [name, n] = withRng(state, (rng) => [rng.pick(spec.yields), rng.int(spec.qty[0], spec.qty[1])] as const)
+        // 箱子放不下：留在苗圃上等你回來收
+        if (!storeInHome(state, home, name, n)) {
+          log.full = true
+          break
+        }
+        log.got.set(name, (log.got.get(name) ?? 0) + n)
+        const seed: string = c.crop.seed
+        delete c.crop
+        if (removeFromHome(home, seed, 1)) {
+          c.crop = { seed, planted: timeAt(ripe) }
+          log.replanted++
+        }
+      }
+    }
+  }
+}
+
 /**
- * 跨過的每一天（state.ts 的 advanceTime、commitReport 呼叫）：欠薪太久的家僕辭職。
- * 園丁、管家、做家務的奴隸也在這裡（H2～H4）。
+ * 跨過的每一天（state.ts 的 advanceTime、commitReport 呼叫）：欠薪太久的家僕辭職、園丁收成。
+ * 管家、做家務的奴隸也在這裡（H3、H4）。主角不在時發生的事記在房子的 staffNotes。
  */
 export function staffDaily(state: GameState, fromDay: number, toDay: number) {
   if (!state.homes || toDay <= fromDay) return
   const start = Math.max(fromDay + 1, toDay - 60)
+  const now = minutesOf(state.time)
+  const logs = new Map<string, GardenLog>()
   for (let day = start; day <= toDay; day++) {
     for (const home of Object.values(state.homes)) {
       for (const rec of staffOf(state, home.id)) if (day - rec.staff!.paidUntil > rules().quit_days) quit(state, home, rec, day)
+      const log = logs.get(home.id) ?? { got: new Map(), replanted: 0, full: false }
+      logs.set(home.id, log)
+      tendGarden(state, home, Math.min(day * 1440, now), log)
     }
+  }
+  for (const [id, log] of logs) {
+    if (!log.got.size && !log.full) continue
+    const got = [...log.got].map(([n, q]) => `${n}×${q}`).join('、')
+    note(state.homes[id]!, toDay, `${got ? `園丁收成了${got}，收進箱子${log.replanted ? `，重新播種了 ${log.replanted} 次` : ''}。` : ''}${log.full ? '箱子滿了，有作物還留在苗圃上。' : ''}`, '收成')
   }
 }
 
