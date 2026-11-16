@@ -218,7 +218,7 @@ function rename() {
         </select>
         <button class="small" :disabled="!seedPick" @click="plantIt">播種</button>
       </template>
-      <span v-else class="muted">行囊裡沒有能種在{{ PLACE_NAME[plot] }}苗圃的種子（雜貨店、神殿、魔法物品店有賣）。</span>
+      <span v-else class="muted">行囊和家裡的箱子都沒有能種在{{ PLACE_NAME[plot] }}苗圃的種子（雜貨店、神殿、魔法物品店有賣）。</span>
     </div>
 
     <FoldMenu id="home.people" icon="users" label="看家的夥伴" detail="留守的夥伴不佔隊伍人數，也能幫忙做工藝" :badge="staying.length" open>

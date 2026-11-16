@@ -1,7 +1,11 @@
 // 儲物箱（docs/HOMES.md 第 7 節，R30）
 import { describe, expect, it } from 'vitest'
-import { homeRules, itemDef } from '@/engine/data'
-import { enterLocation, type Area } from '@/engine/grid'
+import { craftRules, homeRules, itemDef } from '@/engine/data'
+import { prepareAction, resolveAction } from '@/engine/actions'
+import { toolAccess } from '@/engine/crafting'
+import { plant, seedsFor } from '@/engine/garden'
+import { produceTarget, recipePlan } from '@/engine/recipes'
+import { enterLocation, placeAt, type Area } from '@/engine/grid'
 import { buyHome, furnitureIn, lotsOf, placeFurniture, takeFurniture } from '@/engine/homes'
 import {
   depositItem, depositMany, depositMoney, depositRefusal, homeStock, storageInUse, storedItems, storedMoney, takeFromHome, withdrawItem, withdrawMoney,
@@ -212,5 +216,93 @@ describe('用量檢查與改名', () => {
     expect(itemUsage('木材', state).some((u) => u.includes('箱子裡（×2）'))).toBe(true)
     renameItemInState(state, '木材', '好木材')
     expect(storedItems(cell)).toEqual([{ name: '好木材', qty: 2 }])
+  })
+})
+
+describe('在家裡直接用（S2）', () => {
+  /** 站進房子裡，擺一個箱子並放進東西 */
+  function stocked(state: GameState, items: [string, number][]) {
+    const home = bought(state)
+    const c = chest(state, home)
+    for (const [name, n] of items) {
+      addItem(state.inventory, name, n)
+      depositItem(state, c.area, c.x, c.y, name)
+    }
+    const area = floorOf(home, 'ground')
+    const p = spot(area, 3)
+    placeAt(state, area, p.x, p.y)
+    return { home, ...c }
+  }
+
+  it('配方的材料與工具：行囊不夠的從箱子拿，做完箱子跟著少', () => {
+    const state = game()
+    state.inventory = []
+    delete state.party[0]!.crafts
+    state.party[0]!.attrs.dex = 10
+    stocked(state, [['野莓', 4], ['炊具組', 1]])
+    addItem(state.inventory, '野莓', 2)
+    expect(toolAccess(state, 'cooking').tier).toBeGreaterThanOrEqual(1)
+    const plan = recipePlan(state, '野莓派', 2, state.party[0]!)
+    expect(plan.blocked).toBeUndefined()
+    expect(plan.inputs[0]).toMatchObject({ name: '野莓', need: 6, have: 6, home: 4 })
+    prepareAction(state, { kind: 'produce', target: produceTarget('pc', '野莓派', 2), text: '' })
+    state.pendingAction!.natural = 8
+    const r = resolveAction(state, null)
+    expect(r.check?.degree).toBe('success')
+    expect(qty(state, '野莓派')).toBe(4)
+    expect(qty(state, '野莓')).toBe(0)
+    expect(homeStock(Object.values(state.homes!)[0]!).has('野莓')).toBe(false)
+    // 工具沒有用掉，還在箱子裡
+    expect(homeStock(Object.values(state.homes!)[0]!).get('炊具組')).toBe(1)
+    expect(qty(state, '炊具組')).toBe(0)
+  })
+
+  it('失敗只從箱子拿用掉的份數', () => {
+    const state = game()
+    state.inventory = []
+    delete state.party[0]!.crafts
+    stocked(state, [['藥草', 6], ['煉金工具組', 1]])
+    state.party[0]!.attrs.int = 4
+    prepareAction(state, { kind: 'produce', target: produceTarget('pc', '微弱治療藥劑', 2), text: '' })
+    state.pendingAction!.natural = 2
+    const r = resolveAction(state, null)
+    expect(r.check?.degree).toBe('fail')
+    // 損失一半（3 份）：從箱子補進行囊再用掉，剩下的留在箱子裡
+    expect(qty(state, '藥草')).toBe(0)
+    expect(homeStock(Object.values(state.homes!)[0]!).get('藥草')).toBe(3)
+  })
+
+  it('出了房子就不算箱子', () => {
+    const state = game()
+    state.inventory = []
+    delete state.party[0]!.crafts
+    stocked(state, [['野莓', 6], ['炊具組', 1]])
+    expect(recipePlan(state, '野莓派', 2, state.party[0]!).blocked).toBeUndefined()
+    enterLocation(state)
+    const away = recipePlan(state, '野莓派', 2, state.party[0]!)
+    expect(away.inputs[0]).toMatchObject({ have: 0 })
+    expect(away.inputs[0]!.home).toBeUndefined()
+    expect(toolAccess(state, 'cooking').tier).toBe(0)
+    expect(craftRules.skills.cooking).toBeDefined()
+  })
+
+  it('播種可以用箱子裡的種子', () => {
+    const state = game()
+    const home = bought(state)
+    const c = chest(state, home)
+    addItem(state.inventory, '藥草種子', 2)
+    depositItem(state, c.area, c.x, c.y, '藥草種子')
+    const ground = floorOf(home, 'ground')
+    const i = ground.cells.findIndex((x) => x.kind === 'yard')
+    const yard = { x: i % ground.width, y: Math.floor(i / ground.width) }
+    addItem(state.inventory, '菜圃', 1)
+    placeFurniture(state, ground, yard.x, yard.y, '菜圃')
+    const plot = ground.cells[i]!
+    placeAt(state, ground, yard.x, yard.y)
+    expect(seedsFor(state, ground, plot)).toEqual([{ name: '藥草種子', qty: 2 }])
+    plant(state, ground, yard.x, yard.y, '藥草種子')
+    expect(plot.crop?.seed).toBe('藥草種子')
+    expect(homeStock(home).get('藥草種子')).toBe(1)
+    expect(qty(state, '藥草種子')).toBe(0)
   })
 })

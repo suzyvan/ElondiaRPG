@@ -19,6 +19,7 @@ import { lostQty, producedQty } from './recipes'
 import { renameItemInState } from './usage'
 import { withRng } from './state'
 import { locationMult, sellRatio } from './trade'
+import { pullFromHome, stockHere } from './storage'
 import type { Character, GameState, Report } from './types'
 
 export type InventCategory = 'consumable' | 'food' | 'furniture'
@@ -398,7 +399,8 @@ export function inventInputOk(state: Pick<GameState, 'customItems'>, name: strin
 
 export function inventPlan(state: GameState, req: InventRequest, crafter: Character): InventPlan {
   const caps = inventCaps(req.craft, req.level, req.category)
-  const inputs = req.inputs.map((x) => ({ name: x.name, need: x.qty, have: state.inventory.find((i) => i.name === x.name)?.qty ?? 0 }))
+  // 持有：行囊加上家裡的箱子（站在自己的房子裡時，storage.ts）
+  const inputs = req.inputs.map((x) => ({ name: x.name, need: x.qty, have: stockHere(state, x.name) }))
   const inputValue = req.inputs.reduce((s, x) => s + (itemDef(x.name)?.price_cc ?? 0) * x.qty, 0)
   const hours = craftRules.invention.hours
   const needTier = toolTierFor(req.level)
@@ -487,6 +489,7 @@ export function applyInvent(state: GameState, report: Report, target: string, de
   const effects: RewardEffect[] = fee ? [{ type: 'money', amount: -fee }] : []
   for (const x of plan.inputs) {
     const q = Math.min(x.have, lostQty(x.need, degree))
+    if (q) pullFromHome(state, x.name, q)
     if (q) effects.push({ type: 'item', name: x.name, qty: -q })
   }
   let text: string

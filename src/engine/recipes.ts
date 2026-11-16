@@ -12,6 +12,7 @@ import { gameRule } from './gameRules'
 import { memberOrResident } from './homes'
 import { formatMoney } from './money'
 import { locationMult } from './trade'
+import { homeQtyHere, pullFromHome, stockHere } from './storage'
 import type { Character, GameState, Report } from './types'
 
 /** 有配方的物品（包含自訂內容） */
@@ -33,7 +34,8 @@ export interface RecipePlan {
   /** 成功時做出的份數 */
   qty: number
   /** 要用掉的材料與持有數量；站的這間店有賣時的單價與存貨，當場補買幾份 */
-  inputs: { name: string; need: number; have: number; offer?: { price: number; stock: number }; buy: number }[]
+  /** have：持有（行囊加上家裡的箱子）；home：其中家裡的箱子有幾份 */
+  inputs: { name: string; need: number; have: number; home?: number; offer?: { price: number; stock: number }; buy: number }[]
   /** 當場補買（買來直接用掉；沒做成時剩下的留在行囊） */
   buys: { name: string; qty: number; price: number }[]
   buyCost: number
@@ -62,10 +64,12 @@ export function recipePlan(state: GameState, name: string, batches: number, craf
   const n = Math.max(1, Math.min(rules.max_batches, Math.round(batches) || 1))
   const inputs = recipe.inputs.map((x) => {
     const need = x.qty * n
-    const have = state.inventory.find((i) => i.name === x.name)?.qty ?? 0
+    // 持有：行囊加上家裡的箱子（站在自己的房子裡時，storage.ts）
+    const have = stockHere(state, x.name)
+    const home = homeQtyHere(state, x.name)
     const offer = shopOfferHere(state, x.name)
     const buy = opts.buy && offer ? Math.min(Math.max(0, need - have), offer.stock) : 0
-    return { name: x.name, need, have, ...(offer ? { offer: { price: offer.price, stock: offer.stock } } : {}), buy }
+    return { name: x.name, need, have, ...(home ? { home } : {}), ...(offer ? { offer: { price: offer.price, stock: offer.stock } } : {}), buy }
   })
   const buys = inputs.filter((x) => x.buy > 0).map((x) => ({ name: x.name, qty: x.buy, price: x.offer!.price }))
   const buyCost = buys.reduce((s, b) => s + b.qty * b.price, 0)
@@ -82,7 +86,7 @@ export function recipePlan(state: GameState, name: string, batches: number, craf
   for (const x of inputs) {
     if (x.have + x.buy >= x.need) continue
     const hint = !opts.buy && x.offer ? '，這間店有賣，可以當場補買' : opts.buy && x.offer ? `，這間店只剩 ${x.offer.stock}` : ''
-    blockers.push(`${x.name}不夠（需要 ${x.need}，持有 ${x.have}${hint}）`)
+    blockers.push(`${x.name}不夠（需要 ${x.need}，持有 ${x.have}${x.home ? `，其中家裡的箱子 ${x.home}` : ''}${hint}）`)
   }
   if (state.money_cc < cost + rent + buyCost) blockers.push(`${buyCost ? '費用加上補買的材料' : '費用'}不夠（需要 ${formatMoney(cost + rent + buyCost)}）`)
   return {
@@ -160,6 +164,8 @@ export function applyProduce(state: GameState, report: Report, target: string, d
   const effects: RewardEffect[] = plan.fee ? [{ type: 'money', amount: -Math.min(plan.fee, state.money_cc) }] : []
   for (const x of plan.inputs) {
     const q = Math.min(x.have + x.buy, lostQty(x.need, degree))
+    // 行囊不夠的先從家裡的箱子補進行囊，再照一般的材料用掉
+    if (q) pullFromHome(state, x.name, q)
     if (q) effects.push({ type: 'item', name: x.name, qty: -q })
   }
   const made = producedQty(plan.qty, degree)

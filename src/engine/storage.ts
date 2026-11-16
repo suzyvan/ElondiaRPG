@@ -6,7 +6,7 @@
 // - 在自己的房子裡做工藝、播種時，整棟房子的箱子都算（homeStock、takeFromHome）。
 
 import { itemDef, type FurnitureSpec } from './data'
-import type { Area, Cell } from './grid'
+import { currentArea, type Area, type Cell } from './grid'
 import { isIntelItem } from './inventory'
 import { formatMoney } from './money'
 import { addItem, removeItem } from './state'
@@ -173,4 +173,42 @@ export function takeFromHome(state: GameState, home: Home, name: string, qty: nu
     left -= n
   }
   return Math.max(0, Math.floor(qty)) - left
+}
+
+// ---- 在自己家裡用（工藝、播種） ----
+
+/** 站在自己的房子裡時的那棟房子 */
+export function homeHere(state: GameState): Home | undefined {
+  return state.homes ? ownHomeOfArea(state, currentArea(state)) : undefined
+}
+
+/** 這種東西在家裡箱子裡的數量（不在自己的房子裡時是 0） */
+export function homeQtyHere(state: GameState, name: string): number {
+  const home = homeHere(state)
+  return home ? homeStock(home).get(name) ?? 0 : 0
+}
+
+/** 能用的數量：行囊加上家裡的箱子（站在自己的房子裡才算箱子） */
+export function stockHere(state: GameState, name: string): number {
+  return (state.inventory.find((i) => i.name === name)?.qty ?? 0) + homeQtyHere(state, name)
+}
+
+/** 能用的東西：行囊加上家裡的箱子（同名合併；不在自己的房子裡時就是行囊） */
+export function inventoryHere(state: GameState): InventoryItem[] {
+  const home = homeHere(state)
+  const out = state.inventory.filter((i) => i.qty > 0).map((i) => ({ ...i }))
+  if (!home) return out
+  for (const [name, qty] of homeStock(home)) {
+    const have = out.find((i) => i.name === name)
+    if (have) have.qty += qty
+    else out.push({ name, qty })
+  }
+  return out
+}
+
+/** 要從行囊用掉 qty 份時，行囊不夠的部分先從家裡的箱子補進行囊；回傳補了幾份 */
+export function pullFromHome(state: GameState, name: string, qty: number): number {
+  const short = qty - (state.inventory.find((i) => i.name === name)?.qty ?? 0)
+  const home = short > 0 ? homeHere(state) : undefined
+  return home ? takeFromHome(state, home, name, short) : 0
 }
