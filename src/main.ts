@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import { initContent } from './stores/content'
 import { preloadCurrent } from './stores/saves'
+import { useGame } from './stores/game'
 // 字型隨遊戲打包（不連 Google Fonts）：依 unicode-range 切片，瀏覽器只下載畫面上用到的字
 import '@fontsource/noto-serif-tc/400.css'
 import '@fontsource/noto-serif-tc/600.css'
@@ -31,5 +32,14 @@ initContent()
 void preloadCurrent().finally(() => {
   const app = createApp(App)
   app.use(createPinia())
+  // 畫面（元件）裡出的程式錯誤：原本只印在瀏覽器的主控台，玩家看不到；改成錯誤泡泡，細節附上出錯的位置
+  app.config.errorHandler = (err, _instance, info) => {
+    console.error(err)
+    try {
+      useGame().reportBug(err, `畫面顯示（${info}）`)
+    } catch {
+      // 連錯誤泡泡都出不來：至少主控台有
+    }
+  }
   app.mount('#app')
 })

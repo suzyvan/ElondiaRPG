@@ -23,3 +23,46 @@ export function splitError(text: string): ErrorParts {
 export function joinError(summary: string, detail?: string): string {
   return detail ? `${summary}\n${detail}` : summary
 }
+
+// ---- 程式錯誤（不是規則擋下來的）：細節附上版本、當時在哪裡、出錯的位置，玩家按「複製訊息」就能整段回報 ----
+
+/** 遊戲規則擋下來的錯誤是一般的 Error（「錢不夠」「這裡沒有工作可做」）；這幾種是程式本身的錯（讀到空的東西、寫錯名字……） */
+export function isProgramError(e: unknown): boolean {
+  return e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError || e instanceof SyntaxError
+}
+
+const MAX_FRAMES = 8
+
+/** 出錯的位置：錯誤堆疊的前幾層，網址只留檔名（assets/index-xxxx.js:行:欄） */
+export function stackFrames(e: Error): string[] {
+  return (e.stack ?? '')
+    .split('\n')
+    .map((l) => l.trim())
+    // Chrome、Edge：「at 函式 (網址:行:欄)」；Firefox、Safari：「函式@網址:行:欄」
+    .filter((l) => l.startsWith('at ') || /@\S+:\d+:\d+$/.test(l))
+    .slice(0, MAX_FRAMES)
+    .map((l) => l.replace(/(?:https?|file|blob):\/\/[^\s()@]*?\/((?:assets|src)\/)/g, '$1').replace(/\?[^\s():]*(?=:\d+:\d+)/g, ''))
+}
+
+export interface BugContext {
+  /** 遊戲版本 */
+  version?: string
+  /** 當時在做什麼（「動作」「畫面顯示」……） */
+  doing?: string
+  /** 當時在哪裡（地點、區域、座標） */
+  where?: string
+}
+
+/** 程式錯誤的訊息：第一行是原本的訊息，細節寫這是程式錯誤、請整段回報，附上版本、在哪裡與出錯的位置 */
+export function programErrorText(e: Error, ctx: BugContext = {}): string {
+  const frames = stackFrames(e)
+  const lines = [
+    '這是遊戲程式的錯誤（不是規則限制）。回報時請按「複製訊息」，把整段貼給我們。',
+    ...(ctx.version ? [`版本：${ctx.version}`] : []),
+    ...(ctx.doing ? [`當時：${ctx.doing}`] : []),
+    ...(ctx.where ? [`位置：${ctx.where}`] : []),
+    `錯誤：${e.name}: ${e.message}`,
+    ...(frames.length ? ['出錯的地方：', ...frames.map((f) => `  ${f}`)] : []),
+  ]
+  return joinError(e.message, lines.join('\n'))
+}

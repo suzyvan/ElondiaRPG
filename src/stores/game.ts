@@ -94,7 +94,7 @@ import { AI_FEATURES, judgeTimeout, useSettings, type AiFeature } from './settin
 import { archiveOldReports, mergeUsage } from './logArchive'
 import { actionInputOf, firstNewReport, midTurn, restoreTurn, UNDO_STEPS, type UndoStep } from './undo'
 import { withoutIcons } from '@/engine/itemIcons'
-import { joinError, splitError, type ErrorParts } from '@/narrator/errorText'
+import { isProgramError, joinError, programErrorText, splitError, type ErrorParts } from '@/narrator/errorText'
 import {
   AUTO_SLOTS, currentStore, parseSaveFile, QUICK_SLOT, saveFileName, slotMeta, slotStore, slotTitle, takePreloaded,
   type CurrentData, type SaveData, type SlotMeta,
@@ -460,10 +460,30 @@ export const useGame = defineStore('game', () => {
       return result
     } catch (e) {
       state.value = before
+      // 程式本身的錯（不是規則擋下來的）：細節附上版本、在哪裡與出錯的位置，方便玩家整段回報
+      if (e instanceof Error && isProgramError(e)) {
+        console.error(e)
+        error.value = programErrorText(e, { version: __APP_VERSION__, doing: '遊戲動作', where: bugWhere(before) })
+        return undefined
+      }
       const msg = e instanceof Error ? e.message : String(e)
       if (opts.onMap) blockedOnMap(msg)
       else error.value = msg
       return undefined
+    }
+  }
+
+  /** 程式錯誤回報用：當時在哪裡（地點・區域 key 座標；戰鬥中另外寫） */
+  function bugWhere(s: GameState | null | undefined): string | undefined {
+    if (!s) return undefined
+    try {
+      const p = s.position
+      const area = p ? grid.getArea(s, p.area) : undefined
+      const cell = area && p ? area.cells[p.y * area.width + p.x]?.kind : undefined
+      return [s.location, area ? `${area.name}（${area.key}，${area.kind}）` : p?.area, p ? `${p.x},${p.y}${cell ? ` ${cell}` : ''}` : '', s.combat ? '戰鬥中' : '']
+        .filter(Boolean).join('・')
+    } catch {
+      return s.location
     }
   }
 
@@ -1504,9 +1524,16 @@ export const useGame = defineStore('game', () => {
     return perform({ kind: 'hire', target: npcId, offer_cc: offer, text })
   }
 
+  /** 畫面（元件）裡出的程式錯誤：也用錯誤泡泡顯示（main.ts 的 app.config.errorHandler） */
+  function reportBug(e: unknown, doing: string) {
+    if (!(e instanceof Error)) return
+    error.value = isProgramError(e) ? programErrorText(e, { version: __APP_VERSION__, doing, where: bugWhere(state.value) }) : e.message
+  }
+
   return {
     toasts,
     dismissToast,
+    reportBug,
     /** 在動作的保護下改狀態：出錯時還原、顯示訊息（測試與少數元件用） */
     runAction: run,
     undoReports, redoInput, undo, redo, dismissRedo: () => (redoInput.value = null),
