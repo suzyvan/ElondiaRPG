@@ -144,6 +144,12 @@ exports[`world editor round trip > family: opening and saving without changes ke
 }
 `;
 
+exports[`world editor round trip > homes: opening and saving without changes keeps the data 1`] = `
+{
+  "homes": "c26b515ae4f1",
+}
+`;
+
 exports[`world editor round trip > items: opening and saving without changes keeps the data 1`] = `
 {
   "《魔導刺激》": "ec25c764ba81",

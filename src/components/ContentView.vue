@@ -52,6 +52,7 @@ import MasterEventEditor from './content/MasterEventEditor.vue'
 import { allMasterEvents, builtinMasterEvent, masterEventById, newMasterEvent, POOL_IDS } from '@/engine/masterEventMods'
 import EventRulesEditor from './content/EventRulesEditor.vue'
 import FamilyRulesEditor from './content/FamilyRulesEditor.vue'
+import HomeRulesEditor from './content/HomeRulesEditor.vue'
 import BindRulesEditor from './content/BindRulesEditor.vue'
 import CategoryIconsEditor from './content/CategoryIconsEditor.vue'
 import ImportPickerDialog from './content/ImportPickerDialog.vue'
@@ -405,6 +406,8 @@ const BIND_RULES_KEY = '|bind_rules'
 const STORYLINES_KEY = '|storylines'
 /** 懷孕與泌乳設定（寄生物頁籤的固定按鈕；docs/FAMILY.md 第 12 節） */
 const FAMILY_RULES_KEY = '|family'
+/** 房屋設定（物品頁籤的固定按鈕；docs/HOMES.md 第 8 節） */
+const HOME_RULES_KEY = '|homes'
 /** 每一頁只有一筆的設定：放在清單上方的固定按鈕（不跟著篩選消失） */
 const SETTINGS = computed<{ key: string; label: string; edited: boolean }[]>(() => {
   void content.version
@@ -413,6 +416,7 @@ const SETTINGS = computed<{ key: string; label: string; edited: boolean }[]>(() 
   if (sub.value === 'events') return [{ key: 'rules', label: '⚙️ 事件設定', edited: !!m.eventRules?.rules }]
   if (sub.value === 'tattoos') return [{ key: 'rules', label: '⚙️ 印記設定', edited: !!m.markRules?.rules }]
   if (sub.value === 'parasites') return [{ key: FAMILY_RULES_KEY, label: '⚙️ 懷孕與泌乳設定', edited: !!m.family?.rules }]
+  if (sub.value === 'items') return [{ key: HOME_RULES_KEY, label: '⚙️ 房屋設定', edited: !!m.homes?.rules }]
   if (sub.value === 'bases') return [{ key: BIND_RULES_KEY, label: '⚙️ 雙面效應設定', edited: !!m.bindRules?.rules }]
   if (sub.value === 'stories') return [{ key: STORYLINES_KEY, label: '🗺️ 故事線總覽', edited: false }, { key: COUNTERS_KEY, label: `🔢 劇情計數器（${Object.keys(storyCounters).length}）`, edited: Object.keys(m.counters ?? {}).length > 0 }]
   return []
@@ -625,7 +629,7 @@ const current = computed(() => {
   void content.version
   const key = selected.value[sub.value]
   if (!key) return ''
-  const exists = sub.value === 'enemies' ? !!enemies[key] : sub.value === 'items' ? !!itemDef(key) : sub.value === 'bases' ? key === BIND_RULES_KEY || !!gearRules.bases[key]
+  const exists = sub.value === 'enemies' ? !!enemies[key] : sub.value === 'items' ? key === HOME_RULES_KEY || !!itemDef(key) : sub.value === 'bases' ? key === BIND_RULES_KEY || !!gearRules.bases[key]
     : sub.value === 'npcs' ? namedNpcs.some((n) => n.id === key) : sub.value === 'stories' ? key === COUNTERS_KEY || key === STORYLINES_KEY || stories.some((d) => d.id === key)
     : sub.value === 'abilities' ? !!abilities[key] : sub.value === 'statuses' ? (key.startsWith('c:') ? conditionIds().includes(key.slice(2)) : !!statuses[key]) : sub.value === 'perks' ? !!perkDef(key)
     : sub.value === 'shops' ? !!shopRules.types[key as ShopType]
@@ -1119,6 +1123,7 @@ function resetAll() {
         </header>
         <p v-if="!current" class="muted">從左邊選一個項目，或新增一個。</p>
         <EnemyEditor v-else-if="sub === 'enemies'" :id="current" :key="`e-${current}`" @deleted="select('')" />
+        <HomeRulesEditor v-else-if="sub === 'items' && current === HOME_RULES_KEY" key="home-rules" />
         <ItemEditor v-else-if="sub === 'items'" :key="`i-${current}`" :name="current" @renamed="select" @deleted="select('')" />
         <AbilityEditor v-else-if="sub === 'abilities'" :id="current" :key="`a-${current}`" @deleted="select('')" />
         <ConditionEditor v-else-if="sub === 'statuses' && current.startsWith('c:')" :id="current.slice(2)" :key="current" @deleted="select('')" />

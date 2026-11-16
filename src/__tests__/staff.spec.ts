@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import Ajv2020 from 'ajv/dist/2020'
 import schema from '../../schemas/report.schema.json'
 import { homeRules } from '@/engine/data'
+import { applyHomeRules, currentHomeRules, restoreHomeRules, sanitizeHomeRules } from '@/engine/homeMods'
+import { withHomeStaff } from '@/engine/staff'
 import { prepareAction, resolveAction } from '@/engine/actions'
 import { sendHome } from '@/engine/away'
 import { buySlave, marketStock } from '@/engine/companions'
@@ -370,9 +372,9 @@ describe('奴隸做家務（H4）', () => {
   it('順從夠才肯做；效果和雇來的一樣、不佔上限，每天順從 +1', () => {
     const { state, home, id } = slaveAtHome()
     const c = state.npcs![id]!.character!
-    c.lewd = { ...(c.lewd ?? {}), submission: 0 }
+    c.lewd = { ...lewdOf(c), submission: 0 } as typeof c.lewd
     expect(choreRefusal(state, id)).toContain('順從')
-    c.lewd.submission = homeRules.staff.slave_chore_submission
+    c.lewd!.submission = homeRules.staff.slave_chore_submission
     assignChore(state, id, 'cook')
     expect(choreSlaves(state, home.id).map((r) => r.id)).toEqual([id])
     expect(workersFor(state, home.id, 'cook')).toHaveLength(1)
@@ -386,5 +388,34 @@ describe('奴隸做家務（H4）', () => {
     leaveWithResident(state, currentArea(state), id)
     expect(state.npcs![id]!.chore).toBeUndefined()
     expect(workersFor(state, home.id, 'cook')).toHaveLength(0)
+  })
+})
+
+describe('房屋設定（H5）', () => {
+  it('整理時夾在範圍內、名稱最多 8 個字、應徵者最多不小於最少；套用後生效，恢復內建', () => {
+    const r = sanitizeHomeRules({ staff: { jobs: { maid: { wage_cc: 99999, name: '打掃的阿姨們一起來幫忙' } }, candidates_per_job: [3, 1], quit_days: 0 } })
+    expect((r.staff as { jobs: { maid: { wage_cc: number; name: string } } }).jobs.maid).toMatchObject({ wage_cc: 1000, name: '打掃的阿姨們一起' })
+    expect((r.staff as { candidates_per_job: number[] }).candidates_per_job).toEqual([3, 3])
+    expect((r.staff as { quit_days: number }).quit_days).toBe(1)
+    const before = homeRules.staff.jobs.maid.wage_cc
+    try {
+      applyHomeRules(sanitizeHomeRules({ staff: { jobs: { maid: { wage_cc: 50 } } } }))
+      expect(homeRules.staff.jobs.maid.wage_cc).toBe(50)
+      expect((currentHomeRules().staff as { jobs: { maid: { wage_cc: number } } }).jobs.maid.wage_cc).toBe(50)
+    } finally {
+      restoreHomeRules()
+    }
+    expect(homeRules.staff.jobs.maid.wage_cc).toBe(before)
+  })
+})
+
+describe('給 AI 的場景（H5）', () => {
+  it('在自己的房子裡，場景帶上家裡的僕人', () => {
+    const state = game()
+    const home = moveIn(state)
+    const id = hire(state, home, 'maid')
+    expect(withHomeStaff(state, '家裡')).toBe(`家裡・家裡的僕人：${state.npcs![id]!.name}（女僕）`)
+    enterLocation(state)
+    expect(withHomeStaff(state, '城裡')).toBe('城裡')
   })
 })

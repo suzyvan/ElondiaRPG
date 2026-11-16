@@ -4,6 +4,7 @@
 // 存在 localStorage；每次修改後立刻（同步）重新套用到遊戲資料，表單才讀得到新的值。
 
 import { sanitizeFamilyRules, type FamilyRulesMod } from '@/engine/familyMods'
+import { sanitizeHomeRules, type HomeRulesMod } from '@/engine/homeMods'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { abilities, enemies, geography, itemDef, locationName, npcs as namedNpcs, specialMaps, stories } from '@/engine/data'
@@ -85,9 +86,9 @@ interface WorldsFile {
 export interface WorldRef { id: string; name: string }
 
 type Section = Exclude<keyof ContentMods, 'version'>
-const MOD_SECTIONS: Section[] = ['statuses', 'conditions', 'tattoos', 'marks', 'parasites', 'markRules', 'dungeons', 'landmarks', 'specialMaps', 'shops', 'abilities', 'perks', 'materials', 'bases', 'items', 'enemies', 'npcs', 'stories', 'travelEvents', 'eventRules', 'bindRules', 'family', 'masterEvents', 'categoryIcons', 'counters', 'npcTags', 'classes']
+const MOD_SECTIONS: Section[] = ['statuses', 'conditions', 'tattoos', 'marks', 'parasites', 'markRules', 'dungeons', 'landmarks', 'specialMaps', 'shops', 'abilities', 'perks', 'materials', 'bases', 'items', 'enemies', 'npcs', 'stories', 'travelEvents', 'eventRules', 'bindRules', 'family', 'homes', 'masterEvents', 'categoryIcons', 'counters', 'npcTags', 'classes']
 export const MOD_SECTION_NAMES: Record<Section, string> = {
-  statuses: '狀態', conditions: '非戰鬥狀態', tattoos: '刺青圖樣', parasites: '寄生物', marks: '奴隸印記', markRules: '印記設定', landmarks: '地標', specialMaps: '特殊地圖', shops: '商店', abilities: '技能', perks: '特質', materials: '材料', bases: '底材', items: '物品', enemies: '怪物', npcs: '固定 NPC', stories: '特殊任務', travelEvents: '事件', eventRules: '事件設定', bindRules: '雙面效應設定', family: '懷孕與泌乳設定', masterEvents: '主奴與娼館的事件', categoryIcons: '類別圖示', counters: '劇情計數器', dungeons: '地下城', npcTags: '身分標籤', classes: '職業',
+  statuses: '狀態', conditions: '非戰鬥狀態', tattoos: '刺青圖樣', parasites: '寄生物', marks: '奴隸印記', markRules: '印記設定', landmarks: '地標', specialMaps: '特殊地圖', shops: '商店', abilities: '技能', perks: '特質', materials: '材料', bases: '底材', items: '物品', enemies: '怪物', npcs: '固定 NPC', stories: '特殊任務', travelEvents: '事件', eventRules: '事件設定', bindRules: '雙面效應設定', family: '懷孕與泌乳設定', homes: '房屋設定', masterEvents: '主奴與娼館的事件', categoryIcons: '類別圖示', counters: '劇情計數器', dungeons: '地下城', npcTags: '身分標籤', classes: '職業',
 }
 
 export interface ModsDiffEntry {
@@ -106,7 +107,7 @@ export interface ModsDiff {
 
 export function modLabel(section: Section, id: string, v: unknown): string {
   const o = v as { name?: string; title?: string }
-  if (section === 'markRules' || section === 'eventRules' || section === 'bindRules' || section === 'family') return MOD_SECTION_NAMES[section]
+  if (section === 'markRules' || section === 'eventRules' || section === 'bindRules' || section === 'family' || section === 'homes') return MOD_SECTION_NAMES[section]
   if (section === 'categoryIcons') return `${MOD_SECTION_NAMES[section]}「${itemRules.categories[id as ItemCategory] ?? id}」`
   if (section === 'shops') return `${MOD_SECTION_NAMES[section]}「${shopRules.types[id as ShopType]?.name ?? id}」`
   const name = section === 'items' ? id : o.title ?? o.name ?? id
@@ -1000,6 +1001,15 @@ export const useContent = defineStore('content', () => {
     delete mods.value.family?.rules
     save()
   }
+  /** 房屋設定（家僕與舒適度，docs/HOMES.md 第 8 節） */
+  function saveHomeRules(draft: HomeRulesMod) {
+    ;(mods.value.homes ??= {}).rules = sanitizeHomeRules(draft)
+    save()
+  }
+  function restoreHomeRulesMod() {
+    delete mods.value.homes?.rules
+    save()
+  }
   function saveBindRules(draft: Partial<BindRulesMod>) {
     ;(mods.value.bindRules ??= {}).rules = sanitizeBindRules(draft)
     save()
@@ -1385,7 +1395,7 @@ export const useContent = defineStore('content', () => {
     saveNpc, deleteNpc, restoreNpc, promoteNpc, saveStory, deleteStory, restoreStory, savePerk, deletePerk, restorePerk, knownFlags,
     saveAbility, deleteAbility, restoreAbility, saveStatus, deleteStatus, restoreStatus, saveCondition, deleteCondition, restoreCondition,
     saveShop, setShopTraining, restoreShop, deleteShop, saveLandmark, restoreLandmark, deleteLandmark, saveSpecialMap, restoreSpecialMap, deleteSpecialMap, saveDungeon, deleteDungeon, removeEnemyFromDungeons, saveTattoo, deleteTattoo, restoreTattoo, saveNpcTag, deleteNpcTag, restoreNpcTag, saveClass, deleteClass, restoreClass, setClassAbilities, saveParasite, deleteParasite, restoreParasite, saveMark, deleteMark, restoreMark, saveMarkRules, restoreMarkRules,
-    saveTravelEvent, restoreTravelEvent, deleteTravelEvent, saveMasterEvent, restoreMasterEvent, deleteMasterEvent, saveCounter, deleteCounter, restoreCounter, saveEventRules, restoreEventRules, saveFamilyRules, restoreFamilyRules: restoreFamilyRulesMod, saveBindRules, restoreBindRules, saveCategoryIcon, restoreCategoryIcons, persistFailed,
+    saveTravelEvent, restoreTravelEvent, deleteTravelEvent, saveMasterEvent, restoreMasterEvent, deleteMasterEvent, saveCounter, deleteCounter, restoreCounter, saveEventRules, restoreEventRules, saveFamilyRules, restoreFamilyRules: restoreFamilyRulesMod, saveHomeRules, restoreHomeRules: restoreHomeRulesMod, saveBindRules, restoreBindRules, saveCategoryIcon, restoreCategoryIcons, persistFailed,
     exportMods, importMods, resetAll, diffMods, mergeMods, exportBuiltinWorld, importBuiltinWorld,
     importSource, analyzeSource, compareImport, packageFor, precheckImport, checkGenerated, importPackage, exportPicked,
   }

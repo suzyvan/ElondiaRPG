@@ -60,7 +60,7 @@
 | 類別 | 行動 |
 |---|---|
 | 一般 | 自由行動 `free`、長休時的互動 `rest_talk` |
-| 交流 | 聊天 `chat`、送禮 `gift`、獻媚 `flatter`、誘惑 `seduce`（[LEWD_STATS](LEWD_STATS.md) 第 15 節）、雇傭談判 `hire`、邀請入隊 `invite`（固定 NPC 小隊整隊邀請）、請小隊帶你同行 `squad_join`、向主人提議雇人或買奴隸 `propose` |
+| 交流 | 聊天 `chat`、送禮 `gift`、獻媚 `flatter`、誘惑 `seduce`（[LEWD_STATS](LEWD_STATS.md) 第 15 節）、雇傭談判 `hire`、邀請入隊 `invite`（固定 NPC 小隊整隊邀請）、請小隊帶你同行 `squad_join`、請他來家裡做事 `staff_invite`（[HOMES](HOMES.md) 第 8 節）、向主人提議雇人或買奴隸 `propose` |
 | 交易 | 殺價 `haggle`（奴隸市場）、交涉價格 `bargain`、談判 `negotiation`、打聽地下街 `black_market`（[SPECIAL_MAPS](SPECIAL_MAPS.md) 第 9 節） |
 | 犯罪與對峙 | 偷竊 `steal`、偷襲 `attack`、蒙混過關 `bluff`、威嚇 `intimidate`、說服王城的衛兵 `palace_gate`（[NPC_SYSTEM](NPC_SYSTEM.md) 的王城） |
 | 奴隸 | 刻印 `marking`、請求主人同意出城 `master_permit`、請求主人讓你出門 `master_leave`、回應主人 `master_event`、談判解除契約 `negotiate`、逃離主人 `escape`、回到主人身邊 `master_return`、投靠新主人 `seek_master`、解除印記 `unmark` |
@@ -81,7 +81,7 @@
 
 | 分類 | 說明 | 行動 | 情境 |
 |---|---|---|---|
-| 說服 `persuade` | 講道理、拉關係、談條件：聊天、送禮、雇傭與邀請、談判 | 雇傭談判 `hire`、邀請入隊 `invite`、請小隊帶你同行 `squad_join`、談判解除契約 `negotiate`、談判 `negotiation`、長休時的互動 `rest_talk`、聊天 `chat`、送禮 `gift`、向主人提議 `propose`、投靠新主人 `seek_master`、說服王城的衛兵 `palace_gate`、爭取特質 `perk_pitch` | 談判（委託報酬、交易條件） `negotiation` |
+| 說服 `persuade` | 講道理、拉關係、談條件：聊天、送禮、雇傭與邀請、談判 | 雇傭談判 `hire`、邀請入隊 `invite`、請小隊帶你同行 `squad_join`、請他來家裡做事 `staff_invite`、談判解除契約 `negotiate`、談判 `negotiation`、長休時的互動 `rest_talk`、聊天 `chat`、送禮 `gift`、向主人提議 `propose`、投靠新主人 `seek_master`、說服王城的衛兵 `palace_gate`、爭取特質 `perk_pitch` | 談判（委託報酬、交易條件） `negotiation` |
 | 欺瞞 `deceive` | 說謊、裝傻、蒙混過關 | 蒙混過關 `bluff` | — |
 | 威嚇 `intimidate` | 用氣勢、武力或身分壓人 | 威嚇 `intimidate` | — |
 | 交易 `trade` | 殺價、談價錢、打聽地下街 | 殺價 `haggle`、打聽地下街 `black_market`、交涉價格 `bargain` | — |

@@ -505,3 +505,14 @@ export function assignChore(state: GameState, id: string, job: StaffJob | null) 
 function choreDaily(state: GameState, home: Home) {
   for (const r of choreSlaves(state, home.id)) addLewd(state, r.character!, 'submission', rules().slave_chore_daily)
 }
+
+/** 在自己的房子裡行動時，場景帶上家裡的僕人（交給 AI）：雇來的家僕與做家務的奴隸 */
+export function withHomeStaff(state: GameState, scene: string): string {
+  const home = ownHomeOfArea(state, currentArea(state))
+  if (!home) return scene
+  const list = [
+    ...staffOf(state, home.id).map((r) => `${r.name}（${jobName(r.staff!.job)}）`),
+    ...choreSlaves(state, home.id).map((r) => `${r.name}（奴隸，做${jobName(r.chore!)}的家務）`),
+  ]
+  return list.length ? `${scene}・家裡的僕人：${list.join('、')}` : scene
+}

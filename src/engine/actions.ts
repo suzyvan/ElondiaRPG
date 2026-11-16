@@ -12,7 +12,7 @@
 import { applyUnbind } from './restraints'
 import { applyExplore, withLandmark } from './landmarks'
 import { withHomeStorage } from './storage'
-import { applyStaffInvite } from './staff'
+import { applyStaffInvite, withHomeStaff } from './staff'
 import { applyPitch, applyTrain, pruneOffers } from './perkActions'
 import { parsePitchTarget } from './perks'
 import { checkModifiers, checkSkills, type CheckCtx } from './perks'
@@ -263,8 +263,8 @@ export function prepareAction(state: GameState, input: ActionInput): ActionPendi
     outcomes: setup.outcomes,
     ...(setup.targetName ? { targetName: setup.targetName } : {}),
     ...(setup.adultScene ? { adultScene: setup.adultScene } : {}),
-    // 站在地標上：場景帶上地標的氛圍；在自己的房子裡：箱子裡收著什麼（storage.ts）
-    scene: withHomeStorage(state, withLandmark(state, setup.scene)),
+    // 站在地標上：場景帶上地標的氛圍；在自己的房子裡：箱子裡收著什麼（storage.ts）、家裡的僕人（staff.ts）
+    scene: withHomeStaff(state, withHomeStorage(state, withLandmark(state, setup.scene))),
     time: { ...state.time },
     location: state.location,
     ...(used?.change ? { spent: [used.change] } : {}),
