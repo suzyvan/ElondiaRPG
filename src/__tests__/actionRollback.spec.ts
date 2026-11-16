@@ -23,6 +23,25 @@ describe('action rollback', () => {
     expect(game.state!.time).toEqual(time)
   })
 
+  it('程式錯誤：還原狀態，訊息的細節附上版本、位置與出錯的地方', () => {
+    const game = useGame()
+    game.start('艾倫', 'human', 'fighter')
+    const money = game.state!.money_cc
+    game.runAction((s) => {
+      s.money_cc += 999
+      const broken = undefined as unknown as { cell: string }
+      return broken.cell
+    })
+    expect(game.state!.money_cc).toBe(money)
+    const [summary, ...rest] = game.error!.split('\n')
+    expect(summary).toMatch(/cell/)
+    const detail = rest.join('\n')
+    expect(detail).toContain('這是遊戲程式的錯誤')
+    expect(detail).toContain(`版本：${__APP_VERSION__}`)
+    expect(detail).toContain(`位置：${game.state!.location}`)
+    expect(detail).toContain('出錯的地方：')
+  })
+
   it('keeps the changes of an action that succeeds', () => {
     const game = useGame()
     game.start('艾倫', 'human', 'fighter')

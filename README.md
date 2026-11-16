@@ -115,6 +115,12 @@ pnpm build             # 型別檢查 + 建置到 dist/（相對路徑，放在�
 - 第一次發布前要在 repo 設定：Settings → Pages → Source 選「GitHub Actions」；Settings → Environments → `github-pages` 的 Deployment branches and tags 加上 tag 規則 `v*`（預設只允許預設分支部署）。
 - `pnpm-workspace.yaml` 已經設定好不執行 `@google/genai` 與 `protobufjs` 的安裝腳本（兩者都不需要），所以 `pnpm install` 不會出現 `ERR_PNPM_IGNORED_BUILDS`。
 - **測試分兩組並行**（`vitest.config.ts`）：純引擎的測試共用已經載入的模組（`isolate: false`，每個檔案開始前由 `src/__tests__/setup/resetGlobals.ts` 還原引擎的全域設定）；用到 `vi.mock`、Pinia store、瀏覽器儲存或掛載元件的測試自動分到每個檔案各自載入的那一組。全部測試約 2 分多鐘（以前約 4 分鐘）。只跑一組：`pnpm test:unit --run --project shared`。
+- **查玩家回報的程式錯誤**：程式本身出錯時（不是規則擋下來的），錯誤泡泡的「詳細」會寫出版本、當時在哪裡與「出錯的地方」（線上版是壓縮過的位置，例如 `assets/index-xxxx.js:371:34921`）。切到玩家那個版本的 tag，建一份帶 source map 的建置（同一份原始碼建出來的程式一模一樣，只多了 `.map`），再把整段回報貼給 `tools/stack/mapstack.mjs`，就會對回 `src/…` 的檔名與行號：
+  ```bash
+  git checkout v0.6.8
+  npx vite build --sourcemap hidden --outDir /tmp/elondia-map --emptyOutDir
+  node tools/stack/mapstack.mjs /tmp/elondia-map < 回報.txt
+  ```
 - 也可以用 npm（`npm install`、`npm run dev`）。`.npmrc` 的 `legacy-peer-deps` 是為了避開 npm 10 在解析 vitest 選用依賴時的錯誤。
 
 ## 文件與資料
