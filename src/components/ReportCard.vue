@@ -323,6 +323,12 @@ async function copyPrompt() {
     <div v-if="changes.length" ref="changesEl" class="row small changes" :class="{ crafting }">
       <span v-for="(c, i) in chips" :key="`${i}:${c.text}`" class="tag" :class="c.cls" :style="{ '--i': i }">{{ c.text }}</span>
     </div>
+    <!-- 這則日誌記下的性經歷（stores/game.ts 的 recordSex；重新記錄時換掉）：粉紅色 -->
+    <div v-if="report.sex_log && settings.sexRecords" class="row small sex-log" aria-label="這則記下的性經歷">
+      <span class="tag sex head"><GameIcon name="heart" :size="11" /> 性經歷</span>
+      <span v-for="(line, i) in report.sex_log" :key="i" class="tag sex">{{ line }}</span>
+      <span v-if="!report.sex_log.length" class="tag sex none">這段經過沒有需要記下的性經歷</span>
+    </div>
 
     <!-- 寫出經過、生成插圖：放在日誌底下（讀完正文不用捲回最上面），插圖也掛在這下面 -->
     <div class="tools">
@@ -422,6 +428,11 @@ async function copyPrompt() {
 .tool { display: grid; place-items: center; width: 28px; height: 26px; padding: 0; color: var(--muted); }
 .tool:hover:not(:disabled) { color: var(--accent); }
 /* 正在記下性經歷：心形閃動 */
+/* 這則記下的性經歷：粉紅色 */
+.sex-log { flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.tag.sex { color: #c2457f; border-color: #e07aa8; background: color-mix(in srgb, #e07aa8 14%, transparent); }
+.tag.sex.head { display: inline-flex; align-items: center; gap: 3px; font-weight: 600; }
+.tag.sex.none { opacity: 0.75; }
 /* 記過的（可以重新記錄）：心是粉紅色的 */
 .tool.logged { color: #e07aa8; }
 .tool.recording { color: #ff8cc8; cursor: progress; animation: sex-pulse 1.1s ease-in-out infinite; }

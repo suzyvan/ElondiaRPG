@@ -147,18 +147,22 @@ describe('record sex after an intimate scene', () => {
     await vi.waitFor(() => expect(sexRecordOf(g.state!, 'pc').times).toBe(1))
     expect(canRerecord(g.state!, r.report_id)).toBe(true)
     expect(sexRecordToast(g.state!, g.state!.sexLedger![r.report_id]!)).toBe('📒 記下性經歷：艾倫：性交 1 次（新對象 1 人）、初體驗')
+    const logged = () => g.state!.reports.find((x) => x.report_id === r.report_id)!.sex_log
+    expect(logged()).toEqual(['艾倫：性交 1 次（新對象 1 人）、初體驗'])
     // 續寫之後重記：兩次，一樣是初體驗、一樣只算莉娜一個人
     reply = '{"records":[{"id":"pc","sex":2,"service":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"第一夜，天亮前又一次","first_time":"和莉娜，在旅店"}]}'
     await g.recordSex(r, '兩人在旅店的房間裡度過了第一夜。天亮前又纏在一起。', { manual: true, rerecord: true })
     const rec = sexRecordOf(g.state!, 'pc')
     expect(rec).toMatchObject({ virgin: false, partners: 1, times: 2, serviceTimes: 1, first: { with: '莉娜' } })
     expect(rec.recent.filter((x) => x.report === r.report_id)).toHaveLength(1)
+    expect(logged()).toEqual(['艾倫：性交 2 次（新對象 1 人）、性侍奉 1 次、初體驗'])
     expect(vi.mocked(providers.completeText).mock.calls.at(-1)![2]).toMatchObject({ user: expect.stringContaining('天亮前又纏在一起') })
     // 重記成「沒有發生」：拿掉這則記的，回到處子
     reply = '{"records":[]}'
     await g.recordSex(r, '……', { manual: true, rerecord: true })
     expect(sexRecordOf(g.state!, 'pc')).toMatchObject({ virgin: true, partners: 0, times: 0, serviceTimes: 0 })
     expect(sexRecordOf(g.state!, 'pc').first).toBeUndefined()
+    expect(logged()).toEqual([])
     expect(canRerecord(g.state!, r.report_id)).toBe(true)
   })
 

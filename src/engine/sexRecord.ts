@@ -285,7 +285,12 @@ function ledgerOf(id: string, before: SexRecord, after: SexRecord): SexLedgerEnt
 
 /** 記錄成功時的提示：每個人這次加了什麼（「莉娜：性交 2 次（初體驗）、性侍奉 1 次」） */
 export function sexRecordToast(state: GameState, entries: SexLedgerEntry[], rerecorded = false): string {
-  const parts = entries.map((e) => {
+  return `📒 ${rerecorded ? '重新記下性經歷（取代這則之前的記錄）' : '記下性經歷'}：${sexRecordLines(state, entries).join('；')}`
+}
+
+/** 每個人一行：「莉娜：性交 2 次（初體驗）、性侍奉 1 次」（提示與日誌卡上的粉紅色記錄） */
+export function sexRecordLines(state: GameState, entries: SexLedgerEntry[]): string[] {
+  return entries.map((e) => {
     const bits = [
       e.times ? `性交 ${e.times} 次${e.partners ? `（新對象 ${e.partners} 人）` : ''}` : '',
       e.serviceTimes ? `性侍奉 ${e.serviceTimes} 次` : '',
@@ -295,7 +300,6 @@ export function sexRecordToast(state: GameState, entries: SexLedgerEntry[], rere
     ].filter(Boolean)
     return `${nameFor(state, e.id)}${bits.length ? `：${bits.join('、')}` : ''}`
   })
-  return `📒 ${rerecorded ? '重新記下性經歷（取代這則之前的記錄）' : '記下性經歷'}：${parts.join('；')}`
 }
 
 /** AI 回傳的一筆：誰、這次性交與性侍奉幾次、和誰、經過、是不是初體驗…… */

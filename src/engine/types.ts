@@ -233,6 +233,8 @@ export interface Report {
   lore_keys?: string[]
   /** 存檔規則「職業武器限制」：這次入隊、歸隊時收進行囊的武器（誰的什麼、為什麼）；commitReport 接在摘要後面 */
   stowed?: string[]
+  /** 這則日誌記下的性經歷（每個人一行，日誌卡用粉紅色顯示；重新記錄時換掉；沒有需要記的是空陣列） */
+  sex_log?: string[]
 }
 
 // ---- 遊戲狀態 ----

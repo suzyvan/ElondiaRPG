@@ -623,6 +623,9 @@ export const useGame = defineStore('game', () => {
       if (rerecord) sexRecord.undoSexRecord(s, report.report_id)
       const updated = sexRecord.applySexUpdates(s, raw.records, { report, candidates: built.candidates, ...(rerecord ? { noConceive: true } : {}) })
       sexRecord.markSexLogged(s, report.report_id)
+      // 記在日誌上（日誌卡的粉紅色記錄；重新記錄時換掉）
+      const target = s.reports.find((r) => r.report_id === report.report_id)
+      if (target) target.sex_log = sexRecord.sexRecordLines(s, s.sexLedger?.[report.report_id] ?? [])
       save()
       // 每個人這次加了什麼：字比較多，停久一點
       if (updated.length) flash(sexRecord.sexRecordToast(s, s.sexLedger?.[report.report_id] ?? [], rerecord), 5000)
