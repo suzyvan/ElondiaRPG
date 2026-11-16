@@ -212,3 +212,11 @@ export function pullFromHome(state: GameState, name: string, qty: number): numbe
   const home = short > 0 ? homeHere(state) : undefined
   return home ? takeFromHome(state, home, name, short) : 0
 }
+
+/** 在自己的房子裡行動時，場景帶上箱子裡收著的東西（交給 AI，最多 10 種，數量多的在前） */
+export function withHomeStorage(state: GameState, scene: string): string {
+  const home = homeHere(state)
+  if (!home) return scene
+  const list = [...homeStock(home)].sort((a, b) => b[1] - a[1]).slice(0, 10)
+  return list.length ? `${scene}・家裡的箱子收著：${list.map(([n, q]) => `${n}×${q}`).join('、')}` : scene
+}

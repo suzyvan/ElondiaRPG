@@ -9,7 +9,7 @@ import { produceTarget, recipePlan } from '@/engine/recipes'
 import { enterLocation, placeAt, type Area } from '@/engine/grid'
 import { buyHome, furnitureIn, lotsOf, placeFurniture, takeFurniture } from '@/engine/homes'
 import {
-  depositItem, depositMany, depositMoney, depositRefusal, homeStock, storageInUse, storedItems, storedMoney, takeFromHome, withdrawItem, withdrawMoney,
+  depositItem, depositMany, depositMoney, depositRefusal, homeStock, withHomeStorage, storageInUse, storedItems, storedMoney, takeFromHome, withdrawItem, withdrawMoney,
 } from '@/engine/storage'
 import { addItem, newGame } from '@/engine/state'
 import { itemUsage, renameItemInState } from '@/engine/usage'
@@ -319,5 +319,21 @@ describe('在家裡直接用（S2）', () => {
     expect(plot.crop?.seed).toBe('藥草種子')
     expect(homeStock(home).get('藥草種子')).toBe(1)
     expect(qty(state, '藥草種子')).toBe(0)
+  })
+})
+
+describe('給 AI 的場景', () => {
+  it('在自己的房子裡，場景帶上箱子裡收著的東西；出門就不帶', () => {
+    const state = game()
+    const home = bought(state)
+    const c = chest(state, home)
+    addItem(state.inventory, '木材', 5)
+    addItem(state.inventory, '藥草', 2)
+    depositItem(state, c.area, c.x, c.y, '木材')
+    depositItem(state, c.area, c.x, c.y, '藥草')
+    placeAt(state, c.area, c.x, c.y)
+    expect(withHomeStorage(state, '家裡')).toBe('家裡・家裡的箱子收著：木材×5、藥草×2')
+    enterLocation(state)
+    expect(withHomeStorage(state, '城裡')).toBe('城裡')
   })
 })
