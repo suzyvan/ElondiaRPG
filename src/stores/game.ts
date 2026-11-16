@@ -620,12 +620,16 @@ export const useGame = defineStore('game', () => {
       if (state.value !== s || !s.reports.some((r) => r.report_id === report.report_id)) return
       if (rerecord ? !sexRecord.canRerecord(s, report.report_id) : sexRecord.sexLogged(s, report.report_id)) return
       // 重新記錄：AI 回來了才把這則之前記下的扣掉（失敗時舊的記錄不動），受孕不重擲
-      if (rerecord) sexRecord.undoSexRecord(s, report.report_id)
+      // 其他日誌也有的經驗（處子、記住的對象）不扣，改算在那則；那幾則的粉紅色記錄跟著換
+      const touched = new Set(rerecord ? sexRecord.undoSexRecord(s, report.report_id) : [])
       const updated = sexRecord.applySexUpdates(s, raw.records, { report, candidates: built.candidates, ...(rerecord ? { noConceive: true } : {}) })
-      sexRecord.markSexLogged(s, report.report_id)
+      if (rerecord) for (const id of sexRecord.reclaimFirst(s, report.report_id)) touched.add(id)
+      sexRecord.markSexLogged(s, report.report_id, settings.logKeepLimit())
       // 記在日誌上（日誌卡的粉紅色記錄；重新記錄時換掉）
-      const target = s.reports.find((r) => r.report_id === report.report_id)
-      if (target) target.sex_log = sexRecord.sexRecordLines(s, s.sexLedger?.[report.report_id] ?? [])
+      for (const id of [report.report_id, ...touched]) {
+        const target = s.reports.find((r) => r.report_id === id)
+        if (target && s.sexLedger?.[id]) target.sex_log = sexRecord.sexRecordLines(s, s.sexLedger[id]!)
+      }
       save()
       // 每個人這次加了什麼：字比較多，停久一點
       if (updated.length) flash(sexRecord.sexRecordToast(s, s.sexLedger?.[report.report_id] ?? [], rerecord), 5000)

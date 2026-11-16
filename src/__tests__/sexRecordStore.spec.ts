@@ -184,4 +184,41 @@ describe('record sex after an intimate scene', () => {
     await g.recordSex(old, '……', { manual: true, rerecord: true })
     expect(providers.completeText).not.toHaveBeenCalled()
   })
+
+  it('re-recording an earlier log keeps what a later log also had: still not a virgin, partner still known, first time moves and comes back', async () => {
+    const { g } = await setup()
+    const { sexRecordOf } = await import('@/engine/sexRecord')
+    const first = scene(g.state!)
+    reply = '{"records":[{"id":"pc","sex":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"第一夜"}]}'
+    await g.recordSex(first, '……', { manual: true })
+    const second = scene(g.state!)
+    reply = '{"records":[{"id":"pc","sex":2,"service":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"第二夜"}]}'
+    await g.recordSex(second, '……', { manual: true })
+    expect(sexRecordOf(g.state!, 'pc')).toMatchObject({ virgin: false, times: 3, partners: 1, first: { note: '第一夜' } })
+    // 第一則重記成只有侍奉：第二則還有性交，不會變回處子；莉娜算第二則認識的
+    reply = '{"records":[{"id":"pc","service":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"只用手"}]}'
+    await g.recordSex(first, '……', { manual: true, rerecord: true })
+    let rec = sexRecordOf(g.state!, 'pc')
+    expect(rec).toMatchObject({ virgin: false, times: 2, partners: 1, known: ['npc_lina'], serviceTimes: 2, servicePartners: 1, first: { note: '第二夜' } })
+    expect(rec.recent.map((x) => x.report)).toEqual([second.report_id, first.report_id])
+    expect(g.state!.reports.find((r) => r.report_id === second.report_id)!.sex_log![0]).toContain('初體驗')
+    // 再重記回有性交：初體驗與新對象挪回第一則
+    reply = '{"records":[{"id":"pc","sex":1,"with":[{"name":"莉娜","id":"npc_lina"}],"summary":"第一夜"}]}'
+    await g.recordSex(first, '……', { manual: true, rerecord: true })
+    rec = sexRecordOf(g.state!, 'pc')
+    expect(rec).toMatchObject({ virgin: false, times: 3, partners: 1, first: { note: '第一夜' } })
+    expect(g.state!.sexLedger![first.report_id]![0]).toMatchObject({ first: true, partners: 1 })
+    expect(g.state!.sexLedger![second.report_id]![0]).toMatchObject({ first: false, partners: 0 })
+    expect(g.state!.reports.find((r) => r.report_id === second.report_id)!.sex_log![0]).not.toContain('初體驗')
+  })
+
+  it('keeps as many logged reports as the log keeps, so an old log never turns back into "record" and adds twice', async () => {
+    const { g } = await setup()
+    const { sexLogged, canRerecord } = await import('@/engine/sexRecord')
+    const first = scene(g.state!)
+    await g.recordSex(first, '……', { manual: true })
+    for (let i = 0; i < 60; i++) await g.recordSex(scene(g.state!), '……', { manual: true })
+    expect(sexLogged(g.state!, first.report_id)).toBe(true)
+    expect(canRerecord(g.state!, first.report_id)).toBe(true)
+  })
 })

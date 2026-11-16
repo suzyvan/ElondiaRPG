@@ -341,6 +341,11 @@ export interface SexLedgerEntry {
   first?: boolean
   /** 自慰最近一天原本的值（null：原本沒有）；沒變時不寫 */
   soloLast?: number | null
+  /** 這則日誌裡性交、性侍奉的所有對象（認人用的 key，含之前就認得的）：重記較早的日誌時，較晚那則也有的人留著不扣 */
+  sexKeys?: string[]
+  serviceKeys?: string[]
+  /** 這則有性交時，如果它是初體驗會記成什麼（重記較早的日誌時，初體驗可以挪到這則或挪回來） */
+  firstIf?: { day?: number; with?: string; note?: string }
   /** 最喜歡的人、性癖：這次改成 set，原本是 prev */
   favorite?: { prev?: string; set: string }
   notes?: { prev?: string; set: string }
