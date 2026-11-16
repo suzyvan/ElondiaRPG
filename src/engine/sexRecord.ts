@@ -216,10 +216,12 @@ export function sexLogged(state: GameState, reportId: string): boolean {
   return !!state.sexLogged?.includes(reportId)
 }
 
-export function markSexLogged(state: GameState, reportId: string) {
+/** 記過的日誌最多留幾則：跟日誌保留的則數一樣（設定的「日誌保留」；日誌還在、記錄就還在，不會變回可以再記一次） */
+export function markSexLogged(state: GameState, reportId: string, limit = 200) {
   const list = (state.sexLogged ??= [])
   if (!list.includes(reportId)) list.push(reportId)
-  if (list.length > 50) list.splice(0, list.length - 50)
+  const cap = Math.max(50, Math.floor(limit) || 0)
+  if (list.length > cap) list.splice(0, list.length - cap)
   // 帳本只留還記得的日誌
   if (state.sexLedger) for (const id of Object.keys(state.sexLedger)) if (!list.includes(id)) delete state.sexLedger[id]
 }
@@ -229,20 +231,63 @@ export function canRerecord(state: GameState, reportId: string): boolean {
   return sexLogged(state, reportId) && !!state.sexLedger?.[reportId]
 }
 
+/** 日誌的先後（state.reports 的順序；已經不在日誌裡的當成最早） */
+function reportOrder(state: GameState, reportId: string | undefined): number {
+  if (!reportId) return -1
+  const i = state.reports.findIndex((r) => r.report_id === reportId)
+  return i
+}
+
+/** 這個人在其他日誌的帳本（不含 reportId），由早到晚 */
+function otherEntries(state: GameState, id: string, reportId: string): { report: string; e: SexLedgerEntry }[] {
+  const out: { report: string; e: SexLedgerEntry }[] = []
+  for (const [rid, list] of Object.entries(state.sexLedger ?? {})) {
+    if (rid === reportId) continue
+    for (const e of list) if (e.id === id) out.push({ report: rid, e })
+  }
+  return out.sort((a, b) => reportOrder(state, a.report) - reportOrder(state, b.report))
+}
+
+/** 這則帳本裡跟這個對象有關嗎（新帳本看 sexKeys；沒有時看最近幾次裡那則的對象） */
+function involves(rec: SexRecord, o: { report: string; e: SexLedgerEntry }, side: 'sex' | 'service', key: string): boolean {
+  const keys = side === 'sex' ? o.e.sexKeys : o.e.serviceKeys
+  if (keys) return keys.includes(key)
+  const enc = rec.recent.find((x) => x.report === o.report)
+  if (!enc || !(side === 'sex' ? enc.sex : enc.service)) return false
+  return enc.with.some((w) => (w.id ?? `name:${w.name}`) === key)
+}
+
 /**
  * 把這則日誌之前記下的性經歷扣回來（重新記錄的第一步）：次數、人數、記住的對象、非自願、自慰、
- * 初體驗（恢復處子、退回初體驗的成長）、最喜歡的人與性癖（還是這次改的才換回去）、最近幾次裡這則的那一筆。
- * 受孕不退（已經擲過）。之後在角色詳情手動改過的數字照樣扣，扣到 0 為止
+ * 初體驗、最喜歡的人與性癖（還是這次改的才換回去）、最近幾次裡這則的那一筆。受孕不退（已經擲過）。
+ * 其他日誌也有的經驗不扣：這則記住的對象如果較晚那則也有，改算在那則（人數不減）；扣完還有性交次數就不恢復處子，
+ * 初體驗挪到最早有性交的那則。之後在角色詳情手動改過的數字照樣扣，扣到 0 為止。回傳帳本被改到的其他日誌
  */
-export function undoSexRecord(state: GameState, reportId: string) {
+export function undoSexRecord(state: GameState, reportId: string): string[] {
+  const touched = new Set<string>()
   for (const e of state.sexLedger?.[reportId] ?? []) {
     const rec = ensureRecord(state, e.id)
+    const others = otherEntries(state, e.id, reportId)
+    // 記住的對象：其他日誌也有這個人就留著，算成那則認識的
+    const moveKnown = (side: 'sex' | 'service', keys: string[]): number => {
+      let kept = 0
+      for (const k of keys) {
+        const holder = others.find((o) => involves(rec, o, side, k))
+        if (holder) {
+          kept++
+          if (side === 'sex') { holder.e.known.push(k); holder.e.partners++ } else { holder.e.serviceKnown.push(k); holder.e.servicePartners++ }
+          touched.add(holder.report)
+        } else if (side === 'sex') rec.known = (rec.known ?? []).filter((x) => x !== k)
+        else rec.serviceKnown = (rec.serviceKnown ?? []).filter((x) => x !== k)
+      }
+      return kept
+    }
+    const keptSex = moveKnown('sex', e.known)
+    const keptService = moveKnown('service', e.serviceKnown)
     rec.times = Math.max(0, rec.times - e.times)
-    rec.partners = Math.max(0, rec.partners - e.partners)
+    rec.partners = Math.max(0, rec.partners - Math.max(0, e.partners - keptSex))
     rec.serviceTimes = Math.max(0, rec.serviceTimes - e.serviceTimes)
-    rec.servicePartners = Math.max(0, rec.servicePartners - e.servicePartners)
-    if (rec.known) rec.known = rec.known.filter((k) => !e.known.includes(k))
-    if (rec.serviceKnown) rec.serviceKnown = rec.serviceKnown.filter((k) => !e.serviceKnown.includes(k))
+    rec.servicePartners = Math.max(0, rec.servicePartners - Math.max(0, e.servicePartners - keptService))
     if (e.solo) rec.solo = Math.max(0, (rec.solo ?? 0) - e.solo)
     if (e.soloLast !== undefined) {
       if (e.soloLast === null) delete rec.soloLast
@@ -250,10 +295,20 @@ export function undoSexRecord(state: GameState, reportId: string) {
     }
     if (e.forced) rec.forced = Math.max(0, (rec.forced ?? 0) - e.forced)
     if (e.first) {
-      rec.virgin = true
-      delete rec.first
-      const c = characterOf(state, e.id)
-      if (c) for (const [k, v] of Object.entries(rules().first_time)) if (v) bumpLewd(c, k as LewdStat, -v)
+      if (rec.times > 0) {
+        // 其他日誌也有性交：還不是處子，初體驗挪到最早有性交的那則（成長已經長過，不退）
+        const holder = others.find((o) => o.e.times > 0 && o.e.firstIf)
+        if (holder) {
+          holder.e.first = true
+          rec.first = { ...holder.e.firstIf }
+          touched.add(holder.report)
+        }
+      } else {
+        rec.virgin = true
+        delete rec.first
+        const c = characterOf(state, e.id)
+        if (c) for (const [k, v] of Object.entries(rules().first_time)) if (v) bumpLewd(c, k as LewdStat, -v)
+      }
     }
     if (e.favorite && rec.favorite === e.favorite.set) {
       if (e.favorite.prev) rec.favorite = e.favorite.prev
@@ -266,6 +321,39 @@ export function undoSexRecord(state: GameState, reportId: string) {
     rec.recent = rec.recent.filter((x) => x.report !== reportId)
   }
   if (state.sexLedger) delete state.sexLedger[reportId]
+  return [...touched]
+}
+
+/**
+ * 重新記錄之後：重記前挪到較晚那則的初體驗、新對象，這則又有的話挪回這則（記錄的數字不變，只是算在哪一則）。
+ * 回傳帳本被改到的其他日誌
+ */
+export function reclaimFirst(state: GameState, reportId: string): string[] {
+  const touched = new Set<string>()
+  const at = reportOrder(state, reportId)
+  for (const e of state.sexLedger?.[reportId] ?? []) {
+    const later = otherEntries(state, e.id, reportId).filter((o) => reportOrder(state, o.report) > at)
+    for (const side of ['sex', 'service'] as const) {
+      const mine = side === 'sex' ? e.known : e.serviceKnown
+      for (const k of (side === 'sex' ? e.sexKeys : e.serviceKeys) ?? []) {
+        if (mine.includes(k)) continue
+        const o = later.find((x) => (side === 'sex' ? x.e.known : x.e.serviceKnown).includes(k))
+        if (!o) continue
+        if (side === 'sex') { o.e.known = o.e.known.filter((x) => x !== k); o.e.partners = Math.max(0, o.e.partners - 1); e.partners++ }
+        else { o.e.serviceKnown = o.e.serviceKnown.filter((x) => x !== k); o.e.servicePartners = Math.max(0, o.e.servicePartners - 1); e.servicePartners++ }
+        mine.push(k)
+        touched.add(o.report)
+      }
+    }
+    if (!e.times || e.first || !e.firstIf) continue
+    const holder = later.find((o) => o.e.first)
+    if (!holder) continue
+    holder.e.first = false
+    e.first = true
+    ensureRecord(state, e.id).first = { ...e.firstIf }
+    touched.add(holder.report)
+  }
+  return [...touched]
 }
 
 /** 兩份記錄的差：這一則日誌對這個人造成的變化 */
@@ -370,18 +458,21 @@ export interface EncounterInput {
  * 加進一個人的記錄：認得的對象不再算新的人；第一次性交時記下初體驗，有角色資料的人照 experience.first_time 成長；
  * 有性交或性侍奉時加進最近幾次。回傳這次是不是初體驗
  */
-export function addEncounter(state: GameState, id: string, e: EncounterInput): boolean {
-  const rec = ensureRecord(state, id)
+/** 這次經歷裡性交（或性侍奉）的對象，認人用的 key */
+export function encounterKeys(e: EncounterInput, side: 'sex' | 'service'): string[] {
   const key = (p: EncounterPartner) => p.id ?? `name:${p.name}`
   // 對象寫不出來（例如一群看不清臉的人）：至少算一個新的人
   const fallback = e.anonKeys?.length ? e.anonKeys : [e.anonKey ?? `anon:${e.report ?? e.day}`]
+  if (e.anonKeys?.length) return e.anonKeys
   // 性交與性侍奉各自的對象：AI 分開寫了（只替其中一人侍奉……）就照寫的算，沒寫的人兩邊都算
-  const keysFor = (side: 'sex' | 'service') => {
-    if (e.anonKeys?.length) return e.anonKeys
-    const all = e.with.map(key)
-    const some = e.with.filter((p) => p[side] !== false).map(key)
-    return some.length ? some : all.length ? all : fallback
-  }
+  const all = e.with.map(key)
+  const some = e.with.filter((p) => p[side] !== false).map(key)
+  return some.length ? some : all.length ? all : fallback
+}
+
+export function addEncounter(state: GameState, id: string, e: EncounterInput): boolean {
+  const rec = ensureRecord(state, id)
+  const keysFor = (side: 'sex' | 'service') => encounterKeys(e, side)
   let first = false
   if (e.sex) {
     const r = countPartners(rec.known ?? [], keysFor('sex'))
@@ -411,7 +502,13 @@ export function addEncounter(state: GameState, id: string, e: EncounterInput): b
   if (e.sex || e.service) {
     const enc: SexEncounter = { day: e.day, with: e.with.map((p) => ({ name: p.name, ...(p.id ? { id: p.id } : {}) })), sex: e.sex, service: e.service, summary: e.summary, ...(e.report ? { report: e.report } : {}) }
     if (e.forced) enc.forced = true
-    rec.recent = [enc, ...rec.recent.filter((x) => !e.report || x.report !== e.report)].slice(0, rules().recent)
+    // 照日子排（同一天照日誌先後）：重記較早的日誌時，那一筆回到原本的位置，不會跑到最上面
+    const order = (x: SexEncounter) => reportOrder(state, x.report)
+    rec.recent = [enc, ...rec.recent.filter((x) => !e.report || x.report !== e.report)]
+      .map((x, i) => ({ x, i }))
+      .sort((a, b) => b.x.day - a.x.day || (a.x.report && b.x.report ? order(b.x) - order(a.x) : 0) || a.i - b.i)
+      .map(({ x }) => x)
+      .slice(0, rules().recent)
   }
   return first
 }
@@ -449,11 +546,12 @@ export function applySexUpdates(state: GameState, raw: unknown, ctx: { report: R
       })
       .filter((w): w is EncounterPartner => !!w)
       .slice(0, caps.partners)
-    addEncounter(state, id, {
+    const input: EncounterInput = {
       day, with: sex || service ? partners : [], sex, service, solo, forced: u.forced === true,
       summary: text(u.summary, 120) || ctx.report.narration?.adult_scene?.slice(0, 120) || '',
       firstNote: text(u.first_time, 120), report: ctx.report.report_id, anonKey: `anon:${ctx.report.report_id}`,
-    })
+    }
+    addEncounter(state, id, input)
     // 受孕只在這裡判定（AI 記下的經歷）；NPC 私生活走 addEncounter，不會受孕（docs/FAMILY.md）
     if (sex && !ctx.noConceive) maybeConceive(state, { report: ctx.report, mother: id, partners, times: sex, forced: u.forced === true })
     const rec = ensureRecord(state, id)
@@ -463,7 +561,14 @@ export function applySexUpdates(state: GameState, raw: unknown, ctx: { report: R
     if (notes) rec.notes = notes
     updated.push(id)
     // 帳本：這則日誌對這個人造成的變化（重新記錄時扣回來）
-    ;((state.sexLedger ??= {})[ctx.report.report_id] ??= []).push(ledgerOf(id, before, rec))
+    const entry = ledgerOf(id, before, rec)
+    if (sex) {
+      entry.sexKeys = encounterKeys(input, 'sex')
+      const note = input.firstNote || input.summary
+      entry.firstIf = { day, ...(input.with.length ? { with: input.with.map((p) => p.name).join('、') } : {}), ...(note ? { note } : {}) }
+    }
+    if (service) entry.serviceKeys = encounterKeys(input, 'service')
+    ;((state.sexLedger ??= {})[ctx.report.report_id] ??= []).push(entry)
   }
   // 沒有人要記也留一筆空的帳本：之後可以重新記錄
   ;(state.sexLedger ??= {})[ctx.report.report_id] ??= []
