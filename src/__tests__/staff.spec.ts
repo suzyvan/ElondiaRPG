@@ -3,14 +3,21 @@ import { describe, expect, it } from 'vitest'
 import Ajv2020 from 'ajv/dist/2020'
 import schema from '../../schemas/report.schema.json'
 import { homeRules } from '@/engine/data'
-import { enterLocation, placeAt, type Area } from '@/engine/grid'
-import { buyHome, comfortOf, lotsOf, placeFurniture } from '@/engine/homes'
+import { prepareAction, resolveAction } from '@/engine/actions'
+import { sendHome } from '@/engine/away'
+import { buySlave, marketStock } from '@/engine/companions'
+import { lewdOf } from '@/engine/lewd'
+import { generateNpc } from '@/engine/npcs'
+import { Rng } from '@/engine/rng'
+import { ensureRelationship, setAffinity } from '@/engine/social'
+import { currentArea, enterLocation, placeAt, position, type Area } from '@/engine/grid'
+import { buyHome, comfortOf, leaveWithResident, lotsOf, placeFurniture } from '@/engine/homes'
 import { plant } from '@/engine/garden'
 import { depositItem, depositMoney, homeMoney, homeStock } from '@/engine/storage'
 import { peopleHere } from '@/engine/population'
 import { longRest } from '@/engine/rest'
 import {
-  ackStaffNotes, breakfastOf, candidates, fireStaff, hireStaff, homeOwed, owedDays, payWages, staffCap, staffOf, wageHere,
+  ackStaffNotes, assignChore, choreRefusal, choreSlaves, staffInviteRefusal, workersFor, breakfastOf, candidates, fireStaff, hireStaff, homeOwed, owedDays, payWages, staffCap, staffOf, wageHere,
 } from '@/engine/staff'
 import { addItem, advanceTime, newGame } from '@/engine/state'
 import type { GameState, Home, Report } from '@/engine/types'
@@ -292,5 +299,92 @@ describe('管家（H3）', () => {
     const texts = (home.staffNotes ?? []).map((n) => n.text)
     expect(texts.some((t) => t.includes(state.npcs![maid]!.name) && t.includes('明天再不付'))).toBe(true)
     expect(texts.filter((t) => t.includes('可以收成了'))).toHaveLength(1)
+  })
+})
+
+describe('請認識的人來家裡做事（H4）', () => {
+  /** 在城裡主角旁邊擺一個認識的普通人 */
+  function neighbour(state: GameState, affinity: number, kind: 'commoner' | 'adventurer' = 'commoner') {
+    const rec = generateNpc(state, new Rng(7), { kind, location: state.location, tags: ['commoner'] }, 'cmn')
+    const p = position(state)
+    rec.at = { area: currentArea(state).key, x: p.x, y: p.y, until: 1e9 }
+    rec.haunts = [{ location: state.location, zone: 'town', weight: 1 }] as never
+    ensureRelationship(state, rec)
+    setAffinity(state, rec.id, affinity)
+    return rec
+  }
+
+  it('沒有房子、親密度不夠、冒險者都不行', () => {
+    const state = game()
+    const a = neighbour(state, 50)
+    expect(staffInviteRefusal(state, a.id)).toContain('沒有你的房子')
+    const lot = lotsOf(state.location).find((l) => l.district === 'house')!
+    buyHome(state, lot.id)
+    enterLocation(state)
+    const b = neighbour(state, 10)
+    expect(staffInviteRefusal(state, b.id)).toContain('親密度')
+    const c = neighbour(state, 50, 'adventurer')
+    expect(staffInviteRefusal(state, c.id)).toContain('普通人')
+    const d = neighbour(state, 50)
+    expect(staffInviteRefusal(state, d.id)).toBeUndefined()
+  })
+
+  it('成功就搬進房子當家僕；部分成功要等下次長休再問', () => {
+    const state = game()
+    const lot = lotsOf(state.location).find((l) => l.district === 'house')!
+    buyHome(state, lot.id)
+    enterLocation(state)
+    const home = Object.values(state.homes!)[0]!
+    const rec = neighbour(state, 60)
+    prepareAction(state, { kind: 'staff_invite', target: `${rec.id}:cook`, text: '' })
+    state.pendingAction!.natural = 20
+    resolveAction(state, null)
+    expect(state.npcs![rec.id]!.staff).toMatchObject({ home: home.id, job: 'cook' })
+    expect(state.npcs![rec.id]!.at?.area).toBe(ground(home).key)
+
+    const other = neighbour(state, 40)
+    prepareAction(state, { kind: 'staff_invite', target: `${other.id}:maid`, text: '' })
+    state.pendingAction!.natural = 1
+    resolveAction(state, null)
+    expect(state.npcs![other.id]!.staff).toBeUndefined()
+    expect(staffInviteRefusal(state, other.id)).toContain('再想想')
+  })
+})
+
+describe('奴隸做家務（H4）', () => {
+  /** 阿爾貝納有奴隸市場：買一個奴隸、買房子、讓他留在家裡 */
+  function slaveAtHome() {
+    const state = newGame({ name: '莉雅', race: 'human', classId: 'bard', seed: 11, birthplace: 'albena' })
+    enterLocation(state)
+    state.money_cc = 10_000_000
+    const l = marketStock(state, 'public')[0]!
+    buySlave(state, 'public', l.npc)
+    buyHome(state, lotsOf('albena')[0]!.id)
+    const home = Object.values(state.homes!)[0]!
+    const p = spot(ground(home), 5)
+    placeAt(state, ground(home), p.x, p.y)
+    sendHome(state, home.id, l.npc)
+    return { state, home, id: l.npc }
+  }
+
+  it('順從夠才肯做；效果和雇來的一樣、不佔上限，每天順從 +1', () => {
+    const { state, home, id } = slaveAtHome()
+    const c = state.npcs![id]!.character!
+    c.lewd = { ...(c.lewd ?? {}), submission: 0 }
+    expect(choreRefusal(state, id)).toContain('順從')
+    c.lewd.submission = homeRules.staff.slave_chore_submission
+    assignChore(state, id, 'cook')
+    expect(choreSlaves(state, home.id).map((r) => r.id)).toEqual([id])
+    expect(workersFor(state, home.id, 'cook')).toHaveLength(1)
+    expect(breakfastOf(state, home)).toBe('fed_well')
+    expect(staffOf(state, home.id)).toHaveLength(0)
+    expect(() => assignChore(state, id, 'steward')).toThrow('管家')
+    const before = lewdOf(c).submission
+    advanceTime(state, 24 * 2)
+    expect(lewdOf(c).submission).toBe(before + 2 * homeRules.staff.slave_chore_daily)
+    // 帶出門就不做了
+    leaveWithResident(state, currentArea(state), id)
+    expect(state.npcs![id]!.chore).toBeUndefined()
+    expect(workersFor(state, home.id, 'cook')).toHaveLength(0)
   })
 })

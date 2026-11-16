@@ -11,7 +11,7 @@
   "lots": { "village": 1, "outpost": 1, "fortress": 1, "town": 2, "port": 2, "city": 3, "capital": 4 },
   "comfort_rested": 6,
   "staff": {
-    "$comment": "家僕（docs/HOMES.md 第 8 節）：在自己的房子雇普通人做家務，不入隊。jobs：職位（name 名稱、occupation 職業描述（照性別換稱謂）、wage_cc 日薪（乘這座城的物價）、效果：maid 的 comfort 加舒適度、cook 的 condition 在家長休後的早餐（有烹飪的高階工作台時是 fine_condition）、gardener 每天收成並重新播種、steward 上限 +steward_bonus 並從保險箱付工錢）；同一個職位雇好幾個人時效果不疊加。caps：各地段能雇幾個（留守的夥伴、做家務的奴隸不佔）。工錢欠著，回家時結清；欠超過 quit_days 天的人辭職（親密度 + quit_affinity）。應徵者每座城每 refresh_days 天換一批，每個職位 candidates_per_job 人。invite_*：請認識的普通人來家裡做事（親密度至少 invite_affinity；參考 DC = invite_dc − 親密度 / 10，好人 + invite_good）。slave_chore_*：自己的奴隸留在家裡時可以分派家務（女僕、廚師、園丁），順從至少 slave_chore_submission，每天順從 + slave_chore_daily。",
+    "$comment": "家僕（docs/HOMES.md 第 8 節）：在自己的房子雇普通人做家務，不入隊。jobs：職位（name 名稱、occupation 職業描述（照性別換稱謂）、wage_cc 日薪（乘這座城的物價）、效果：maid 的 comfort 加舒適度、cook 的 condition 在家長休後的早餐（有烹飪的高階工作台時是 fine_condition）、gardener 每天收成並重新播種、steward 上限 +steward_bonus 並從保險箱付工錢）；同一個職位雇好幾個人時效果不疊加。caps：各地段能雇幾個（留守的夥伴、做家務的奴隸不佔）。工錢欠著，回家時結清；欠超過 quit_days 天的人辭職（親密度 + quit_affinity）。應徵者每座城每 refresh_days 天換一批，每個職位 candidates_per_job 人。invite_*：請認識的普通人來家裡做事（親密度至少 invite_affinity；參考 DC = invite_dc − 親密度 / 10，加上標籤的邀請修正，例如好人 −2）。slave_chore_*：自己的奴隸留在家裡時可以分派家務（女僕、廚師、園丁），順從至少 slave_chore_submission，每天順從 + slave_chore_daily。",
     "jobs": {
       "maid": { "name": "女僕", "occupation": "女僕", "wage_cc": 8, "comfort": 2, "desc": "打掃、整理：房子的舒適度 +2" },
       "cook": { "name": "廚師", "occupation": "廚娘", "wage_cc": 12, "condition": "fed_well", "fine_condition": "fed_fine", "desc": "在家長休後全隊吃早餐（飽足；有石砌大灶時是美食）" },
@@ -26,7 +26,6 @@
     "quit_affinity": -10,
     "invite_affinity": 20,
     "invite_dc": 14,
-    "invite_good": -2,
     "slave_chore_submission": 30,
     "slave_chore_daily": 1
   }

@@ -553,6 +553,8 @@ export function unparkMember(state: GameState, id: string, stowed: string[] = []
   delete rec.staying
   delete rec.stayingSince
   delete rec.at
+  // 分派的家務（staff.ts）：跟著出門就不做了
+  delete rec.chore
   state.party.push(m)
   stowed.push(...enforceClassWeapons(state, [m]), ...enforceExtraSlots(state, [m]))
   return m

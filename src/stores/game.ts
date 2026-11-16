@@ -66,7 +66,7 @@ import * as story from '@/engine/story'
 import * as npcLife from '@/engine/npcLife'
 import * as sexRecord from '@/engine/sexRecord'
 import { editProfile, spendAttrPoint, type ProfilePatch } from '@/engine/character'
-import type { Attrs, AttrId, BondStyle } from '@/engine/data'
+import type { Attrs, AttrId, BondStyle, StaffJob } from '@/engine/data'
 import type { NewGameOptions } from '@/engine/state'
 import * as town from '@/engine/town'
 import * as tattooShop from '@/engine/tattooShop'
@@ -1782,6 +1782,7 @@ export const useGame = defineStore('game', () => {
     fireStaff: (id: string) => run((s) => staff.fireStaff(s, id), { narrate: false }),
     payWages: () => run((s) => staff.payWages(s), { narrate: false }),
     ackStaffNotes: () => run((s) => staff.ackStaffNotes(s), { narrate: false }),
+    assignChore: (id: string, job: StaffJob | null) => run((s) => staff.assignChore(s, id, job)),
     // 儲物箱（storage.ts）：站在箱子上存取，不花時間
     deposit: (name: string, qty?: number) => run((s) => {
       const p = grid.position(s)

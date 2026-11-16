@@ -12,6 +12,7 @@
 import { applyUnbind } from './restraints'
 import { applyExplore, withLandmark } from './landmarks'
 import { withHomeStorage } from './storage'
+import { applyStaffInvite } from './staff'
 import { applyPitch, applyTrain, pruneOffers } from './perkActions'
 import { parsePitchTarget } from './perks'
 import { checkModifiers, checkSkills, type CheckCtx } from './perks'
@@ -828,6 +829,7 @@ function applyMechanics(state: GameState, report: Report, p: ActionPending, degr
     }
     case 'invite': return applyInvite(state, report, p.target!, degree)
     case 'squad_join': return applySquadJoin(state, report, p.target!, degree)
+    case 'staff_invite': return applyStaffInvite(state, report, p.target!, degree)
     case 'propose': return applyProposal(state, report, p.target!, degree)
     case 'black_market': return applyBlackMarket(state, report, degree)
     case 'palace_gate': return applyPalaceGate(state, degree)

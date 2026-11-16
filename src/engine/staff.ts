@@ -5,13 +5,15 @@
 // - 工錢欠著（記 paidUntil），回家時結清；欠超過 quit_days 天的人辭職。主角不在時發生的事記在房子的 staffNotes，回家時看。
 // - 自己的奴隸留在家裡時可以分派家務（chore）：不用工錢、不佔上限，效果和雇來的人一樣。
 
-import { homeRules, locationById, npcTags, STAFF_JOBS, type StaffJob, type StaffJobDef } from './data'
+import { homeRules, locationById, npcTags, STAFF_JOBS, tagDcMod, type Degree, type StaffJob, type StaffJobDef } from './data'
 import { currentArea, type Area } from './grid'
 import { homeOfArea, homeReport, ownHomeOfArea, workbenchFor } from './homes'
 import { formatMoney } from './money'
-import { generateNpc, hashString, npcRecord, registerNpc } from './npcs'
-import { assertFree, gainCondition } from './party'
-import { buildHaunts } from './population'
+import { generateNpc, hashString, npcKind, npcRecord, npcSpot, registerNpc } from './npcs'
+import { addAffinity, assertFree, gainCondition, isBound } from './party'
+import { addLewd, lewdOf } from './lewd'
+import { isOwnSlave } from './ownedSlaves'
+import { buildHaunts, isUnhireable, presentHere } from './population'
 import { Rng } from './rng'
 import { addMemory, ensureRelationship, setAffinity } from './social'
 import { commitReport, withRng } from './state'
@@ -39,7 +41,7 @@ export function staffOf(state: GameState, homeId: string): NpcRecord[] {
 
 /** 這棟房子分派了家務的奴隸（留在家裡、主角的奴隸） */
 export function choreSlaves(state: GameState, homeId: string): NpcRecord[] {
-  return Object.values(state.npcs ?? {}).filter((r) => r.staying === homeId && !!r.chore && r.character?.bond === 'slave')
+  return Object.values(state.npcs ?? {}).filter((r) => r.staying === homeId && !!r.chore && isOwnSlave(state, r.character))
 }
 
 /** 做這份家務的人：雇來的家僕與分派了家務的奴隸 */
@@ -363,6 +365,7 @@ export function staffDaily(state: GameState, fromDay: number, toDay: number) {
       const log = logs.get(home.id) ?? { got: new Map(), replanted: 0, full: false }
       logs.set(home.id, log)
       tendGarden(state, home, Math.min(day * 1440, now), log)
+      choreDaily(state, home)
     }
   }
   for (const [id, p] of pay) {
@@ -394,4 +397,111 @@ export function ackStaffNotes(state: GameState): Report {
 export function staffHome(state: GameState, area: Area): Home | undefined {
   const home = homeOfArea(state, area)
   return home && !home.master ? home : undefined
+}
+
+// ---- 請認識的人來家裡做事（主動行動 staff_invite，target「NPC id:職位」） ----
+
+export function parseStaffInvite(target: string | undefined): { id: string; job: StaffJob } {
+  const [id, job] = (target ?? '').split(':')
+  if (!id || !STAFF_JOBS.includes(job as StaffJob)) throw new Error('要請誰、做什麼？')
+  return { id, job: job as StaffJob }
+}
+
+/** 請來的人住哪一棟：站在自己的房子裡就是這一棟，否則是這座城裡還有空位的第一棟 */
+export function inviteHome(state: GameState): Home | undefined {
+  const here = ownHomeOfArea(state, currentArea(state))
+  if (here) return here
+  return Object.values(state.homes ?? {}).find((h) => h.location === state.location && !h.master && !hireRefusal(state, h))
+}
+
+/** 不能請這個人來家裡做事的原因（沒有時可以；介面用來停用按鈕） */
+export function staffInviteRefusal(state: GameState, id: string): string | undefined {
+  if (isBound(state)) return '被主人帶著時不能自己雇人'
+  const rec = npcRecord(state, id)
+  if (!rec) return '你不認識這個人'
+  if (npcKind(rec) !== 'commoner') return '只能請普通人（冒險者要雇用或邀請入隊）'
+  if (rec.staff) return `${rec.name}已經在你家做事了`
+  if (!rec.haunts?.length && npcSpot(rec)) return `${rec.name}得顧自己的店`
+  if (isUnhireable(id) || rec.tags?.includes('slave') || rec.dead || rec.hostile) return `${rec.name}不會來當家僕`
+  const rel = state.relationships?.[id]
+  if (!rel || rel.affinity < rules().invite_affinity) return `親密度要 ${rules().invite_affinity} 以上`
+  if (state.flags[`invite_wait:${id}`]) return `${rec.name}說要再想想，下次長休後再問`
+  const home = inviteHome(state)
+  if (!home) return Object.values(state.homes ?? {}).some((h) => h.location === state.location && !h.master) ? '這座城的房子家僕都滿了' : '這座城沒有你的房子'
+  return undefined
+}
+
+export function staffInviteDc(state: GameState, id: string): number {
+  const rec = npcRecord(state, id)!
+  const rel = state.relationships?.[id]
+  return rules().invite_dc - Math.floor((rel?.affinity ?? 0) / 10) + tagDcMod(rec, 'invite')
+}
+
+export function setupStaffInvite(state: GameState, target: string | undefined) {
+  const { id, job } = parseStaffInvite(target)
+  const why = staffInviteRefusal(state, id)
+  if (why) throw new Error(why)
+  if (!presentHere(state, id)) throw new Error('要走到他旁邊才能開口')
+  const rec = npcRecord(state, id)!
+  const home = inviteHome(state)!
+  return {
+    dc: staffInviteDc(state, id), targetName: rec.name, situational: [], scene: locationById(state.location).name,
+    outcomes: {
+      critical: `答應到「${home.name}」當${jobName(job)}，親密度 +3`, success: `答應到「${home.name}」當${jobName(job)}`,
+      partial: '要再想想（下次長休後才能再問）', fail: '婉拒（親密度 -2）', fumble: '覺得被看輕了（親密度 -5）',
+    } as Partial<Record<Degree, string>>,
+  }
+}
+
+export function applyStaffInvite(state: GameState, report: Report, target: string, degree: Degree): string {
+  const { id, job } = parseStaffInvite(target)
+  const rec = npcRecord(state, id)!
+  const home = inviteHome(state)
+  if ((degree === 'critical' || degree === 'success') && home) {
+    rec.staff = { home: home.id, job, wage_cc: wageHere(state, job), paidUntil: state.time.day, since: { ...state.time } }
+    rec.at = spotFor(state, home, job, rec.id)
+    registerNpc(state, rec)
+    if (degree === 'critical') addAffinity(state, report, id, 3, '很高興能來幫忙')
+    return `${rec.name}答應到「${home.name}」當${jobName(job)}，日薪 ${formatMoney(rec.staff.wage_cc)}，從明天開始算。`
+  }
+  ;(report.changes.flags ??= {})[`invite_wait:${id}`] = true
+  if (degree === 'partial') return `${rec.name}有些心動，但說要再想想。`
+  addAffinity(state, report, id, degree === 'fumble' ? -5 : -2, '請他來當家僕被拒')
+  return degree === 'fumble' ? `${rec.name}覺得被看輕了，冷冷地拒絕。` : `${rec.name}婉拒了。`
+}
+
+// ---- 奴隸做家務 ----
+
+/** 能分派的家務（管家要雇人） */
+export const CHORE_JOBS: StaffJob[] = ['maid', 'cook', 'gardener']
+
+/** 不能分派這個奴隸做家務的原因（沒有時可以） */
+export function choreRefusal(state: GameState, id: string): string | undefined {
+  const rec = npcRecord(state, id)
+  const c = rec?.character
+  if (!rec || !c || !isOwnSlave(state, c)) return '只有你的奴隸能分派家務'
+  if (!rec.staying || !state.homes?.[rec.staying]) return '要留在家裡才能做家務'
+  const need = rules().slave_chore_submission
+  if ((lewdOf(c).submission ?? 0) < need) return `${c.name}還不夠順從（順從要 ${need} 以上）`
+  return undefined
+}
+
+/** 分派（或取消，job 為 null）留在家裡的奴隸做家務 */
+export function assignChore(state: GameState, id: string, job: StaffJob | null) {
+  const home = homeHereOrThrow(state)
+  const rec = npcRecord(state, id)
+  if (!rec || rec.staying !== home.id) throw new Error('這個人沒有留在這棟房子')
+  if (job === null) {
+    delete rec.chore
+    return
+  }
+  if (!CHORE_JOBS.includes(job)) throw new Error('奴隸不能當管家')
+  const why = choreRefusal(state, id)
+  if (why) throw new Error(why)
+  rec.chore = job
+}
+
+/** 做家務的奴隸每天順從上升 */
+function choreDaily(state: GameState, home: Home) {
+  for (const r of choreSlaves(state, home.id)) addLewd(state, r.character!, 'submission', rules().slave_chore_daily)
 }

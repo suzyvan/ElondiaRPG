@@ -6,7 +6,9 @@ import {
 } from '@/engine/homes'
 import { cropStatus, plotPlace, seedsFor } from '@/engine/garden'
 import { depositRefusal, homeMoney, storageSlots, storageSpec, storedItems, storedMoney } from '@/engine/storage'
-import { candidates, hireRefusal, jobDef, jobName, owedDays, owedWage, staffCap, staffOf, wageHere } from '@/engine/staff'
+import { candidates, CHORE_JOBS, choreRefusal, hireRefusal, jobDef, jobName, owedDays, owedWage, staffCap, staffOf, wageHere } from '@/engine/staff'
+import { isOwnSlave } from '@/engine/ownedSlaves'
+import type { StaffJob } from '@/engine/data'
 import { isBound } from '@/engine/party'
 import { formatMoney } from '@/engine/money'
 import { childrenAtHome, hasTemple } from '@/engine/children'
@@ -242,7 +244,13 @@ function rename() {
       <ul class="plain">
         <li v-for="m in staying" :key="m.id" class="row">
           <NameTag :id="m.id" />
-          <button class="small" @click="game.requireRoom(1, `帶上${m.name}`, () => game.takeResident(m.id))">帶上</button>
+          <span class="row">
+            <select v-if="isOwnSlave(s, m)" :value="s.npcs?.[m.id]?.chore ?? ''" class="small" :title="choreRefusal(s, m.id) ?? '做家務不用工錢、不佔家僕上限，每天順從 +1'" :disabled="!s.npcs?.[m.id]?.chore && !!choreRefusal(s, m.id)" aria-label="分派家務" @change="game.assignChore(m.id, (($event.target as HTMLSelectElement).value || null) as StaffJob | null)">
+              <option value="">不做家務</option>
+              <option v-for="j in CHORE_JOBS" :key="j" :value="j">做家務：{{ jobName(j) }}</option>
+            </select>
+            <button class="small" @click="game.requireRoom(1, `帶上${m.name}`, () => game.takeResident(m.id))">帶上</button>
+          </span>
         </li>
         <li v-if="!staying.length" class="muted">沒有人留在家裡。</li>
       </ul>

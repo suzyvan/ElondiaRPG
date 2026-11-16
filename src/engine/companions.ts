@@ -59,6 +59,7 @@ import { tagsAllowed } from './content'
 import { lureTemplate } from './dungeonEvents'
 import { blackMarketHere, underworldAskBlocked, underworldEscorted, underworldEscortFlag, underworldFlag, underworldLandmarks, underworldOf } from './underworld'
 import { inActiveSquad, squadActive, squadIds, squadJoinDc, squadMissing, squads, squadWithLeader, type Squad } from './squads'
+import { setupStaffInvite } from './staff'
 
 function socialReport(state: GameState, hours: number, scene: string, kind: Report['kind'] = 'social'): Report {
   const start = { ...state.time }
@@ -989,6 +990,7 @@ export function setupFor(state: GameState, kind: ActionKind, target?: string, of
         outcomes: { critical: '自願加入，親密度 +5', success: '自願加入', partial: '要再考慮（下次長休後才能再邀請）', fail: '婉拒（親密度 -3）', fumble: '被冒犯（親密度 -8）' },
       }
     }
+    case 'staff_invite': return setupStaffInvite(state, target)
     case 'squad_join': {
       const sq = validateSquadJoin(state, target ?? '')
       const leader = npcRecord(state, sq.leader)!

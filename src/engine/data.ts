@@ -1754,7 +1754,7 @@ export function contractDef(id: string): ContractDef {
   return c
 }
 
-export type ActionKind = 'free' | 'hire' | 'haggle' | 'invite' | 'squad_join' | 'black_market' | 'negotiate' | 'escape' | 'bargain' | 'negotiation' | 'rest_talk'
+export type ActionKind = 'free' | 'hire' | 'haggle' | 'invite' | 'squad_join' | 'staff_invite' | 'black_market' | 'negotiate' | 'escape' | 'bargain' | 'negotiation' | 'rest_talk'
   | 'chat' | 'gift' | 'flatter' | 'seduce' | 'bluff' | 'intimidate' | 'steal' | 'attack' | 'master_permit' | 'master_leave' | 'master_extend' | 'marking' | 'master_event'
   | 'master_return' | 'seek_master' | 'unmark' | 'unbind' | 'work' | 'patron' | 'craft' | 'make' | 'produce' | 'invent' | 'defeat_event' | 'story' | 'propose'
   | 'train' | 'perk_pitch' | 'explore' | 'palace_gate' | 'resign'
@@ -2486,10 +2486,9 @@ export interface StaffRules {
   refresh_days: number
   /** 辭職時親密度的變化 */
   quit_affinity: number
-  /** 請認識的人來家裡做事：親密度至少多少、參考 DC（減去親密度 / 10）、好人的修正 */
+  /** 請認識的人來家裡做事：親密度至少多少、參考 DC（減去親密度 / 10，加上標籤的邀請修正） */
   invite_affinity: number
   invite_dc: number
-  invite_good: number
   /** 奴隸做家務：順從至少多少才肯做、每天順從加多少 */
   slave_chore_submission: number
   slave_chore_daily: number
