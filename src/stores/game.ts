@@ -77,6 +77,7 @@ import * as away from '@/engine/away'
 import * as partyEngine from '@/engine/party'
 import * as garden from '@/engine/garden'
 import * as storage from '@/engine/storage'
+import * as staff from '@/engine/staff'
 import * as invention from '@/engine/invention'
 import * as fieldCast from '@/engine/fieldCast'
 import type { CustomDifficulty, DefeatLoot, Difficulty, GameState, GearSlot, LewdStat, NpcNews, Report, TattooPlace } from '@/engine/types'
@@ -1776,6 +1777,11 @@ export const useGame = defineStore('game', () => {
       const p = grid.position(s)
       garden.uproot(s, grid.currentArea(s), p.x, p.y)
     }),
+    // 家僕（staff.ts）：在自己的房子裡雇用、付工錢、解雇，看主角不在時家裡發生的事
+    hireStaff: (id: string) => run((s) => staff.hireStaff(s, id), { narrate: false }),
+    fireStaff: (id: string) => run((s) => staff.fireStaff(s, id), { narrate: false }),
+    payWages: () => run((s) => staff.payWages(s), { narrate: false }),
+    ackStaffNotes: () => run((s) => staff.ackStaffNotes(s), { narrate: false }),
     // 儲物箱（storage.ts）：站在箱子上存取，不花時間
     deposit: (name: string, qty?: number) => run((s) => {
       const p = grid.position(s)

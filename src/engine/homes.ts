@@ -18,6 +18,7 @@ import { formatMoney } from './money'
 import { cribRefusal } from './children'
 import { resolveMasterHome } from './homeResolver'
 import { storageInUse, storedItems } from './storage'
+import { staffComfort } from './staff'
 import type { Character, GameState, Home, Report } from './types'
 
 // ---- 空地 ----
@@ -423,9 +424,10 @@ export function furnitureIn(home: Home): { name: string; area: string; x: number
   return out
 }
 
-/** 舒適度：所有家具的 comfort 加總 */
-export function comfortOf(home: Home): number {
-  return furnitureIn(home).reduce((n, f) => n + (itemDef(f.name)?.furniture?.comfort ?? 0), 0)
+/** 舒適度：所有家具的 comfort 加總；給了 state 時加上家僕（女僕，staff.ts） */
+export function comfortOf(home: Home, state?: GameState): number {
+  const furniture = furnitureIn(home).reduce((n, f) => n + (itemDef(f.name)?.furniture?.comfort ?? 0), 0)
+  return furniture + (state && !home.master ? staffComfort(state, home) : 0)
 }
 
 /** 調教室：房子裡調教家具的加值合計（lewd.json 的 training.room_max 為上限） */

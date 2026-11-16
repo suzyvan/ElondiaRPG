@@ -18,6 +18,7 @@ import { teachAbility } from './effects'
 import { addLewd } from './lewd'
 import { currentArea, currentCell, DUNGEON_LAYERS } from './grid'
 import { comfortOf, hasBed, homeOfArea } from './homes'
+import { serveBreakfast } from './staff'
 import { morningSickness } from './pregnancy'
 import { maybePregnancyEvent } from './pregnancyEvents'
 import { formatMoney } from './money'
@@ -318,8 +319,10 @@ export function longRest(state: GameState, place: RestPlace): Report {
   }
   // 在舒適的家裡睡：睡得香甜
   const home = place === 'home' ? homeOfArea(state, area) : undefined
-  const rested = !!home && comfortOf(home) >= homeRules.comfort_rested
+  const rested = !!home && comfortOf(home, state) >= homeRules.comfort_rested
   if (rested) for (const m of state.party) addCondition(m, 'well_rested', report)
+  // 家裡的廚師：醒來有早餐（staff.ts）
+  const breakfast = home && !home.master ? serveBreakfast(state, home, report) : ''
   // 懷孕初期：一早起來可能孕吐（docs/FAMILY.md）
   morningSickness(state, report)
   clearInviteCooldowns(state)
@@ -328,7 +331,7 @@ export function longRest(state: GameState, place: RestPlace): Report {
   state.lastLongRest = { ...report.time.end }
   report.outcome = {
     result: 'success',
-    summary: [place === 'slave_room' ? `大家在${scene}過了一夜${costText}。` : `在${scene}好好睡了一覺${costText}。`, ...(rested ? ['家裡佈置得很舒服，大家都睡得很香甜。'] : []), ...room, ...checks].join(''),
+    summary: [place === 'slave_room' ? `大家在${scene}過了一夜${costText}。` : `在${scene}好好睡了一覺${costText}。`, ...(rested ? ['家裡佈置得很舒服，大家都睡得很香甜。'] : []), ...(breakfast ? [breakfast] : []), ...room, ...checks].join(''),
     tags: ['長休', ...(place === 'safe' ? ['安全房'] : place === 'home' ? ['在家'] : place === 'slave_room' ? ['奴房'] : place === 'camp' ? ['紮營'] : [])],
   }
   const committed = commitReport(state, report)

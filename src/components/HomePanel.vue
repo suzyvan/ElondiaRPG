@@ -6,6 +6,8 @@ import {
 } from '@/engine/homes'
 import { cropStatus, plotPlace, seedsFor } from '@/engine/garden'
 import { depositRefusal, storageSlots, storageSpec, storedItems, storedMoney } from '@/engine/storage'
+import { candidates, hireRefusal, jobDef, jobName, owedDays, owedWage, staffCap, staffOf, wageHere } from '@/engine/staff'
+import { isBound } from '@/engine/party'
 import { formatMoney } from '@/engine/money'
 import { childrenAtHome, hasTemple } from '@/engine/children'
 import { useGame } from '@/stores/game'
@@ -50,7 +52,7 @@ const choices = computed(() => s.value.inventory.filter((i) => {
 }))
 const pick = ref('')
 const all = computed(() => (home.value ? furnitureIn(home.value) : []))
-const comfort = computed(() => (home.value ? comfortOf(home.value) : 0))
+const comfort = computed(() => (home.value ? comfortOf(home.value, s.value) : 0))
 const benches = computed(() => all.value.filter((f) => itemDef(f.name)?.furniture?.function === 'workbench').map((f) => `${f.name}（${craftRules.skills[itemDef(f.name)!.furniture!.craft!].name}）`))
 const staying = computed(() => (home.value ? residents(s.value, home.value.id) : []))
 const companions = computed(() => s.value.party.filter((m) => !m.isPlayer))
@@ -96,6 +98,19 @@ function moveMoney(dir: 'in' | 'out') {
   if (dir === 'in') game.depositMoney(money.value)
   else game.withdrawMoney(money.value)
   money.value = ''
+}
+
+// 家僕（docs/HOMES.md 第 8 節）：雇用、付工錢、解雇
+const staffList = computed(() => (home.value ? staffOf(s.value, home.value.id) : []))
+const cap = computed(() => (home.value ? staffCap(s.value, home.value) : 0))
+const owedTotal = computed(() => staffList.value.reduce((n, r) => n + owedWage(s.value, r), 0))
+const applicants = computed(() => (home.value && !isBound(s.value) ? candidates(s.value, home.value.location) : []))
+const hireBlocked = computed(() => (home.value ? hireRefusal(s.value, home.value) : undefined))
+const notes = computed(() => home.value?.staffNotes ?? [])
+/** 同一個職位的第二個人起：效果不疊加 */
+const duplicate = (i: number) => staffList.value.slice(0, i).some((r) => r.staff!.job === staffList.value[i]!.staff!.job)
+function fire(id: string, name: string) {
+  if (confirm(`請${name}不用再來了？欠的工錢會先結清。`)) game.fireStaff(id)
 }
 
 function placeIt() {
@@ -238,6 +253,39 @@ function rename() {
       </ul>
     </FoldMenu>
 
+    <div v-if="notes.length" class="spot notes">
+      <b>你不在的時候</b>
+      <ul class="plain">
+        <li v-for="(n, i) in notes" :key="i">第 {{ n.day }} 天：{{ n.text }}</li>
+      </ul>
+      <button class="small" @click="game.ackStaffNotes()">知道了</button>
+    </div>
+
+    <FoldMenu id="home.staff" icon="users" label="家僕" :detail="`雇普通人做家務：不入隊，工錢按天欠著、回家結清（${staffList.length}／${cap} 人）`" :badge="staffList.length" :open="staffList.length > 0">
+      <p class="small muted">工錢欠著，回到家再結清 <Hint :text="`家僕住在這棟房子裡，不入隊。工錢每天累積，回家時按「結清」；欠超過 ${homeRules.staff.quit_days} 天的人會辭職（親密度下降）。同一個職位雇好幾個人時效果不疊加。`" /></p>
+      <div v-if="owedTotal" class="row">
+        <span>欠工錢 {{ formatMoney(owedTotal) }}</span>
+        <button class="small primary" :disabled="s.money_cc <= 0" @click="game.payWages()">結清</button>
+      </div>
+      <ul class="plain">
+        <li v-for="(r, i) in staffList" :key="r.id" class="row">
+          <span><NameTag :id="r.id" /> <span class="muted small">{{ jobName(r.staff!.job) }}・日薪 {{ formatMoney(r.staff!.wage_cc) }}<template v-if="owedDays(s, r)">・欠 {{ owedDays(s, r) }} 天</template><template v-if="duplicate(i)">・效果不疊加</template></span></span>
+          <button class="small" @click="fire(r.id, r.name)">解雇</button>
+        </li>
+        <li v-if="!staffList.length" class="muted">還沒有雇人。</li>
+      </ul>
+      <template v-if="applicants.length">
+        <h4 class="sub">來應徵的人 <span class="muted small">（每 {{ homeRules.staff.refresh_days }} 天換一批）</span></h4>
+        <ul class="plain">
+          <li v-for="c in applicants" :key="c.id" class="row">
+            <span>{{ c.name }} <span class="muted small">（{{ genderName(c.gender) }}・{{ raceName(c.race) }}・{{ c.occupation }}）{{ jobName(c.staff!.job) }}：{{ jobDef(c.staff!.job).desc }}・日薪 {{ formatMoney(wageHere(s, c.staff!.job)) }}</span></span>
+            <button class="small" :disabled="!!hireBlocked || s.money_cc < wageHere(s, c.staff!.job)" :title="hireBlocked ?? (s.money_cc < wageHere(s, c.staff!.job) ? '錢不夠先付第一天的工錢' : '')" @click="game.hireStaff(c.id)">雇用</button>
+          </li>
+        </ul>
+      </template>
+      <p v-else-if="isBound(s)" class="small muted">被主人帶著時不能自己雇人。</p>
+    </FoldMenu>
+
     <FoldMenu v-if="kids.length" id="home.kids" icon="heart" label="孩子" detail="住在家裡的嬰兒（不用寄養費，不一定要有搖籃）" :badge="kids.length" open>
       <ul class="plain">
         <li v-for="k in kids" :key="k.id" class="row">
@@ -270,6 +318,7 @@ function rename() {
 .home ul { margin: 0; }
 .home li.row { justify-content: space-between; }
 .chest { display: grid; gap: 6px; }
+.notes { display: grid; gap: 4px; }
 .chest .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
 .chest .cols ul { max-height: 220px; overflow-y: auto; }
 .chest .qty { width: 5em; }

@@ -2449,6 +2449,50 @@ export const homeRules = homesJson as unknown as {
   noble: HomeDistrict
   lots: Record<string, number>
   comfort_rested: number
+  staff: StaffRules
+}
+
+/** 家僕的職位（homes.json 的 staff.jobs；docs/HOMES.md 第 8 節） */
+export const STAFF_JOBS = ['maid', 'cook', 'gardener', 'steward'] as const
+export type StaffJob = (typeof STAFF_JOBS)[number]
+
+export interface StaffJobDef {
+  /** 職位名稱（女僕、廚師……） */
+  name: string
+  /** 職業描述（照性別換稱謂，npc_tags.json 的 gendered_occupations） */
+  occupation: string
+  /** 日薪（乘這座城的物價） */
+  wage_cc: number
+  /** 一行說明 */
+  desc: string
+  /** 女僕：房子的舒適度加多少 */
+  comfort?: number
+  /** 廚師：在家長休後的早餐（狀態 id）；有烹飪的高階工作台時改成 fine_condition */
+  condition?: string
+  fine_condition?: string
+}
+
+export interface StaffRules {
+  jobs: Record<StaffJob, StaffJobDef>
+  /** 各地段能雇幾個家僕 */
+  caps: Record<HomeDistrict, number>
+  /** 有管家時上限再加幾個 */
+  steward_bonus: number
+  /** 欠工錢超過幾天就辭職 */
+  quit_days: number
+  /** 每個職位的應徵者人數 [最少, 最多] */
+  candidates_per_job: [number, number]
+  /** 應徵者每幾天換一批 */
+  refresh_days: number
+  /** 辭職時親密度的變化 */
+  quit_affinity: number
+  /** 請認識的人來家裡做事：親密度至少多少、參考 DC（減去親密度 / 10）、好人的修正 */
+  invite_affinity: number
+  invite_dc: number
+  invite_good: number
+  /** 奴隸做家務：順從至少多少才肯做、每天順從加多少 */
+  slave_chore_submission: number
+  slave_chore_daily: number
 }
 
 // ---- 特質（被動，data/rules/perks.json，見 docs/PERKS.md） ----
