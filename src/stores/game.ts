@@ -79,6 +79,7 @@ import * as garden from '@/engine/garden'
 import * as storage from '@/engine/storage'
 import * as staff from '@/engine/staff'
 import * as aging from '@/engine/aging'
+import * as homeExpand from '@/engine/homeExpand'
 import * as invention from '@/engine/invention'
 import * as fieldCast from '@/engine/fieldCast'
 import type { CustomDifficulty, DefeatLoot, Difficulty, GameState, GearSlot, LewdStat, NpcNews, Report, TattooPlace } from '@/engine/types'
@@ -1784,6 +1785,8 @@ export const useGame = defineStore('game', () => {
     payWages: () => run((s) => staff.payWages(s), { narrate: false }),
     ackStaffNotes: () => run((s) => staff.ackStaffNotes(s), { narrate: false }),
     assignChore: (id: string, job: StaffJob | null) => run((s) => staff.assignChore(s, id, job)),
+    // 擴建（homeExpand.ts）：加蓋一層、挖地下室、擴院子
+    startExpansion: (kind: homeExpand.ExpandKind) => run((s) => homeExpand.startExpansion(s, kind), { narrate: false }),
     // 熟成桶（aging.ts）：放進去、取出、倒掉
     startAging: (product: string) => run((s) => {
       const p = grid.position(s)

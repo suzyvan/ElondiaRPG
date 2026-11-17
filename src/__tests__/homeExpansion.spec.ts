@@ -4,13 +4,14 @@ import { companionRules, homeRules, itemDef, itemRules } from '@/engine/data'
 import { agingRecipes, agingStatus, dumpAging, startAging, takeAged } from '@/engine/aging'
 import { depositItem, homeStock } from '@/engine/storage'
 import { sanitizeItem } from '@/engine/mods'
-import { enterLocation, placeAt, type Area } from '@/engine/grid'
+import { crossLink, currentArea, enterLocation, getArea, placeAt, type Area } from '@/engine/grid'
+import { expandOptions, floorsAbove, hasBasement, startExpansion, yardDepth } from '@/engine/homeExpand'
 import { buyHome, comfortOf, comfortTier, completeSets, lotsOf, placeFurniture, setProgress, takeFurniture } from '@/engine/homes'
 import { applyHomeRules, currentHomeRules, restoreHomeRules, sanitizeCustomSet, sanitizeHomeRules, sanitizeSetEffect } from '@/engine/homeMods'
 import { buildSetEffectPrompt, parseSetEffect } from '@/narrator/setEffect'
 import { pruneStatuses } from '@/engine/state'
 import { longRest } from '@/engine/rest'
-import { addHours, addItem, newGame } from '@/engine/state'
+import { addHours, addItem, advanceTime, newGame } from '@/engine/state'
 import type { GameState, Home } from '@/engine/types'
 
 function game(birthplace = 'soriel'): GameState {
@@ -235,5 +236,72 @@ describe('自建的成套家具（效果由 AI 決定）', () => {
 
   it('物品編輯器整理時留著自建套組的 id', () => {
     expect(sanitizeItem('x', { category: 'furniture', furniture: { places: ['indoor'], set: 'mod_set_fish' } } as never, true).furniture?.set).toBe('mod_set_fish')
+  })
+})
+
+describe('擴建（X2）', () => {
+  it('加蓋一層：原本的樓層不動，新樓層用樓梯接上；施工期間走不過去，完工後可以上去', () => {
+    const state = game()
+    const home = moveIn(state, 'house')
+    furnish(state, home, ['盆栽', '書架'])
+    const top = home.areas[home.floors.at(-1)!]!
+    const before = JSON.stringify(Object.values(home.areas).map((a) => a.cells.filter((c) => c.furniture)))
+    const money = state.money_cc
+    const opt = expandOptions(state, home).find((o) => o.kind === 'floor')!
+    expect(opt.blocked).toBeUndefined()
+    startExpansion(state, 'floor')
+    expect(state.money_cc).toBe(money - opt.price)
+    expect(floorsAbove(home)).toBe(3)
+    const f3 = home.areas[home.floors.at(-1)!]!
+    expect(f3.key).toMatch(/\/F3$/)
+    const up = top.cells.findIndex((c) => c.dir === 'up' && c.link?.area === f3.key)
+    expect(up).toBeGreaterThanOrEqual(0)
+    expect(f3.cells[up]).toMatchObject({ dir: 'down', link: { area: top.key } })
+    expect(JSON.stringify(Object.values(home.areas).filter((a) => a !== f3).map((a) => a.cells.filter((c) => c.furniture)))).toBe(before)
+    // 施工中：一次只能做一項，樓梯走不過去
+    expect(expandOptions(state, home).every((o) => o.blocked)).toBe(true)
+    placeAt(state, top, up % top.width, Math.floor(up / top.width))
+    expect(() => crossLink(state)).toThrow('施工')
+    advanceTime(state, 24 * opt.days)
+    expect(home.construction).toBeUndefined()
+    expect(home.staffNotes?.some((n) => n.tag === '擴建' && n.text.includes('三樓'))).toBe(true)
+    crossLink(state)
+    expect(currentArea(state).key).toBe(f3.key)
+    // 宅邸最多 3 層
+    expect(expandOptions(state, home).find((o) => o.kind === 'floor')!.blocked).toContain('最多')
+  })
+
+  it('挖地下室：從一樓的屋子裡往下', () => {
+    const state = game('rivervale')
+    const home = moveIn(state, 'townhouse')
+    expect(hasBasement(home)).toBe(false)
+    startExpansion(state, 'basement')
+    expect(hasBasement(home)).toBe(true)
+    expect(home.areas[home.floors[0]!]!.homeFloor).toBe('basement')
+    const g = ground(home)
+    const down = g.cells.findIndex((c) => c.dir === 'down')
+    expect(Math.floor(down / g.width)).toBeLessThan(homeRules.districts.townhouse.size[1])
+    expect(expandOptions(state, home).find((o) => o.kind === 'basement')!.blocked).toBeDefined()
+  })
+
+  it('擴院子：完工時往下加一列，上面的格子不動，出口移到新的圍牆並接回街道', () => {
+    const state = game()
+    const home = moveIn(state, 'house')
+    furnish(state, home, ['菜圃'], 0, 'yard')
+    const g = ground(home)
+    const depth = yardDepth(home)
+    const top = g.cells.slice(0, (g.height - 1) * g.width).map((c) => c.kind + (c.furniture ?? ''))
+    startExpansion(state, 'yard')
+    expect(yardDepth(home)).toBe(depth)
+    advanceTime(state, 24 * homeRules.expand.yard.days)
+    expect(yardDepth(home)).toBe(depth + 1)
+    // 原本最下面的圍牆變成院子；上面的格子一格都沒動
+    expect(g.cells.slice(0, top.length).map((c, i) => (i < top.length - g.width ? c.kind + (c.furniture ?? '') : ''))).toEqual(top.map((x, i) => (i < top.length - g.width ? x : '')))
+    const exit = g.cells.findIndex((c) => c.dir === 'out')
+    expect(Math.floor(exit / g.width)).toBe(g.height - 1)
+    expect(g.cells[exit]!.link?.area).toBe(home.lot.area)
+    // 從街上進門，落在新的出口
+    const street = getArea(state, home.lot.area)
+    expect(street.cells[home.lot.y * street.width + home.lot.x]!.link).toMatchObject({ area: g.key, y: g.height - 1 })
   })
 })

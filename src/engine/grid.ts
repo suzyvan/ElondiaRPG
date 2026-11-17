@@ -29,6 +29,7 @@ import { spawnVisitors } from './population'
 import { gateCheck, persuadePalaceGuard as persuadeGuard, zoneEntryBlock } from './security'
 import { assertMasterAllows } from './slavery'
 import { assertMayLeaveHouse, atMasterHome } from './masterHome'
+import { constructionBlock } from './homeExpand'
 import { roll, withBonus, type Rng } from './rng'
 import { maybeDungeonEvent, offerTrapLure, pendingDungeonEvent } from './dungeonEvents'
 import { startLeadEvent } from './leadEvents'
@@ -1226,6 +1227,9 @@ export function crossLink(state: GameState): StepResult {
   // 貴族區與王城有衛兵把守
   const blocked = zoneEntryBlock(state, target.zone, !!summonedInto(state, target.key))
   if (blocked) throw new Error(blocked)
+  // 自己的房子：還在施工的樓層走不過去（homeExpand.ts）
+  const building = constructionBlock(state, target)
+  if (building) throw new Error(building)
   // 主人的家：走出大門前要主人同意
   if (cell.dir === 'out' && atMasterHome(state, area)) assertMayLeaveHouse(state)
   // 進出特殊地圖：記下回程與地點

@@ -11,6 +11,7 @@ import { isOwnSlave } from '@/engine/ownedSlaves'
 import type { StaffJob } from '@/engine/data'
 import { isBound } from '@/engine/party'
 import { agingHours, agingRecipes, agingShort, agingStatus, vesselSpec } from '@/engine/aging'
+import { constructionDaysLeft, expandOptions, type ExpandKind } from '@/engine/homeExpand'
 import { VESSEL_NAME } from '@/engine/data'
 import { formatMoney } from '@/engine/money'
 import { childrenAtHome, hasTemple } from '@/engine/children'
@@ -97,6 +98,13 @@ function brewIt() {
 }
 function dumpIt() {
   if (aged.value && confirm(`倒掉還沒熟成的${aged.value.item}？材料不會退回。`)) game.dumpAging()
+}
+// 擴建（docs/HOMES.md 第 3.1 節）
+const expands = computed(() => (home.value ? expandOptions(s.value, home.value) : []))
+const building = computed(() => (home.value?.construction ? { kind: home.value.construction.kind, left: constructionDaysLeft(s.value, home.value) } : undefined))
+const BUILD_NAME: Record<ExpandKind, string> = { floor: '加蓋的樓層', basement: '地下室', yard: '院子擴大' }
+function expand(kind: ExpandKind, label: string, price: number, days: number) {
+  if (confirm(`花 ${formatMoney(price)} ${label}？${days} 天後完工，期間新的部分還不能用。`)) game.startExpansion(kind)
 }
 function uprootIt() {
   if (crop.value && confirm(`拔掉還沒成熟的${crop.value.seed}？種子不會退回。`)) game.uproot()
@@ -340,6 +348,16 @@ function rename() {
             <button class="small" @click="game.visitChild(k.id)">抱抱</button>
             <button class="small" :disabled="!templeHere" :title="templeHere ? '' : '這座城沒有神殿'" @click="game.moveChild(k.id, { kind: 'temple', location: home.location })">送去育幼院</button>
           </span>
+        </li>
+      </ul>
+    </FoldMenu>
+
+    <FoldMenu id="home.expand" icon="building" label="擴建" :detail="building ? `${BUILD_NAME[building.kind]}施工中，再 ${building.left} 天完工` : `${describeHome(home)}；加蓋、挖地下室、擴院子`">
+      <p class="small muted">原本的樓層不會動（家具、作物、箱子都照舊）。付錢後開工，主角不用待在城裡；一次只能做一項，施工期間新的部分還不能進去。</p>
+      <ul class="plain">
+        <li v-for="o in expands" :key="o.kind" class="row">
+          <span>{{ o.label }} <span class="muted small">{{ formatMoney(o.price) }}・{{ o.days }} 天<template v-if="o.blocked">・{{ o.blocked }}</template></span></span>
+          <button class="small" :disabled="!!o.blocked || s.money_cc < o.price" :title="o.blocked ?? (s.money_cc < o.price ? '錢不夠' : '')" @click="expand(o.kind, o.label, o.price, o.days)">擴建</button>
         </li>
       </ul>
     </FoldMenu>

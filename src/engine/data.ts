@@ -2473,6 +2473,12 @@ export const homeRules = homesJson as unknown as {
   furniture_sets: Record<string, FurnitureSetDef>
   /** 熟成桶：放在地下室時時間的倍率 */
   aging: { basement_mult: number }
+  /** 擴建：加蓋一層、挖地下室、擴院子（homeExpand.ts） */
+  expand: {
+    floor: { price_ratio: number; days: number; max_floors: Record<HomeDistrict, number> }
+    basement: { price_ratio: number; days: number }
+    yard: { price_cc: number; days: number; max: number }
+  }
   staff: StaffRules
 }
 

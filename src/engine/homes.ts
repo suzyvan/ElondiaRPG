@@ -227,7 +227,7 @@ function connected(cells: Cell[], w: number, from: number): boolean {
 }
 
 /** 一層的地圖：外牆、隔間；ground 有院子與出口 */
-function buildFloor(home: Pick<Home, 'id' | 'name' | 'location' | 'district'>, key: string, floor: 'basement' | 'ground' | 'upper', level: number, rng: Rng): Area {
+export function buildFloor(home: Pick<Home, 'id' | 'name' | 'location' | 'district'>, key: string, floor: 'basement' | 'ground' | 'upper', level: number, rng: Rng): Area {
   const def = homeRules.districts[home.district]
   const [w, bh] = def.size
   const yard = floor === 'ground' ? def.yard : 0
@@ -268,7 +268,7 @@ function buildFloor(home: Pick<Home, 'id' | 'name' | 'location' | 'district'>, k
 }
 
 /** 室內可以放樓梯的格子：一般地板、不靠門 */
-function stairSpots(area: Area, avoid: Set<number>): number[] {
+export function stairSpots(area: Area, avoid: Set<number>): number[] {
   const w = area.width
   return area.cells.map((c, i) => i).filter((i) => {
     const c = area.cells[i]!
@@ -349,10 +349,15 @@ export function buyHome(state: GameState, lotId: string, name?: string): Report 
   return done
 }
 
-/** 房子的規格：幾層、院子、地下室 */
-export function describeHome(home: Pick<Home, 'district'>): string {
+/** 房子的規格：幾層、院子、地下室（已經蓋好的房子照實際的樓層，擴建過的也算） */
+export function describeHome(home: Pick<Home, 'district'> & Partial<Pick<Home, 'areas'>>): string {
   const def = homeRules.districts[home.district]
-  return [`地上 ${def.floors} 層`, def.basement ? '地下室' : '', def.yard ? '院子' : ''].filter(Boolean).join('、')
+  const floors = home.areas ? Object.values(home.areas) : undefined
+  const above = floors ? floors.filter((a) => a.homeFloor !== 'basement').length : def.floors
+  const basement = floors ? floors.some((a) => a.homeFloor === 'basement') : def.basement
+  const ground = floors?.find((a) => a.homeFloor === 'ground')
+  const yard = ground ? Math.max(0, ground.height - def.size[1] - 1) : def.yard
+  return [`地上 ${above} 層`, basement ? '地下室' : '', yard ? `院子（深 ${yard} 格）` : ''].filter(Boolean).join('、')
 }
 
 export function renameHome(state: GameState, id: string, name: string) {

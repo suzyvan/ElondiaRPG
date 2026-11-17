@@ -19,6 +19,7 @@ import { addMemory, ensureRelationship, setAffinity } from './social'
 import { commitReport, withRng } from './state'
 import { plotPlace, seedOf } from './garden'
 import { homeMoney, removeFromHome, storeInHome, takeHomeMoney } from './storage'
+import { settleConstruction } from './homeExpand'
 import { locationMult } from './trade'
 import type { GameState, GameTime, Home, NpcRecord, Report } from './types'
 
@@ -354,6 +355,8 @@ function tendGarden(state: GameState, home: Home, until: number, log: GardenLog)
  */
 export function staffDaily(state: GameState, fromDay: number, toDay: number) {
   if (!state.homes || toDay <= fromDay) return
+  // 擴建：到了完工的那天（homeExpand.ts）
+  settleConstruction(state)
   const start = Math.max(fromDay + 1, toDay - 60)
   const now = minutesOf(state.time)
   const logs = new Map<string, GardenLog>()

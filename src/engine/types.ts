@@ -917,6 +917,8 @@ export interface Home {
   master?: string
   /** 主人的家裡的人（伴侶、子女、僕人、奴隸）的 NPC id */
   household?: string[]
+  /** 擴建中（homeExpand.ts）：哪一種、到第幾天完工、新蓋的那一層（施工期間樓梯走不過去） */
+  construction?: { kind: 'floor' | 'basement' | 'yard'; until: number; area?: string; rows?: number }
   /** 主角不在時家裡發生的事（家僕辭職、園丁收成、管家付工錢……）：回家時在房屋區塊列出來，看過後寫進日誌（tag 是日誌的標籤） */
   staffNotes?: { text: string; tag: string; day: number }[]
 }

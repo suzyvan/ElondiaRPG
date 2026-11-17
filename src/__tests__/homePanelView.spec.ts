@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // 房屋區塊的畫面：箱子、家僕、你不在的時候都畫得出來，按鈕接到遊戲（R30、R31）
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import HomePanel from '@/components/HomePanel.vue'
@@ -79,6 +79,29 @@ describe('房屋區塊', () => {
     await flushPromises()
     expect(ground.cells[i]!.aging?.item).toBe('陳年果酒')
     expect(document.body.textContent).toContain('陳年果酒：還要')
+    c.unmount()
+  })
+
+  it('擴建：選單列出三種，按下去開工', async () => {
+    const state = newGame({ name: '艾倫', race: 'human', classId: 'fighter', seed: 6, birthplace: 'soriel' })
+    enterLocation(state)
+    state.money_cc = 100000
+    buyHome(state, lotsOf(state.location).find((l) => l.district === 'house')!.id)
+    const home = Object.values(state.homes!)[0]!
+    const ground = Object.values(home.areas).find((a) => a.homeFloor === 'ground')!
+    const i = ground.cells.findIndex((c) => c.kind === 'floor' && !c.furniture)
+    placeAt(state, ground, i % ground.width, Math.floor(i / ground.width))
+    const game = useGame()
+    game.state = state
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const c = mount(HomePanel, { attachTo: document.body })
+    await c.findAll('button.menu-row').find((b) => b.text().includes('擴建'))!.trigger('click')
+    await flushPromises()
+    const row = c.findAll('li').find((li) => li.text().startsWith('加蓋一層'))!
+    await row.find('button').trigger('click')
+    await flushPromises()
+    expect(game.state!.homes![home.id]!.construction?.kind).toBe('floor')
+    expect(document.body.textContent).toContain('施工中')
     c.unmount()
   })
 })
