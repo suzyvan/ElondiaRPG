@@ -116,14 +116,16 @@ describe('成套家具（X4）', () => {
 describe('熟成桶（X5）', () => {
   const qty = (state: GameState, name: string) => state.inventory.find((i) => i.name === name)?.qty ?? 0
 
-  it('五種熟成，材料都存在；做出來轉賣不會賺錢', () => {
+  it('五種熟成，材料都存在；熟成後轉賣大約賺三到五成', () => {
     const list = agingRecipes()
     expect(list.map((r) => r.name).sort()).toEqual(['梅子酒', '燻肉', '熒光蜜酒', '藥酒', '陳年果酒'].sort())
     const sell = (n: string) => { const d = itemDef(n)!; return d.price_cc * (d.category === 'material' ? itemRules.material_sell_ratio : itemRules.sell_ratio) }
     for (const { name, spec } of list) {
       for (const x of spec.inputs) expect(itemDef(x.name), `${name} ← ${x.name}`).toBeDefined()
       const input = spec.inputs.reduce((n, x) => n + itemDef(x.name)!.price_cc * x.qty, 0)
-      expect(input, name).toBeGreaterThanOrEqual(sell(name) * spec.qty)
+      const gain = (sell(name) * spec.qty) / input - 1
+      expect(gain, name).toBeGreaterThanOrEqual(0.3)
+      expect(gain, name).toBeLessThanOrEqual(0.5)
     }
   })
 
