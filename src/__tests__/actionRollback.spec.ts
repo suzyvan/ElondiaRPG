@@ -52,4 +52,14 @@ describe('action rollback', () => {
     expect(game.error).toBeNull()
     expect(game.state!.money_cc).toBe(money + 10)
   })
+
+  it('連續發生同一個錯誤：只有一則泡泡，旁邊計次', () => {
+    const game = useGame()
+    game.start('艾倫', 'human', 'fighter')
+    for (let i = 0; i < 3; i++) game.runAction(() => { throw new Error('錢不夠') })
+    expect(game.toasts).toHaveLength(1)
+    expect(game.toasts[0]!.count).toBe(3)
+    game.runAction(() => { throw new Error('這裡沒有工作可做') })
+    expect(game.toasts.map((t) => [t.text, t.count])).toEqual([['錢不夠', 3], ['這裡沒有工作可做', 1]])
+  })
 })
