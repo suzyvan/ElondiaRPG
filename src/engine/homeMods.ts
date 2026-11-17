@@ -2,11 +2,13 @@
 // 只有一筆（ContentMods.homes 的 rules）。套用時直接改 homes.json 載入的物件（data.ts 的 homeRules 就是它），恢復預設時套回快照。
 // 能改的：職位的名稱與日薪、女僕的舒適度、各地段的家僕上限、欠薪辭職的天數、應徵者、請認識的人、奴隸做家務、舒適度三段的門檻。
 // 職位的種類與效果是程式固定的，不能新增。
+// 成套家具可以自己新增（furniture_sets 裡 mod_set_ 開頭的）：名稱、件數、舒適度、主題，以及在家長休後的狀態（effect，
+// 可以請 AI 依主題在上限內決定，narrator/setEffect.ts）；套用時把狀態登記成非戰鬥狀態 set_<套組 id>。
 
 import homesJson from '@data/rules/homes.json'
-import { STAFF_JOBS } from './data'
+import { ATTR_IDS, attrName, companionRules, STAFF_JOBS, type AttrId } from './data'
 
-/** 內建的成套家具（設定頁的欄位依這份產生；新的套組不能從設定頁新增） */
+/** 內建的成套家具（設定頁的數值欄位依這份產生；自建的套組另外整理） */
 const SETS = (homesJson as unknown as { furniture_sets: Record<string, { name: string }> }).furniture_sets
 const SET_IDS = Object.keys(SETS).filter((k) => !k.startsWith('$'))
 
@@ -65,6 +67,117 @@ export const HOME_TEXT_FIELDS: { path: string; label: string }[] = [...SET_IDS.m
 
 export type HomeRulesMod = Record<string, unknown>
 
+// ---- 自建的成套家具 ----
+
+/** 自建套組在家長休後給的狀態：最多兩項好處（某些屬性的檢定 +1 算一項、豁免 +1、迴避 +1、暫時生命 1～6） */
+export interface SetEffect {
+  /** 狀態的名稱（例如「茶香的餘韻」） */
+  name: string
+  /** 一句說明（數值另外由程式接在後面） */
+  desc: string
+  /** 這些屬性的檢定 +1（最多兩個屬性） */
+  check_attrs?: AttrId[]
+  save?: 1
+  evade?: 1
+  /** 每場戰鬥開始時的暫時生命（1～6） */
+  temp_hp?: number
+}
+
+export interface CustomSetDef {
+  name: string
+  need: number
+  comfort: number
+  custom: true
+  /** 主題：交給 AI 決定效果時的說明（例如「海邊漁村的小屋，掛著漁網和貝殼」） */
+  theme?: string
+  effect?: SetEffect
+  /** 套用時登記的非戰鬥狀態 id（set_<套組 id>） */
+  condition?: string
+}
+
+/** 自建套組的上限 */
+export const SET_LIMITS = { sets: 20, name_chars: 12, theme_chars: 120, effect_name_chars: 10, desc_chars: 60, perks: 2, temp_hp: 6, need: [1, 20], comfort: [0, 10] } as const
+
+export const isCustomSetId = (id: string) => /^mod_set_[a-z0-9_]{1,40}$/.test(id)
+export const setConditionId = (id: string) => `set_${id}`
+
+const text = (v: unknown, n: number) => (typeof v === 'string' ? [...v.trim()].slice(0, n).join('') : '')
+const clampInt = (v: unknown, lo: number, hi: number, d: number) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? Math.round(Math.max(lo, Math.min(hi, n))) : d
+}
+
+/** 整理效果：最多兩項好處（超過的照檢定、豁免、迴避、暫時生命的順序留前面的）；沒有任何好處時 undefined */
+export function sanitizeSetEffect(raw: unknown): SetEffect | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const x = raw as Record<string, unknown>
+  const name = text(x.name, SET_LIMITS.effect_name_chars)
+  if (!name) return undefined
+  const out: SetEffect = { name, desc: text(x.desc, SET_LIMITS.desc_chars) }
+  let left: number = SET_LIMITS.perks
+  const attrs = [...new Set((Array.isArray(x.check_attrs) ? x.check_attrs : []).filter((a): a is AttrId => ATTR_IDS.includes(a as AttrId)))].slice(0, 2)
+  if (attrs.length && left > 0) { out.check_attrs = attrs; left-- }
+  if ((x.save === 1 || x.save === true) && left > 0) { out.save = 1; left-- }
+  if ((x.evade === 1 || x.evade === true) && left > 0) { out.evade = 1; left-- }
+  const hp = clampInt(x.temp_hp, 0, SET_LIMITS.temp_hp, 0)
+  if (hp > 0 && left > 0) { out.temp_hp = hp; left-- }
+  return left < SET_LIMITS.perks ? out : undefined
+}
+
+/** 效果的一行數值說明 */
+export function setEffectText(e: SetEffect | undefined): string {
+  if (!e) return '（還沒有效果）'
+  const parts = [
+    ...(e.check_attrs?.length ? [`${e.check_attrs.map((a) => attrName(a)).join('與')}檢定 +1`] : []),
+    ...(e.save ? ['豁免 +1'] : []),
+    ...(e.evade ? ['迴避 +1'] : []),
+    ...(e.temp_hp ? [`每場戰鬥開始時 ${e.temp_hp} 點暫時生命`] : []),
+  ]
+  return `「${e.name}」：${parts.join('，')}`
+}
+
+/** 效果變成非戰鬥狀態（下次長休前） */
+function conditionOf(e: SetEffect, setName: string): Record<string, unknown> {
+  return {
+    name: e.name,
+    desc: `${e.desc || `在湊齊了${setName}的家裡醒來。`}下次長休前${setEffectText(e).split('：')[1]}。`,
+    ...(e.check_attrs?.length ? { check_penalty: -1, check_attrs: [...e.check_attrs] } : {}),
+    ...(e.temp_hp ? { combat_temp_hp: e.temp_hp } : {}),
+    ...(e.save || e.evade ? { combat_mods: { ...(e.save ? { save: 1 } : {}), ...(e.evade ? { evade: 1 } : {}) } } : {}),
+    clears: 'long_rest',
+  }
+}
+
+/** 整理一個自建套組 */
+export function sanitizeCustomSet(id: string, raw: unknown): CustomSetDef | undefined {
+  if (!isCustomSetId(id) || !raw || typeof raw !== 'object') return undefined
+  const x = raw as Record<string, unknown>
+  const name = text(x.name, SET_LIMITS.name_chars)
+  if (!name) return undefined
+  const theme = text(x.theme, SET_LIMITS.theme_chars)
+  const effect = sanitizeSetEffect(x.effect)
+  return {
+    name, custom: true,
+    need: clampInt(x.need, SET_LIMITS.need[0], SET_LIMITS.need[1], 3),
+    comfort: clampInt(x.comfort, SET_LIMITS.comfort[0], SET_LIMITS.comfort[1], 2),
+    ...(theme ? { theme } : {}),
+    ...(effect ? { effect, condition: setConditionId(id) } : {}),
+  }
+}
+
+/** 一份設定裡的自建套組（整理過的） */
+function customSetsOf(src: unknown): Record<string, CustomSetDef> {
+  const sets = get(src, 'furniture_sets')
+  const out: Record<string, CustomSetDef> = {}
+  if (!sets || typeof sets !== 'object') return out
+  for (const [id, v] of Object.entries(sets as Record<string, unknown>)) {
+    if (Object.keys(out).length >= SET_LIMITS.sets) break
+    const def = sanitizeCustomSet(id, v)
+    if (def) out[id] = def
+  }
+  return out
+}
+
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T
 const data = homesJson as unknown as Record<string, unknown>
 const snapshot = clone(data)
@@ -88,6 +201,7 @@ function pick(src: unknown): HomeRulesMod {
   const out: HomeRulesMod = {}
   for (const fd of HOME_FIELDS) set(out, fd.path, get(src, fd.path))
   for (const fd of HOME_TEXT_FIELDS) set(out, fd.path, get(src, fd.path))
+  for (const [id, def] of Object.entries(customSetsOf(src))) set(out, `furniture_sets.${id}`, clone(def))
   return out
 }
 
@@ -123,6 +237,8 @@ export function sanitizeHomeRules(raw: unknown): HomeRulesMod {
   }
   const lo = Number(get(out, 'staff.candidates_per_job.0'))
   if (Number(get(out, 'staff.candidates_per_job.1')) < lo) set(out, 'staff.candidates_per_job.1', lo)
+  // 自建的成套家具
+  for (const [id, def] of Object.entries(customSetsOf(raw))) set(out, `furniture_sets.${id}`, def)
   return out
 }
 
@@ -131,6 +247,19 @@ export function applyHomeRules(r: HomeRulesMod) {
   for (const fd of [...HOME_FIELDS, ...HOME_TEXT_FIELDS]) {
     const v = get(r, fd.path)
     if (v !== undefined) set(data, fd.path, v)
+  }
+  // 自建的成套家具：換成這份設定裡的（拿掉的套組連同它的狀態一起拿掉）
+  const sets = data.furniture_sets as Record<string, unknown>
+  const next = customSetsOf(r)
+  for (const id of Object.keys(sets).filter(isCustomSetId)) {
+    if (next[id]) continue
+    delete sets[id]
+    delete companionRules.conditions[setConditionId(id)]
+  }
+  for (const [id, def] of Object.entries(next)) {
+    sets[id] = clone(def)
+    if (def.effect) companionRules.conditions[setConditionId(id)] = conditionOf(def.effect, def.name) as never
+    else delete companionRules.conditions[setConditionId(id)]
   }
 }
 

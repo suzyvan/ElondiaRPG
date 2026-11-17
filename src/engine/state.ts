@@ -558,7 +558,8 @@ export function migrate(state: GameState): GameState {
  */
 export function pruneStatuses(state: GameState) {
   for (const x of state.combat?.combatants ?? []) if (x.statuses.some((s) => !statuses[s.id])) x.statuses = x.statuses.filter((s) => !!statuses[s.id])
-  const gone = (id: string) => id.startsWith('mod_cond_') && !companionRules.conditions[id]
+  // 自建的非戰鬥狀態、自建成套家具的狀態（set_mod_set_，房屋設定拿掉套組時）
+  const gone = (id: string) => (id.startsWith('mod_cond_') || id.startsWith('set_mod_set_')) && !companionRules.conditions[id]
   for (const c of [...state.party, ...Object.values(state.npcs ?? {}).map((r) => r.character).filter((x): x is Character => !!x)]) {
     if (c.status?.some(gone)) c.status = c.status.filter((id) => !gone(id))
   }

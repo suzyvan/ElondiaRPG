@@ -6,7 +6,9 @@ import { depositItem, homeStock } from '@/engine/storage'
 import { sanitizeItem } from '@/engine/mods'
 import { enterLocation, placeAt, type Area } from '@/engine/grid'
 import { buyHome, comfortOf, comfortTier, completeSets, lotsOf, placeFurniture, setProgress, takeFurniture } from '@/engine/homes'
-import { sanitizeHomeRules } from '@/engine/homeMods'
+import { applyHomeRules, currentHomeRules, restoreHomeRules, sanitizeCustomSet, sanitizeHomeRules, sanitizeSetEffect } from '@/engine/homeMods'
+import { buildSetEffectPrompt, parseSetEffect } from '@/narrator/setEffect'
+import { pruneStatuses } from '@/engine/state'
 import { longRest } from '@/engine/rest'
 import { addHours, addItem, newGame } from '@/engine/state'
 import type { GameState, Home } from '@/engine/types'
@@ -177,5 +179,61 @@ describe('熟成桶（X5）', () => {
     const r = sanitizeItem('自釀酒', { category: 'food', price_cc: 5, aging: { vessel: 'cask', inputs: [{ name: '野莓', qty: 3 }, { name: '自釀酒', qty: 1 }], days: 99, qty: 2 } } as never, true)
     expect(r.aging).toEqual({ vessel: 'cask', inputs: [{ name: '野莓', qty: 3 }], days: 60, qty: 2 })
     expect(sanitizeItem('桶', { category: 'furniture', furniture: { places: ['indoor'], function: 'aging', vessel: 'bad' } } as never, true).furniture).toMatchObject({ function: 'aging', vessel: 'cask' })
+  })
+})
+
+describe('自建的成套家具（效果由 AI 決定）', () => {
+  it('效果最多兩項好處：檢定（最多兩個屬性）、豁免、迴避、暫時生命；沒有名稱或沒有好處時不算', () => {
+    expect(sanitizeSetEffect({ name: '茶香的餘韻', desc: '滿室茶香', check_attrs: ['int', 'cha', 'str'], save: 1, evade: 1, temp_hp: 99 }))
+      .toEqual({ name: '茶香的餘韻', desc: '滿室茶香', check_attrs: ['int', 'cha'], save: 1 })
+    expect(sanitizeSetEffect({ name: '海風', temp_hp: 99 })).toEqual({ name: '海風', desc: '', temp_hp: 6 })
+    expect(sanitizeSetEffect({ name: '空的' })).toBeUndefined()
+    expect(sanitizeSetEffect({ check_attrs: ['int'] })).toBeUndefined()
+    expect(sanitizeCustomSet('noble', { name: 'x' })).toBeUndefined()
+    expect(sanitizeCustomSet('mod_set_a1', { name: '漁村小屋', need: 99, comfort: -3 })).toEqual({ name: '漁村小屋', need: 20, comfort: 0, custom: true })
+  })
+
+  it('AI 的提示詞帶上主題與家具；回應照上限整理', () => {
+    const p = buildSetEffectPrompt({ name: '漁村小屋', theme: '海邊的小屋，掛著漁網', pieces: ['漁網', '貝殼燈'], need: 2 })
+    expect(p.user).toContain('海邊的小屋')
+    expect(p.user).toContain('漁網、貝殼燈')
+    expect(parseSetEffect('好的：```json\n{"name":"海潮的安眠","desc":"夢裡都是浪聲","evade":1,"temp_hp":4,"save":1}\n```'))
+      .toEqual({ name: '海潮的安眠', desc: '夢裡都是浪聲', save: 1, evade: 1 })
+    expect(() => parseSetEffect('{"name":"沒用"}')).toThrow('沒有任何好處')
+  })
+
+  it('套用後可以湊齊：在家長休得到自建的狀態；刪掉套組時狀態跟著拿掉', () => {
+    const state = game()
+    const home = moveIn(state)
+    const id = 'mod_set_fish'
+    const rules = sanitizeHomeRules({ ...currentHomeRules(), furniture_sets: { ...(currentHomeRules().furniture_sets as object), [id]: { name: '漁村小屋', need: 2, comfort: 4, effect: { name: '海潮的安眠', desc: '', evade: 1 } } } })
+    try {
+      applyHomeRules(rules)
+      expect(companionRules.conditions[`set_${id}`]).toMatchObject({ name: '海潮的安眠', combat_mods: { evade: 1 }, clears: 'long_rest' })
+      // 把兩件現有的家具指定到這一套
+      itemDef('盆栽')!.furniture!.set = id
+      itemDef('書架')!.furniture!.set = id
+      furnish(state, home, ['羽毛床', '盆栽', '書架'])
+      expect(completeSets(home)).toContain(id)
+      state.lastLongRest = undefined
+      longRest(state, 'home')
+      expect(state.party[0]!.status).toContain(`set_${id}`)
+      // 刪掉套組：狀態拿掉，角色身上的也清掉
+      applyHomeRules(sanitizeHomeRules(currentHomeRules()))
+      const { [id]: _gone, ...rest } = currentHomeRules().furniture_sets as Record<string, unknown>
+      applyHomeRules(sanitizeHomeRules({ ...currentHomeRules(), furniture_sets: rest }))
+      expect(companionRules.conditions[`set_${id}`]).toBeUndefined()
+      pruneStatuses(state)
+      expect(state.party[0]!.status).not.toContain(`set_${id}`)
+    } finally {
+      itemDef('盆栽')!.furniture!.set = undefined
+      itemDef('書架')!.furniture!.set = 'scholar'
+      restoreHomeRules()
+    }
+    expect(Object.keys(homeRules.furniture_sets).some((k) => k.startsWith('mod_set_'))).toBe(false)
+  })
+
+  it('物品編輯器整理時留著自建套組的 id', () => {
+    expect(sanitizeItem('x', { category: 'furniture', furniture: { places: ['indoor'], set: 'mod_set_fish' } } as never, true).furniture?.set).toBe('mod_set_fish')
   })
 })

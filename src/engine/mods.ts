@@ -9,7 +9,7 @@
 
 import { isAbilityCategory } from './abilityCategory'
 import { applyFamilyRules, restoreFamilyRules, sanitizeFamilyRules, type FamilyRulesMod } from './familyMods'
-import { applyHomeRules, restoreHomeRules, sanitizeHomeRules, type HomeRulesMod } from './homeMods'
+import { applyHomeRules, isCustomSetId, restoreHomeRules, sanitizeHomeRules, type HomeRulesMod } from './homeMods'
 import { familyRules, STAGE_ORDER } from './pregMarks'
 import type { PregnancyCond } from './data'
 import type { PregnancyStage } from './types'
@@ -1009,8 +1009,8 @@ export function sanitizeItem(name: string, raw: Partial<ItemMod>, custom: boolea
       // 儲物箱：能放幾種（1～99）、能不能存錢
       ...(f.function === 'storage' ? { slots: int(f.slots, 1, 99, 12), ...(f.money === true ? { money: true } : {}) } : {}),
       ...(int(f.comfort, 0, 10, 0) ? { comfort: int(f.comfort, 0, 10, 0) } : {}),
-      // 成套家具：存在的套組才留（homes.json 的 furniture_sets）
-      ...(typeof f.set === 'string' && furnitureSetIds().includes(f.set) ? { set: f.set } : {}),
+      // 成套家具：存在的套組才留（homes.json 的 furniture_sets）；自建的套組（mod_set_）先留著，同一包的房屋設定可能還沒套用
+      ...(typeof f.set === 'string' && (furnitureSetIds().includes(f.set) || isCustomSetId(f.set)) ? { set: f.set } : {}),
       // 熟成桶：哪一種桶
       ...(f.function === 'aging' ? { vessel: AGING_VESSELS.includes(f.vessel as never) ? f.vessel : 'cask' } : {}),
       ...(typeof f.icon === 'string' && f.icon.trim() ? { icon: [...f.icon.trim()].slice(0, 2).join('') } : {}),
