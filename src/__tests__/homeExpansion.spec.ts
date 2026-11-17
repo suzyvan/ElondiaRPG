@@ -3,13 +3,20 @@ import { describe, expect, it } from 'vitest'
 import { companionRules, homeRules, itemDef, itemRules } from '@/engine/data'
 import { agingRecipes, agingStatus, dumpAging, startAging, takeAged } from '@/engine/aging'
 import { depositItem, homeStock } from '@/engine/storage'
-import { sanitizeItem } from '@/engine/mods'
+import { sanitizeCondition, sanitizeItem } from '@/engine/mods'
 import { crossLink, currentArea, enterLocation, getArea, placeAt, type Area } from '@/engine/grid'
 import { expandOptions, floorsAbove, hasBasement, startExpansion, yardDepth } from '@/engine/homeExpand'
 import { buyHome, comfortOf, comfortTier, completeSets, lotsOf, placeFurniture, setProgress, takeFurniture } from '@/engine/homes'
 import { applyHomeRules, currentHomeRules, restoreHomeRules, sanitizeCustomSet, sanitizeHomeRules, sanitizeSetEffect } from '@/engine/homeMods'
 import { buildSetEffectPrompt, parseSetEffect } from '@/narrator/setEffect'
 import { pruneStatuses } from '@/engine/state'
+import { activeRooms, roomAt, roomComfort, roomsOf, roomStatus, setRoomUse, type Room } from '@/engine/rooms'
+import { recipePlan } from '@/engine/recipes'
+import { sendHome } from '@/engine/away'
+import { generateNpc } from '@/engine/npcs'
+import { joinParty } from '@/engine/party'
+import { Rng } from '@/engine/rng'
+import { ensureRelationship, setAffinity } from '@/engine/social'
 import { longRest } from '@/engine/rest'
 import { addHours, addItem, advanceTime, newGame } from '@/engine/state'
 import type { GameState, Home } from '@/engine/types'
@@ -88,7 +95,9 @@ describe('成套家具（X4）', () => {
     expect(members('scholar')).toHaveLength(3)
     expect(members('east')).toHaveLength(4)
     for (const n of members('east')) expect(itemDef(n)!.regions).toEqual(['yanhua_south', 'yanhua_north'])
-    for (const d of Object.values(homeRules.furniture_sets).filter((x) => typeof x === 'object' && 'need' in x)) expect(companionRules.conditions[d.condition!]).toBeDefined()
+    for (const d of Object.values(homeRules.furniture_sets).filter((x) => typeof x === 'object' && 'need' in x && x.condition)) expect(companionRules.conditions[d.condition!]).toBeDefined()
+    // 學者的書齋沒有自己的狀態，改成加強書房（X3）
+    expect(homeRules.furniture_sets.scholar!.condition).toBeUndefined()
   })
 
   it('同一棟房子擺了規定件數的不同家具就湊齊：舒適度再加，長休多一個狀態；同一件擺兩次不算', () => {
@@ -303,5 +312,132 @@ describe('擴建（X2）', () => {
     // 從街上進門，落在新的出口
     const street = getArea(state, home.lot.area)
     expect(street.cells[home.lot.y * street.width + home.lot.x]!.link).toMatchObject({ area: g.key, y: g.height - 1 })
+  })
+})
+
+describe('房間用途（X3）', () => {
+  /** 房間裡空的地板格（不靠門） */
+  const freeIn = (room: Room) => room.cells.filter((i) => room.area.cells[i]!.kind === 'floor' && !room.area.cells[i]!.furniture)
+  /** 站到這間房間，擺家具 */
+  function into(state: GameState, room: Room, names: string[]) {
+    for (const n of names) {
+      const i = freeIn(room)[0]!
+      addItem(state.inventory, n, 1)
+      placeFurniture(state, room.area, i % room.area.width, Math.floor(i / room.area.width), n)
+    }
+    const at = freeIn(room)[0]!
+    placeAt(state, room.area, at % room.area.width, Math.floor(at / room.area.width))
+  }
+  const biggest = (home: Home, floor: 'ground' | 'basement' | 'upper') => roomsOf(home).filter((r) => r.area.homeFloor === floor).sort((a, b) => b.cells.length - a.cells.length)[0]!
+
+  it('用牆與門圍出房間：每一格只屬於一間，院子與門不算；擺家具之後 key 不變', () => {
+    const state = game()
+    const home = moveIn(state, 'house')
+    const g = ground(home)
+    const rooms = roomsOf(home).filter((r) => r.area === g)
+    expect(rooms.length).toBeGreaterThanOrEqual(homeRules.districts.house.rooms[0])
+    const all = rooms.flatMap((r) => r.cells)
+    expect(new Set(all).size).toBe(all.length)
+    expect(all.some((i) => g.cells[i]!.kind === 'yard')).toBe(false)
+    const key = rooms[0]!.key
+    into(state, rooms[0]!, ['盆栽'])
+    expect(roomsOf(home).find((r) => r.area === g && r.cells.includes(rooms[0]!.cells[0]!))!.key).toBe(key)
+  })
+
+  it('臥室：有床才生效，舒適度 +1；條件不滿足時用途保留', () => {
+    const state = game()
+    const home = moveIn(state, 'house')
+    const room = biggest(home, 'ground')
+    into(state, room, [])
+    setRoomUse(state, 'bedroom')
+    expect(roomStatus(home, room)).toMatchObject({ use: 'bedroom', ok: false, why: '要擺一張床' })
+    expect(roomComfort(home)).toBe(0)
+    into(state, room, ['木板床'])
+    expect(roomStatus(home, room).ok).toBe(true)
+    expect(roomComfort(home)).toBe(homeRules.rooms.bedroom_comfort)
+    expect(() => setRoomUse(state, 'cellar')).toThrow('地下室')
+  })
+
+  it('書房：在書房長休得到書房的專注；湊齊學者的書齋時是書齋的沉思（智力 +2）', () => {
+    const state = game()
+    const home = moveIn(state, 'house')
+    const room = biggest(home, 'upper')
+    into(state, room, ['木板床', '書架', '書架'])
+    setRoomUse(state, 'study')
+    expect(activeRooms(home).map((r) => r.use)).toEqual(['study'])
+    state.lastLongRest = undefined
+    longRest(state, 'home')
+    expect(state.party[0]!.status).toContain('study_focus')
+    // 湊齊學者的書齋（書架、書桌、地球儀）
+    into(state, room, ['書桌', '地球儀'])
+    state.lastLongRest = undefined
+    const r = longRest(state, 'home')
+    expect(state.party[0]!.status).toContain('set_scholar')
+    expect(state.party[0]!.status).not.toContain('study_focus')
+    expect(companionRules.conditions.set_scholar!.check_penalty).toBe(-2)
+    expect(r.outcome.summary).toContain('書齋的沉思')
+  })
+
+  it('工坊：站在有這種工藝工作台的工坊裡，工時打折', () => {
+    const state = game()
+    delete state.party[0]!.crafts
+    const home = moveIn(state, 'house')
+    const room = biggest(home, 'ground')
+    into(state, room, ['石砌大灶'])
+    addItem(state.inventory, '野莓', 30)
+    const before = recipePlan(state, '野莓派', 4, state.party[0]!).hours
+    setRoomUse(state, 'workshop')
+    expect(recipePlan(state, '野莓派', 4, state.party[0]!).hours).toBe(Math.round(before * homeRules.rooms.workshop_mult))
+  })
+
+  it('酒窖：地下室有熟成桶的房間，熟成再快一些（和地下室的倍率相乘）', () => {
+    const state = game()
+    const home = moveIn(state, 'house')
+    const room = biggest(home, 'basement')
+    into(state, room, ['橡木桶'])
+    setRoomUse(state, 'cellar')
+    const i = room.cells.find((c) => room.area.cells[c]!.furniture === '橡木桶')!
+    addItem(state.inventory, '野莓', 6)
+    startAging(state, room.area, i % room.area.width, Math.floor(i / room.area.width), '陳年果酒')
+    expect(room.area.cells[i]!.aging!.hours).toBe(Math.round(Math.round(7 * 24 * homeRules.aging.basement_mult) * homeRules.rooms.cellar_mult))
+  })
+
+  it('客房：留在家裡的夥伴住客房，每天親密度 +1，一週最多 +3', () => {
+    const state = game()
+    const home = moveIn(state, 'house')
+    const room = biggest(home, 'upper')
+    into(state, room, ['木板床'])
+    setRoomUse(state, 'guest')
+    const rec = generateNpc(state, new Rng(3), { kind: 'adventurer', location: state.location }, 'adv')
+    joinParty(state, rec, 'voluntary')
+    ensureRelationship(state, rec)
+    setAffinity(state, rec.id, 10)
+    sendHome(state, home.id, rec.id)
+    const free = freeIn(room)[0]!
+    state.npcs![rec.id]!.at = { area: room.area.key, x: free % room.area.width, y: Math.floor(free / room.area.width), until: 1e9 }
+    advanceTime(state, 24 * 10)
+    expect(state.relationships![rec.id]!.affinity).toBeGreaterThanOrEqual(13)
+    expect(state.relationships![rec.id]!.affinity).toBeLessThanOrEqual(16)
+  })
+
+  it('育嬰室的「家人的笑容」多持續一次長休', () => {
+    const state = game()
+    moveIn(state, 'house')
+    state.party[0]!.status.push('family_smile_lasting')
+    const g = Object.values(state.homes!)[0]!
+    const bed = roomsOf(g).find((r) => r.area.homeFloor === 'ground')!
+    into(state, bed, ['木板床'])
+    state.lastLongRest = undefined
+    longRest(state, 'home')
+    expect(state.party[0]!.status).toContain('family_smile')
+    expect(state.party[0]!.status).not.toContain('family_smile_lasting')
+    state.lastLongRest = undefined
+    longRest(state, 'home')
+    expect(state.party[0]!.status).not.toContain('family_smile')
+    expect(roomAt(ground(g), 0, 0)).toBeUndefined()
+  })
+
+  it('世界編輯器整理非戰鬥狀態時留著 then', () => {
+    expect(sanitizeCondition('family_smile_lasting', companionRules.conditions.family_smile_lasting as never, false)).toMatchObject({ then: 'family_smile', replaces: ['family_smile'] })
   })
 })

@@ -49,6 +49,15 @@ export const HOME_GROUPS: HomeGroup[] = [
     f(`furniture_sets.${id}.need`, `${SETS[id]!.name}：湊齊幾件`, 1, 20, 1),
     f(`furniture_sets.${id}.comfort`, `${SETS[id]!.name}：舒適度 +`, 0, 20, 1),
   ]) },
+  { name: '房間用途', fields: [
+    f('rooms.bedroom_comfort', '臥室：舒適度 +', 0, 10, 1),
+    f('rooms.study_need', '書房：書架要幾件', 1, 10, 1),
+    f('rooms.study_comfort', '書房：舒適度 +', 0, 10, 1),
+    f('rooms.workshop_mult', '工坊：工時的倍率', 0.1, 1, 0.05, '0.75 = 工時打七五折'),
+    f('rooms.cellar_mult', '酒窖：熟成時間的倍率', 0.1, 1, 0.05, '和放在地下室的倍率相乘'),
+    f('rooms.guest_affinity', '客房：每天親密度 +', 0, 5, 1),
+    f('rooms.guest_week_cap', '客房：一週最多 +', 0, 20, 1),
+  ] },
   { name: '請認識的人、奴隸做家務', fields: [
     f('staff.invite_affinity', '請認識的人：親密度至少', -100, 100, 1),
     f('staff.invite_dc', '請認識的人：參考 DC（減去親密度 / 10）', 5, 30, 1),
@@ -222,7 +231,8 @@ export function sanitizeHomeRules(raw: unknown): HomeRulesMod {
     const v = get(raw, fd.path)
     const n = Number(v)
     if (v === undefined || v === '' || v === null || !Number.isFinite(n)) continue
-    set(out, fd.path, Math.round(Math.max(fd.min, Math.min(fd.max, n))))
+    const v2 = Math.max(fd.min, Math.min(fd.max, n))
+    set(out, fd.path, fd.step < 1 ? Math.round(v2 * 100) / 100 : Math.round(v2))
   }
   for (const fd of HOME_TEXT_FIELDS) {
     const v = get(raw, fd.path)

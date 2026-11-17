@@ -19,6 +19,7 @@ import { cribRefusal } from './children'
 import { resolveMasterHome } from './homeResolver'
 import { storageInUse, storedItems } from './storage'
 import { staffComfort } from './staff'
+import { roomComfort } from './rooms'
 import type { Character, GameState, Home, Report } from './types'
 
 // ---- 空地 ----
@@ -453,7 +454,7 @@ export function completeSets(home: Home): string[] {
 export function comfortOf(home: Home, state?: GameState): number {
   const furniture = furnitureIn(home).reduce((n, f) => n + (itemDef(f.name)?.furniture?.comfort ?? 0), 0)
   const sets = completeSets(home).reduce((n, id) => n + (homeRules.furniture_sets[id]?.comfort ?? 0), 0)
-  return furniture + sets + (state && !home.master ? staffComfort(state, home) : 0)
+  return furniture + sets + (home.master ? 0 : roomComfort(home)) + (state && !home.master ? staffComfort(state, home) : 0)
 }
 
 /** 調教室：房子裡調教家具的加值合計（lewd.json 的 training.room_max 為上限） */

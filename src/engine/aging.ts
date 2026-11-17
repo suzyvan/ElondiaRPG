@@ -9,6 +9,7 @@ import type { Area, Cell } from './grid'
 import { homeOfArea, homeReport, ownHomeOfArea } from './homes'
 import { commitReport, removeItem } from './state'
 import { pullFromHome, stockHere } from './storage'
+import { cellarMult } from './rooms'
 import type { GameState, GameTime, Report } from './types'
 
 const minutesOf = (t: GameTime) => ((t.day - 1) * 24 + (t.hour ?? 0)) * 60 + (t.minute ?? 0)
@@ -71,7 +72,8 @@ export function startAging(state: GameState, area: Area, x: number, y: number, p
     pullFromHome(state, x2.name, x2.qty)
     removeItem(state.inventory, x2.name, x2.qty)
   }
-  cell.aging = { item: product, started: { ...state.time }, hours: agingHours(area, spec) }
+  // 生效的酒窖裡再快一些（rooms.ts）
+  cell.aging = { item: product, started: { ...state.time }, hours: Math.max(1, Math.round(agingHours(area, spec) * cellarMult(state, area, x, y))) }
 }
 
 /** 倒掉還沒熟成的東西（材料不退回） */

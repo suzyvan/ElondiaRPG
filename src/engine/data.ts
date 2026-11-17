@@ -1431,6 +1431,8 @@ export interface ConditionDef {
   /** 只影響這些屬性的檢定（沒有時所有檢定） */
   check_attrs?: AttrId[]
   clears?: 'long_rest'
+  /** 長休解除時換成這個狀態（例如育嬰室的「家人的笑容」多持續一次長休） */
+  then?: string
   /** 每場戰鬥的加減 */
   combat_mods?: Mods
   /** 每場戰鬥開始時的暫時生命 */
@@ -2473,6 +2475,21 @@ export const homeRules = homesJson as unknown as {
   furniture_sets: Record<string, FurnitureSetDef>
   /** 熟成桶：放在地下室時時間的倍率 */
   aging: { basement_mult: number }
+  /** 房間用途（rooms.ts） */
+  rooms: {
+    bedroom_comfort: number
+    study_items: string[]
+    study_need: number
+    study_comfort: number
+    study_condition: string
+    study_set: string
+    study_set_condition: string
+    workshop_mult: number
+    cellar_mult: number
+    guest_affinity: number
+    guest_week_cap: number
+    nursery_condition: string
+  }
   /** 擴建：加蓋一層、挖地下室、擴院子（homeExpand.ts） */
   expand: {
     floor: { price_ratio: number; days: number; max_floors: Record<HomeDistrict, number> }

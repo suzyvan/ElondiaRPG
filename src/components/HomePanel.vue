@@ -12,6 +12,8 @@ import type { StaffJob } from '@/engine/data'
 import { isBound } from '@/engine/party'
 import { agingHours, agingRecipes, agingShort, agingStatus, vesselSpec } from '@/engine/aging'
 import { constructionDaysLeft, expandOptions, type ExpandKind } from '@/engine/homeExpand'
+import { activeRooms, ROOM_NAME, ROOM_USES, roomAt, roomStatus, type RoomUse } from '@/engine/rooms'
+import { tagsAllowed } from '@/engine/content'
 import { VESSEL_NAME } from '@/engine/data'
 import { formatMoney } from '@/engine/money'
 import { childrenAtHome, hasTemple } from '@/engine/children'
@@ -99,6 +101,22 @@ function brewIt() {
 function dumpIt() {
   if (aged.value && confirm(`倒掉還沒熟成的${aged.value.item}？材料不會退回。`)) game.dumpAging()
 }
+// 房間用途（docs/HOMES.md 第 3.2 節）：站的這間是什麼、有沒有生效
+const room = computed(() => (home.value ? roomAt(area.value, s.value.position?.x ?? 0, s.value.position?.y ?? 0) : undefined))
+const roomSt = computed(() => (home.value && room.value ? roomStatus(home.value, room.value) : undefined))
+const ROOM_HINT: Record<RoomUse, string> = {
+  bedroom: '有床：舒適度 +1', study: '書架 2 件以上：舒適度 +1，在書房長休後智力檢定 +1（湊齊學者的書齋時 +2）',
+  workshop: '有工作台：在這間做那種工藝，工時 ×0.75', cellar: '地下室、有熟成桶：這間的熟成時間 ×0.75',
+  guest: '有床：留在家裡的夥伴住這間，每天親密度 +1（一週最多 +3）', nursery: '有搖籃：抱抱的「家人的笑容」多持續一次長休',
+}
+// 育嬰室：內容篩選打開「懷孕」時才列
+const roomChoices = computed(() => ROOM_USES.filter((u) => (u !== 'cellar' || area.value.homeFloor === 'basement') && (u !== 'nursery' || tagsAllowed(['pregnancy']))))
+const roomSummary = computed(() => {
+  const counts = new Map<RoomUse, number>()
+  for (const r of home.value ? activeRooms(home.value) : []) counts.set(r.use, (counts.get(r.use) ?? 0) + 1)
+  return [...counts].map(([u, n]) => `${ROOM_NAME[u]}${n > 1 ? ` ${n}` : ''}`).join('、')
+})
+
 // 擴建（docs/HOMES.md 第 3.1 節）
 const expands = computed(() => (home.value ? expandOptions(s.value, home.value) : []))
 const building = computed(() => (home.value?.construction ? { kind: home.value.construction.kind, left: constructionDaysLeft(s.value, home.value) } : undefined))
@@ -184,7 +202,7 @@ function rename() {
       <h3 class="title"><GameIcon name="home" :size="16" />{{ home.name }}</h3>
       <button class="small ghost" title="改名" aria-label="改名" @click="rename"><GameIcon name="edit" :size="14" /></button>
     </div>
-    <p class="muted">{{ area.name.split('・').at(-1) }}・舒適度 {{ comfort }}<template v-if="tierInfo.tier">（在家長休會{{ conditionName(tierInfo.tier.condition) }}<template v-if="tierInfo.next">，再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}</template>）</template><template v-else-if="tierInfo.next">（再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}）</template>・{{ hasBed(home) ? '有床，可以在家長休' : '還沒有床' }}<template v-if="sets.length">・成套家具：{{ sets.map((x) => `${x.name} ${x.have}／${x.need}${x.done ? '（湊齊）' : ''}`).join('、') }}</template><template v-if="benches.length">・工作台：{{ benches.join('、') }}</template><template v-if="plots.total">・苗圃 {{ plots.total }} 塊<template v-if="plots.ripe">（{{ plots.ripe }} 塊可以收成）</template></template></p>
+    <p class="muted">{{ area.name.split('・').at(-1) }}・舒適度 {{ comfort }}<template v-if="tierInfo.tier">（在家長休會{{ conditionName(tierInfo.tier.condition) }}<template v-if="tierInfo.next">，再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}</template>）</template><template v-else-if="tierInfo.next">（再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}）</template>・{{ hasBed(home) ? '有床，可以在家長休' : '還沒有床' }}<template v-if="roomSummary">・房間：{{ roomSummary }}</template><template v-if="sets.length">・成套家具：{{ sets.map((x) => `${x.name} ${x.have}／${x.need}${x.done ? '（湊齊）' : ''}`).join('、') }}</template><template v-if="benches.length">・工作台：{{ benches.join('、') }}</template><template v-if="plots.total">・苗圃 {{ plots.total }} 塊<template v-if="plots.ripe">（{{ plots.ripe }} 塊可以收成）</template></template></p>
 
     <div class="spot">
       <template v-if="cell.furniture">
@@ -203,6 +221,15 @@ function rename() {
         <span v-else class="muted">行囊裡沒有能放在{{ PLACE_NAME[place] }}的家具（雜貨店、鐵匠鋪、裁縫店、珠寶店有賣）。</span>
       </template>
       <span v-else class="muted">站在空的地板或院子上可以擺家具。</span>
+    </div>
+
+    <div v-if="room" class="spot">
+      <span>這間：</span>
+      <select :value="roomSt?.use ?? ''" aria-label="房間用途" @change="game.setRoomUse((($event.target as HTMLSelectElement).value || null) as RoomUse | null)">
+        <option value="">（未指定）</option>
+        <option v-for="u in roomChoices" :key="u" :value="u" :title="ROOM_HINT[u]">{{ ROOM_NAME[u] }}</option>
+      </select>
+      <span v-if="roomSt?.use" :class="roomSt.ok ? 'small' : 'small muted'">{{ roomSt.ok ? `生效：${ROOM_HINT[roomSt.use]}` : `還沒生效：${roomSt.why}` }}</span>
     </div>
 
     <div v-if="vessel || cell.aging" class="spot">

@@ -104,4 +104,25 @@ describe('房屋區塊', () => {
     expect(document.body.textContent).toContain('施工中')
     c.unmount()
   })
+
+  it('房間用途：站在房間裡可以選，選了記在房子上', async () => {
+    const state = newGame({ name: '艾倫', race: 'human', classId: 'fighter', seed: 6, birthplace: 'soriel' })
+    enterLocation(state)
+    state.money_cc = 100000
+    buyHome(state, lotsOf(state.location).find((l) => l.district === 'house')!.id)
+    const home = Object.values(state.homes!)[0]!
+    const ground = Object.values(home.areas).find((a) => a.homeFloor === 'ground')!
+    const i = ground.cells.findIndex((c, k) => c.kind === 'floor' && ground.cells[k - 1]?.kind === 'floor' && ground.cells[k + 1]?.kind === 'floor')
+    placeAt(state, ground, i % ground.width, Math.floor(i / ground.width))
+    const game = useGame()
+    game.state = state
+    const c = mount(HomePanel, { attachTo: document.body })
+    await flushPromises()
+    const select = c.find('select[aria-label="房間用途"]')
+    await select.setValue('bedroom')
+    await flushPromises()
+    expect(Object.values(game.state!.homes![home.id]!.rooms ?? {})).toEqual(['bedroom'])
+    expect(document.body.textContent).toContain('還沒生效：要擺一張床')
+    c.unmount()
+  })
 })

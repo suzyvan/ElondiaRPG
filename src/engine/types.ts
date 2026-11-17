@@ -1,5 +1,6 @@
 import type { ActionPending } from './actions'
 import type { CombatState } from './combat'
+import type { RoomUse } from './rooms'
 import type { CheckFilter, AffinityMap, AttrId, Attrs, Bond, BondStyle, CraftId, DealCost, Degree, DungeonLayerId, HomeDistrict, ItemDef, LockGrade, MasterEventPool, Mods, NpcDef, PerkDef, StaffJob } from './data'
 import type { RewardEffect } from './effects'
 import type { Area, Position } from './grid'
@@ -625,6 +626,8 @@ export interface NpcRecord extends NpcDef {
   chore?: StaffJob
   /** 家僕（或做家務的奴隸）的效果停到第幾天（家裡的事的 staff_pause：請假） */
   staffPause?: number
+  /** 住客房的親密度：第幾週、這週加了幾點（rooms.ts） */
+  guestBond?: { week: number; n: number }
 }
 
 /** 等主角決定的入隊：kind join＝加入主角的隊伍（npcs 第一位是本人，其餘是一起來的小隊隊員）；follow＝主角跟著 npcs[0] 的隊伍 */
@@ -917,6 +920,8 @@ export interface Home {
   master?: string
   /** 主人的家裡的人（伴侶、子女、僕人、奴隸）的 NPC id */
   household?: string[]
+  /** 房間用途（rooms.ts）：key 是「樓層 key:房間裡最左上角那一格的索引」 */
+  rooms?: Record<string, RoomUse>
   /** 擴建中（homeExpand.ts）：哪一種、到第幾天完工、新蓋的那一層（施工期間樓梯走不過去） */
   construction?: { kind: 'floor' | 'basement' | 'yard'; until: number; area?: string; rows?: number }
   /** 主角不在時家裡發生的事（家僕辭職、園丁收成、管家付工錢……）：回家時在房屋區塊列出來，看過後寫進日誌（tag 是日誌的標籤） */

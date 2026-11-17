@@ -20,6 +20,7 @@ import { commitReport, withRng } from './state'
 import { plotPlace, seedOf } from './garden'
 import { homeMoney, removeFromHome, storeInHome, takeHomeMoney } from './storage'
 import { settleConstruction } from './homeExpand'
+import { guestDaily } from './rooms'
 import { locationMult } from './trade'
 import type { GameState, GameTime, Home, NpcRecord, Report } from './types'
 
@@ -374,6 +375,8 @@ export function staffDaily(state: GameState, fromDay: number, toDay: number) {
       logs.set(home.id, log)
       tendGarden(state, home, Math.min(day * 1440, now), log)
       choreDaily(state, home)
+      // 客房：留守的夥伴住在生效的客房裡，親密度上升（rooms.ts）
+      guestDaily(state, home, day, (id, d) => { const rel = state.relationships?.[id]; if (rel) setAffinity(state, id, rel.affinity + d) })
     }
   }
   for (const [id, p] of pay) {

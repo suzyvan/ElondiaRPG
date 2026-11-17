@@ -14,6 +14,15 @@
     { "at": 12, "condition": "refreshed" },
     { "at": 20, "condition": "invigorated" }
   ],
+  "rooms": {
+    "$comment": "房間用途（docs/HOMES.md 第 3.2 節）：玩家替隔出來的房間標上用途，家具擺對了有加成。臥室：有床時舒適度 + bedroom_comfort；書房：study_items 的家具至少 study_need 件時舒適度 + study_comfort，在書房長休後得到 study_condition（湊齊 study_set 這一套時改成 study_set_condition）；工坊：在這間做有工作台的那種工藝，工時 × workshop_mult；酒窖：地下室、有熟成桶，這間的熟成時間 × cellar_mult；客房：有床，留在家裡的夥伴住這間時每天親密度 + guest_affinity（一週最多 guest_week_cap）；育嬰室：有搖籃，抱抱的「家人的笑容」多持續一次長休（nursery_condition）。",
+    "bedroom_comfort": 1,
+    "study_items": ["書架"], "study_need": 2, "study_comfort": 1, "study_condition": "study_focus", "study_set": "scholar", "study_set_condition": "set_scholar",
+    "workshop_mult": 0.75,
+    "cellar_mult": 0.75,
+    "guest_affinity": 1, "guest_week_cap": 3,
+    "nursery_condition": "family_smile_lasting"
+  },
   "expand": {
     "$comment": "擴建（docs/HOMES.md 第 3.1 節）：付錢後開工，days 天後完工；一次只能做一項。加蓋一層：地上層數未滿 max_floors，價格是地段價格 × price_ratio；挖地下室：還沒有地下室；擴院子：每格 price_cc，深度最多 max。價格都乘這座城的物價。原本的樓層不重新生成。",
     "floor": { "price_ratio": 0.4, "days": 7, "max_floors": { "cottage": 2, "townhouse": 3, "house": 3, "manor": 4 } },
@@ -22,11 +31,11 @@
   },
   "aging": { "$comment": "熟成桶（docs/HOMES.md 第 6.1 節）：放在地下室時熟成的時間乘上 basement_mult（地窖陰涼）。", "basement_mult": 0.75 },
   "furniture_sets": {
-    "$comment": "成套家具（docs/HOMES.md 第 4.1 節）：家具的 furniture.set 寫套組 id；同一棟房子擺了 need 件不同的同套家具就算湊齊（不必同一間），舒適度 + comfort，在家長休後全隊得到 condition。",
+    "$comment": "成套家具（docs/HOMES.md 第 4.1 節）：家具的 furniture.set 寫套組 id；同一棟房子擺了 need 件不同的同套家具就算湊齊（不必同一間），舒適度 + comfort，在家長休後全隊得到 condition（學者的書齋沒有自己的狀態，改成在書房長休時加強書房的效果，見 rooms）。",
     "noble": { "name": "貴族的居所", "need": 4, "comfort": 3, "condition": "set_noble" },
     "hunter": { "name": "獵人的小屋", "need": 4, "comfort": 2, "condition": "set_hunter" },
     "east": { "name": "東方的庭院", "need": 3, "comfort": 3, "condition": "set_east" },
-    "scholar": { "name": "學者的書齋", "need": 3, "comfort": 2, "condition": "set_scholar" }
+    "scholar": { "name": "學者的書齋", "need": 3, "comfort": 2 }
   },
   "staff": {
     "$comment": "家僕（docs/HOMES.md 第 8 節）：在自己的房子雇普通人做家務，不入隊。jobs：職位（name 名稱、occupation 職業描述（照性別換稱謂）、wage_cc 日薪（乘這座城的物價）、效果：maid 的 comfort 加舒適度、cook 的 condition 在家長休後的早餐（有烹飪的高階工作台時是 fine_condition）、gardener 每天收成並重新播種、steward 上限 +steward_bonus 並從保險箱付工錢）；同一個職位雇好幾個人時效果不疊加。caps：各地段能雇幾個（留守的夥伴、做家務的奴隸不佔）。工錢欠著，回家時結清；欠超過 quit_days 天的人辭職（親密度 + quit_affinity）。應徵者每座城每 refresh_days 天換一批，每個職位 candidates_per_job 人。invite_*：請認識的普通人來家裡做事（親密度至少 invite_affinity；參考 DC = invite_dc − 親密度 / 10，加上標籤的邀請修正，例如好人 −2）。slave_chore_*：自己的奴隸留在家裡時可以分派家務（女僕、廚師、園丁），順從至少 slave_chore_submission，每天順從 + slave_chore_daily。",

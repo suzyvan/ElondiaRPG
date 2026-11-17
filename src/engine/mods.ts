@@ -1871,6 +1871,8 @@ export function sanitizeCondition(id: string, raw: Partial<ConditionMod>, custom
   if (typeof src.stacks_to === 'string' && others.includes(src.stacks_to)) out.stacks_to = src.stacks_to
   const rep = Array.isArray(src.replaces) ? others.filter((k) => src.replaces!.includes(k)) : []
   if (rep.length) out.replaces = rep
+  // 長休解除時換成另一個狀態（育嬰室的「家人的笑容」多持續一次）
+  if (out.clears === 'long_rest' && typeof src.then === 'string' && others.includes(src.then)) out.then = src.then
   if (custom) out.custom = true
   return out
 }

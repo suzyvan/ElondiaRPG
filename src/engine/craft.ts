@@ -18,6 +18,7 @@ import { formatMoney } from './money'
 import { withRng } from './state'
 import { baseLewd } from './lewd'
 import { inventoryHere, pullFromHome, stockHere } from './storage'
+import { workshopMult } from './rooms'
 import type { Character, GameState, GearSpec, LewdStat, Report } from './types'
 
 export interface CraftPlan {
@@ -517,7 +518,7 @@ export function setupMake(state: GameState, target?: string) {
   const auxText = aux.map((x) => `${x.name}×${x.qty}`).join('、')
   return {
     actor: crafter.id,
-    attr: skill.attr, dc: plan.dc, hours: craftSkillRules.self.hours * plan.count, craftCheck: 'self' as const,
+    attr: skill.attr, dc: plan.dc, hours: Math.max(1, Math.round(craftSkillRules.self.hours * plan.count * workshopMult(state, plan.craft))), craftCheck: 'self' as const,
     situational: [{ label: `${crafter.name}的${skill.name}（Lv.${plan.level}）`, value: plan.level * craftSkillRules.level_bonus }],
     scene: `${locationById(state.location).name}・${crafter.isPlayer ? '親手' : `由${crafter.name}`}打造${name}${countText(plan)}（${plan.tool!.source}${plan.fee ? `，${selfFeeName(plan)} ${formatMoney(plan.fee)}` : ''}${used ? `，材料 ${used}` : ''}${boughtText(plan)}${auxText ? `，輔料 ${auxText}（${Math.round(plan.auxChance * 100)}% 機率品質再高一級）` : ''}）`,
     targetName: name,

@@ -13,6 +13,7 @@ import { memberOrResident } from './homes'
 import { formatMoney } from './money'
 import { locationMult } from './trade'
 import { homeQtyHere, pullFromHome, stockHere } from './storage'
+import { workshopMult } from './rooms'
 import type { Character, GameState, Report } from './types'
 
 /** 有配方的物品（包含自訂內容） */
@@ -73,7 +74,8 @@ export function recipePlan(state: GameState, name: string, batches: number, craf
   })
   const buys = inputs.filter((x) => x.buy > 0).map((x) => ({ name: x.name, qty: x.buy, price: x.offer!.price }))
   const buyCost = buys.reduce((s, b) => s + b.qty * b.price, 0)
-  const hours = (recipe.hours ?? 2) * n
+  // 生效的工坊裡有這種工藝的工作台：工時打折（rooms.ts）
+  const hours = Math.max(1, Math.round((recipe.hours ?? 2) * n * workshopMult(state, recipe.craft)))
   const needTier = toolTierFor(recipe.level)
   const tool = toolAccess(state, recipe.craft, needTier)
   const cost = Math.round((recipe.cost_cc ?? 0) * n * locationMult(state) * gameRule(state, 'recipeCostMult'))

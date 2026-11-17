@@ -6,7 +6,8 @@
 //   （那座城沒有神殿時送到最近有神殿的聚落）。
 
 import { gainCondition, pcOf } from './party'
-import { geography, isSettlement, itemDef, locationName, type Location } from './data'
+import { geography, homeRules, isSettlement, itemDef, locationName, type Location } from './data'
+import { hasNursery } from './rooms'
 import { familyRules } from './pregMarks'
 import { formatMoney } from './money'
 import { blockKeys, settlementArea } from './grid'
@@ -168,7 +169,9 @@ export function visitChild(state: GameState, id: string): Report {
   if (placeLocation(state, c.where) !== state.location) throw new Error(`${c.name}不在這座城`)
   const pc = pcOf(state)
   const report = nurseryReport(state, 0.5, placeText(state, c.where))
-  gainCondition(pc, 'family_smile', report)
+  // 家裡有生效的育嬰室：家人的笑容多持續一次長休（rooms.ts）
+  const home = c.where.kind === 'home' ? state.homes?.[c.where.home] : undefined
+  gainCondition(pc, home && hasNursery(home) ? homeRules.rooms.nursery_condition : 'family_smile', report)
   report.outcome.summary = `去看了${c.name}。${c.name}睡得很熟，小手抓著你的手指不放。`
   report.narration = { pov: 'second_person', length: 'short', focus: ['看孩子的溫馨片刻'] }
   return commitReport(state, report)

@@ -20,6 +20,7 @@ import { renameItemInState } from './usage'
 import { withRng } from './state'
 import { locationMult, sellRatio } from './trade'
 import { pullFromHome, stockHere } from './storage'
+import { workshopMult } from './rooms'
 import type { Character, GameState, Report } from './types'
 
 export type InventCategory = 'consumable' | 'food' | 'furniture'
@@ -402,7 +403,7 @@ export function inventPlan(state: GameState, req: InventRequest, crafter: Charac
   // 持有：行囊加上家裡的箱子（站在自己的房子裡時，storage.ts）
   const inputs = req.inputs.map((x) => ({ name: x.name, need: x.qty, have: stockHere(state, x.name) }))
   const inputValue = req.inputs.reduce((s, x) => s + (itemDef(x.name)?.price_cc ?? 0) * x.qty, 0)
-  const hours = craftRules.invention.hours
+  const hours = Math.max(1, Math.round(craftRules.invention.hours * workshopMult(state, req.craft)))
   const needTier = toolTierFor(req.level)
   const tool = toolAccess(state, req.craft, needTier)
   const cost = caps ? Math.round(supplyGap(state, caps, inputValue, 1) * locationMult(state)) : 0
