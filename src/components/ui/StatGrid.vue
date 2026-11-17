@@ -26,8 +26,9 @@ const isWide = (it: StatItem) => !!it.wide || String(it.value).length + (it.note
 
 <style scoped>
 .stat-grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 0 24px; }
-.kv { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) fit-content(50%); gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px dotted var(--border); }
+.kv { display: grid; grid-template-columns: 6.5em fit-content(55%) minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px dotted var(--border); }
 .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+.v:last-child { grid-column: 2 / -1; }
 .note { font-size: var(--fs-sm); color: var(--muted); text-align: right; }
 .kv.wide .v { grid-column: 2 / -1; }
 .kv.wide .note { grid-column: 2 / -1; text-align: left; }
