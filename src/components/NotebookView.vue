@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import ContentTagChips from './ContentTagChips.vue'
 import { deadlineText, hoursLeft, storyDeadline } from '@/engine/deadlines'
 import { computed, reactive, ref, watch } from 'vue'
@@ -58,7 +59,7 @@ const search = reactive({ quests: '', stories: '', intel: '' })
 /** 搜尋字有沒有出現在這些文字裡（沒輸入時都算） */
 function matches(query: string, ...texts: (string | undefined)[]): boolean {
   const q = query.trim().toLowerCase()
-  return !q || texts.some((t) => t?.toLowerCase().includes(q))
+  return !q || texts.some((t) => textHas(t?.toLowerCase(), q))
 }
 
 // ---- 一般委託 ----

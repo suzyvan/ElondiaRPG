@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { closure, contentKeys, splitKey, entryOf, usersOf, type RefGraph, type RefKey } from '@/engine/contentRefs'
 import { defaultChoice, type ImportChoice, type ImportRow } from '@/engine/contentImport'
@@ -71,7 +72,7 @@ const groups = computed(() => {
     const [section] = splitKey(key)
     const row = rowOf.value.get(key)
     if (onlyConflicts.value && row?.status !== 'conflict') continue
-    if (q && !label(key).includes(q) && !key.includes(q)) continue
+    if (q && !textHas(label(key), q) && !key.includes(q)) continue
     let g = out.find((x) => x.section === section)
     if (!g) out.push((g = { section, name: MOD_SECTION_NAMES[section as keyof typeof MOD_SECTION_NAMES], keys: [] }))
     g.keys.push(key)

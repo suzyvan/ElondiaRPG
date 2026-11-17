@@ -26,3 +26,23 @@ export function canonicalName(name: string, candidates: Iterable<string>): strin
   const key = toSimplifiedText(plain)
   return list.find((c) => toSimplifiedText(itemLabel(c)) === key) ?? name
 }
+
+// ---- 搜尋框：繁簡不分（介面用簡體時，畫面上的名字是簡體，資料是繁體）----
+const simpCache = new Map<string, string>()
+function simpKey(t: string): string {
+  if (t.length > 200) return toSimplifiedText(t)
+  let v = simpCache.get(t)
+  if (v === undefined) {
+    v = toSimplifiedText(t)
+    if (simpCache.size > 20000) simpCache.clear()
+    simpCache.set(t, v)
+  }
+  return v
+}
+
+/** 搜尋：hay 裡有沒有 q（寫法一樣，或換成簡體之後一樣：輸入簡體也找得到繁體的資料） */
+export function textHas(hay: string | null | undefined, q: string): boolean {
+  if (!q) return true
+  if (!hay) return false
+  return hay.includes(q) || simpKey(hay).includes(simpKey(q))
+}

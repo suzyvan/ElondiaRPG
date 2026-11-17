@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, ref, watch } from 'vue'
 import { factionBoard, type FactionEntry } from '@/engine/factionBoard'
 import { securityRules } from '@/engine/security'
@@ -36,7 +37,7 @@ const met = computed(() => all.value.filter((f) => f.met))
 const unmet = computed(() => all.value.filter((f) => !f.met))
 const matches = (f: FactionEntry) => {
   const q = query.value.trim()
-  return !q || f.name.includes(q) || f.towns.some((t) => t.name.includes(q))
+  return !q || textHas(f.name, q) || f.towns.some((t) => textHas(t.name, q))
 }
 const shown = computed(() => met.value.filter(matches))
 const shownUnmet = computed(() => (view.value === 'all' ? unmet.value.filter(matches) : []))

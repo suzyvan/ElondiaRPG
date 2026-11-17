@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, reactive, ref } from 'vue'
 import { itemRules, type ItemCategory } from '@/engine/data'
 import { canEquip, canUse, classWeaponBlockFor, isIntelItem } from '@/engine/inventory'
 import { formatMoney } from '@/engine/money'
 import { itemValue } from '@/engine/trade'
 import { useGame } from '@/stores/game'
-import { CATEGORY_ORDER, categoryName, categoryOf, itemEffect, itemEffectParts, itemRarity, itemText } from './itemInfo'
+import { CATEGORY_ORDER, GEAR_KINDS, categoryName, categoryOf, gearKindOf, isSpecialGear, itemEffect, itemEffectParts, itemRarity, itemText, type GearKind } from './itemInfo'
 import EffectLine from './EffectLine.vue'
 import { materialGroup, materialGroupName, materialGroupOrder, materialRecipesFull, materialTier } from '@/engine/materialInfo'
 import ItemIcon from './ItemIcon.vue'
@@ -19,24 +20,48 @@ const inCombat = computed(() => !!s.value.combat)
 
 /** 圖紙（R21）：底材 id，全隊共用、不會用掉 */
 const blueprints = computed(() => (s.value.blueprints ?? []).map(blueprintName).sort((a, b) => a.localeCompare(b, 'zh-Hant')))
-const filter = ref<ItemCategory | 'all'>('all')
+// 「特殊」：不能賣的裝備（獨特、有屬性、被詛咒的），不和一般裝備混在一起
+type Tab = ItemCategory | 'special'
+const filter = ref<Tab | 'all'>('all')
+const TAB_ORDER: Tab[] = CATEGORY_ORDER.flatMap((c) => (c === 'equipment' ? ['equipment', 'special'] as Tab[] : [c]))
+const tabName = (t: Tab) => (t === 'special' ? '特殊' : itemRules.categories[t])
+const tabIcon = (t: Tab): ItemCategory => (t === 'special' ? 'equipment' : t)
+const tabOf = (name: string): Tab | undefined => (isSpecialGear(s.value, name) ? 'special' : categoryOf(s.value, name))
+// 裝備與特殊的小分類（武器・盾、防具、飾品……）
+const gearKind = ref<GearKind | ''>('')
 const items = computed(() => s.value.inventory.filter((i) => i.qty > 0))
 const counts = computed(() => {
-  const out: Partial<Record<ItemCategory, number>> = {}
+  const out: Partial<Record<Tab, number>> = {}
   for (const i of items.value) {
-    const c = categoryOf(s.value, i.name)
+    const c = tabOf(i.name)
     if (c) out[c] = (out[c] ?? 0) + 1
   }
   return out
 })
+const gearTab = computed(() => filter.value === 'equipment' || filter.value === 'special')
+const kindCounts = computed(() => {
+  const out: Partial<Record<GearKind, number>> = {}
+  if (!gearTab.value) return out
+  for (const i of items.value) {
+    if (tabOf(i.name) !== filter.value) continue
+    const k = gearKindOf(s.value, i.name)
+    if (k) out[k] = (out[k] ?? 0) + 1
+  }
+  return out
+})
+function pickTab(t: Tab | 'all') {
+  filter.value = t
+  gearKind.value = ''
+}
 // 搜尋與排序
 const query = ref('')
 const sort = ref<'category' | 'name' | 'value' | 'qty'>('category')
 const value = (name: string) => itemValue(s.value, name)
 const shown = computed(() => {
   const q = query.value.trim()
-  const list = items.value.filter((i) => (filter.value === 'all' || categoryOf(s.value, i.name) === filter.value)
-    && (!q || i.name.includes(q) || itemEffect(s.value, i.name).includes(q)))
+  const list = items.value.filter((i) => (filter.value === 'all' || tabOf(i.name) === filter.value)
+    && (!gearTab.value || !gearKind.value || gearKindOf(s.value, i.name) === gearKind.value)
+    && (!q || textHas(i.name, q) || textHas(itemEffect(s.value, i.name), q)))
   if (sort.value === 'name') return [...list].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
   if (sort.value === 'value') return [...list].sort((a, b) => (value(b.name) ?? 0) - (value(a.name) ?? 0))
   if (sort.value === 'qty') return [...list].sort((a, b) => b.qty - a.qty)
@@ -53,13 +78,13 @@ function materialSections(list: typeof items.value, nameOf: (g: ReturnType<typeo
 // 「全部」依類別分段，每段可以收合；材料的小段預設收合（搜尋時全部展開）
 const sections = computed(() => {
   if (filter.value === 'material') return materialSections(shown.value, materialGroupName)
-  if (filter.value !== 'all') return [{ id: filter.value, icon: filter.value as ItemCategory | 'other', name: '', items: shown.value }]
-  const out = CATEGORY_ORDER.flatMap((c) => {
-    const list = shown.value.filter((i) => categoryOf(s.value, i.name) === c)
+  if (filter.value !== 'all') return [{ id: filter.value, icon: tabIcon(filter.value) as ItemCategory | 'other', name: '', items: shown.value }]
+  const out = TAB_ORDER.flatMap((c) => {
+    const list = shown.value.filter((i) => tabOf(i.name) === c)
     if (c === 'material') return materialSections(list, (g) => `${itemRules.categories.material}・${materialGroupName(g)}`)
-    return [{ id: c as string, icon: c as ItemCategory | 'other', name: itemRules.categories[c], items: list }]
+    return [{ id: c as string, icon: tabIcon(c) as ItemCategory | 'other', name: c === 'special' ? '特殊（不能賣的裝備）' : tabName(c), items: list }]
   })
-  out.push({ id: 'other', icon: 'other', name: '其他', items: shown.value.filter((i) => !categoryOf(s.value, i.name)) })
+  out.push({ id: 'other', icon: 'other', name: '其他', items: shown.value.filter((i) => !tabOf(i.name)) })
   return out.filter((x) => x.items.length)
 })
 const folded = reactive(new Set<string>())
@@ -82,11 +107,22 @@ const target = reactive<Record<string, string>>({})
       <span class="small muted">共 {{ items.length }} 種物品・全隊共用</span>
     </div>
     <nav class="row tabs">
-      <button class="small" :class="{ active: filter === 'all' }" @click="filter = 'all'">全部 {{ items.length }}</button>
-      <template v-for="c in CATEGORY_ORDER" :key="c">
-        <button v-if="counts[c]" class="small" :class="{ active: filter === c }" @click="filter = c">
-          <ItemIcon :category="c" :size="14" /> {{ itemRules.categories[c] }} {{ counts[c] }}
+      <button class="small" :class="{ active: filter === 'all' }" @click="pickTab('all')">全部 {{ items.length }}</button>
+      <template v-for="c in TAB_ORDER" :key="c">
+        <button
+          v-if="counts[c]" class="small" :class="{ active: filter === c }"
+          :title="c === 'special' ? '不能賣給商店的裝備：獨特效果、帶屬性或被詛咒的（任務、寶箱、事件給的）' : undefined"
+          @click="pickTab(c)"
+        >
+          <ItemIcon :category="tabIcon(c)" :size="14" /> {{ tabName(c) }} {{ counts[c] }}
         </button>
+      </template>
+    </nav>
+    <!-- 裝備、特殊的小分類 -->
+    <nav v-if="gearTab && Object.keys(kindCounts).length > 1" class="row tabs kinds" aria-label="裝備的小分類">
+      <button class="small ghost" :class="{ active: !gearKind }" @click="gearKind = ''">全部</button>
+      <template v-for="k in GEAR_KINDS" :key="k.id">
+        <button v-if="kindCounts[k.id]" class="small ghost" :class="{ active: gearKind === k.id }" @click="gearKind = k.id">{{ k.name }} {{ kindCounts[k.id] }}</button>
       </template>
     </nav>
     <div class="row tools">
@@ -151,6 +187,8 @@ const target = reactive<Record<string, string>>({})
 .head { justify-content: space-between; }
 .tabs { gap: 4px; }
 .tabs button.active { border-color: var(--accent); color: var(--accent); }
+.tabs.kinds { margin-top: -2px; flex-wrap: wrap; }
+.tabs.kinds button { padding: 1px 8px; }
 .tools { flex-wrap: nowrap; }
 .grow { flex: 1; min-width: 0; }
 .qty { font-weight: 600; color: var(--accent-2); text-align: right; white-space: nowrap; }

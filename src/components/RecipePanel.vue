@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { attrName, craftRules, itemDef, type CraftId } from '@/engine/data'
 import { CRAFT_IDS, crafters, skillOf, toolTierFor, toolTierName, toolWhere } from '@/engine/crafting'
@@ -72,7 +73,7 @@ function pickCraft(c: CraftId) {
 const query = ref('')
 const rows = computed(() => {
   const q = query.value.trim()
-  return (q ? all.value.filter((r) => r.name.includes(q) || catName(r.cat).includes(q)) : inCraft.value.filter((r) => !cat.value || r.cat === cat.value))
+  return (q ? all.value.filter((r) => textHas(r.name, q) || textHas(catName(r.cat), q)) : inCraft.value.filter((r) => !cat.value || r.cat === cat.value))
     .filter((r) => !onlyReady.value || !r.plan.blocked)
     .sort((a, b) => a.recipe.level - b.recipe.level || CRAFT_IDS.indexOf(a.recipe.craft) - CRAFT_IDS.indexOf(b.recipe.craft) || a.name.localeCompare(b.name))
 })

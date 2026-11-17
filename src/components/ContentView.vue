@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, onBeforeUnmount, ref, watch, type Ref } from 'vue'
 import WorldBar from './WorldBar.vue'
 import { abilities, lewdRules, className, classes, npcClassWeight, geography, companionRules, contractDef, describeCondition, describeStatus, enemies, genderName, raceName, tagDef, itemDef, itemRules, landmarks, landmarkTypes, locationById, MASTER_EVENT_POOLS, type MasterEventPool, npcs as namedNpcs, npcTags, NPC_TAG_GROUPS, type NpcKind, regionById, perkDef, perkRules, shopRules, slaveryRules, specialMaps, statuses, stories, storyCounters, type ShopType } from '@/engine/data'
@@ -614,7 +615,7 @@ const rows = computed<Row[]>(() => {
       .map(([id, x]) => ({ key: id, name: x.name, note: `${KINDS[x.kind]}・${x.tier} 級`, status: st(!!m.materials[id], !builtinMaterial(id)) }))
   }
   return list
-    .filter((r) => !q || r.name.includes(q) || r.key.includes(q))
+    .filter((r) => !q || textHas(r.name, q) || r.key.includes(q))
     .filter((r) => filter.value === 'all' || r.status === filter.value)
 })
 

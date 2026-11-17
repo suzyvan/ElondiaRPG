@@ -10,7 +10,7 @@ import { bondPersonalityRule, bondPromptLine } from './bondStyle'
 import { newsOf, newsText } from './npcLife'
 import { affinityStage } from './character'
 import { genderName, locationById, npcs, progression, type NpcDef } from './data'
-import { appearanceOf, npcIdentity } from './npcs'
+import { appearanceOf, npcIdentity, npcRecord, registerNpc } from './npcs'
 import type { GameState, GameTime, Report } from './types'
 
 export interface Relationship {
@@ -111,7 +111,7 @@ export function setAffinity(state: GameState, id: string, value: number) {
   if (member) member.affinity = v
 }
 
-export type RelationshipPatch = Partial<Pick<Relationship, 'appearance' | 'toPlayer' | 'toOthers' | 'aliases'>>
+export type RelationshipPatch = Partial<Pick<Relationship, 'appearance' | 'toPlayer' | 'toOthers' | 'aliases' | 'personality'>>
 
 /** 玩家可以編輯的文字欄位（親密度由遊戲規則決定，不開放直接修改）。 */
 export function editRelationship(state: GameState, id: string, patch: RelationshipPatch) {
@@ -120,6 +120,22 @@ export function editRelationship(state: GameState, id: string, patch: Relationsh
   if (patch.appearance !== undefined) rel.appearance = patch.appearance
   if (patch.toPlayer !== undefined) rel.toPlayer = patch.toPlayer
   if (patch.aliases !== undefined) rel.aliases = patch.aliases.filter(Boolean)
+  // 性格：空白時不改（AI 一定要有東西演）。判定、經過、形象圖讀的是 NPC 自己的資料與隊伍裡的角色，一起改；
+  // 固定 NPC 還沒存進存檔的，複製一份進去再改（之後劇情的階段寫了新的性格時，照階段的）
+  const personality = patch.personality?.trim()
+  if (personality) {
+    rel.personality = personality
+    const member = state.party.find((m) => m.id === id)
+    if (member) member.personality = personality
+    const stored = state.npcs?.[id]
+    if (stored) {
+      stored.personality = personality
+      if (stored.character) stored.character.personality = personality
+    } else {
+      const def = npcRecord(state, id)
+      if (def) registerNpc(state, { ...(JSON.parse(JSON.stringify(def)) as typeof def), personality })
+    }
+  }
   if (patch.toOthers !== undefined) {
     rel.toOthers = Object.fromEntries(Object.entries(patch.toOthers).filter(([k, v]) => k && v.trim()))
   }
