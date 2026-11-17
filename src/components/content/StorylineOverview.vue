@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { stories, storyCounters } from '@/engine/data'
 import { START_KINDS } from '@/engine/storyMods'
@@ -26,7 +27,7 @@ const search = ref('')
 const shown = computed(() => {
   const q = search.value.trim()
   if (!q) return lines.value
-  return lines.value.filter((l) => l.name.includes(q) || l.ids.some((id) => byId.value.get(id)?.title.includes(q) || l.edges.some((e) => e.flags.some((f) => f.includes(q)))))
+  return lines.value.filter((l) => textHas(l.name, q) || l.ids.some((id) => textHas(byId.value.get(id)?.title, q) || l.edges.some((e) => e.flags.some((f) => f.includes(q)))))
 })
 const pick = ref(0)
 const line = computed(() => shown.value[Math.min(pick.value, shown.value.length - 1)])

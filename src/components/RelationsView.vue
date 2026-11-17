@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, reactive, ref } from 'vue'
 import { affinityStage } from '@/engine/character'
 import { locationById, locationName } from '@/engine/data'
@@ -70,7 +71,7 @@ const moodOf = (v: number) => (v >= 20 ? 'friendly' : v <= -21 ? 'hostile' : 'ne
 const seenAt = (r: Relationship) => { const t = r.lastSeen?.time ?? r.firstMet?.time; return t ? t.day * 1440 + (t.hour ?? 0) * 60 + (t.minute ?? 0) : 0 }
 const shownRels = computed(() => {
   const q = relQuery.value.trim()
-  const list = rels.value.filter((r) => (!q || r.name.includes(q) || (r.aliases ?? []).some((a) => a.includes(q)))
+  const list = rels.value.filter((r) => (!q || textHas(r.name, q) || (r.aliases ?? []).some((a) => textHas(a, q)))
     && (relRole.value === 'all' || roleOf(r) === relRole.value)
     && (relMood.value === 'all' || moodOf(r.affinity) === relMood.value))
   const by = relSort.value === 'affinity' ? (a: Relationship, b: Relationship) => b.affinity - a.affinity
@@ -105,7 +106,7 @@ const memories = computed(() => {
     .filter((m) => !filterPerson.value || m.participants.includes(filterPerson.value))
     .filter((m) => !filterLocation.value || m.location === filterLocation.value)
     .filter((m) => filterLevel.value === 'all' || (filterLevel.value === 'important' ? m.importance >= 2 : filterLevel.value === 'unforgettable' ? m.importance === 3 : !!m.pinned))
-    .filter((m) => !q || m.summary.includes(q) || (m.scene ?? '').includes(q) || m.participants.some((id) => nameOf(id).includes(q)))
+    .filter((m) => !q || textHas(m.summary, q) || textHas(m.scene, q) || m.participants.some((id) => textHas(nameOf(id), q)))
     .reverse()
 })
 const memoryLocations = computed(() => [...new Set(allMemories.value.map((m) => m.location))])
@@ -136,7 +137,7 @@ const suggestions = computed(() => s.value.suggestions ?? [])
   </nav>
   <div class="layout" :class="{ split: !isMobile }">
     <section v-show="!isMobile || side === 'people'" class="panel">
-      <h2 class="head"><GameIcon name="heart" :size="20" />人際關係 <Hint text="主角認識的角色。親密度由遊戲中的互動決定；外貌與關係描述可以自行編輯，會在相關事件中提供給 AI 參考。" /></h2>
+      <h2 class="head"><GameIcon name="heart" :size="20" />人際關係 <Hint text="主角認識的角色。親密度由遊戲中的互動決定；外貌、性格與關係描述可以自行編輯，會在相關事件中提供給 AI 參考。" /></h2>
       <p v-if="rels.length === 0" class="muted small">還沒有認識任何人。到酒館招募夥伴吧。</p>
       <div v-else class="row rel-filter">
         <input v-model="relQuery" class="small q" type="search" placeholder="搜尋名字" />

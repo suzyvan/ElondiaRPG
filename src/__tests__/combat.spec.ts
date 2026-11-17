@@ -117,6 +117,27 @@ describe('resources', () => {
 })
 
 describe('combat rules', () => {
+  it('applies a whole-party buff once per cast, not once per ally (war song)', () => {
+    const state = stateWith('bard', 8, 2)
+    for (const n of ['乙', '丙', '丁']) {
+      const c = createPlayer(n, 'human', 'fighter')
+      c.id = `ally_${n}`
+      c.isPlayer = false
+      state.party.push(c)
+    }
+    startCombat(state, [['goblin', 1]])
+    const combat = state.combat!
+    const pc = makeCurrent(state, 'pc')
+    if (!pc.abilities.includes('war_song')) pc.abilities.push('war_song')
+    pc.ap = 30
+    const before = combat.timeline.length
+    act(state, { type: 'ability', ability: 'war_song' })
+    const adds = combat.timeline.slice(before).flatMap((t) => t.effects ?? []).filter((e) => e.type === 'status_add' && e.status === '戰歌')
+    const allies = combat.combatants.filter((c) => c.side === 'party')
+    expect(allies).toHaveLength(4)
+    expect(adds.map((e) => e.target).sort()).toEqual(allies.map((c) => c.id).sort())
+  })
+
   it('lets a layer boss be controlled for one turn at most, then shrugs off control until it has acted', () => {
     const state = stateWith('fighter', 20, 5)
     startCombat(state, [['crypt_general', 1], ['goblin', 1]])

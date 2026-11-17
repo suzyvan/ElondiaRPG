@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { blueprintName, blueprintRules, hasBlueprint } from '@/engine/blueprints'
 import { computed, onMounted, ref, watch } from 'vue'
 import { attrName, craftRules, damageTypeName, itemDef } from '@/engine/data'
@@ -94,7 +95,7 @@ function pickSlot(x: string) {
 const query = ref('')
 const hits = computed(() => {
   const q = query.value.trim()
-  return q ? bases.value.filter((b) => b.name.includes(q)).slice(0, 12) : []
+  return q ? bases.value.filter((b) => textHas(b.name, q)).slice(0, 12) : []
 })
 function jump(id: string) {
   const b = bases.value.find((x) => x.id === id)

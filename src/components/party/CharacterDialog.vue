@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { grantedAbilities } from '@/engine/grantedAbilities'
 import { computed, reactive, ref, watch } from 'vue'
 import {
   abilityQuality, apMaxFor, attrsOf, carriedAbilities, castingAttr, countsForLoadout, evadeFloor, gearAffinities, hasRerollPool, luckyThreshold, mod, proficiency, rerollsLeft, weaponFor, xpToNext,
@@ -207,6 +208,8 @@ const onlyCarried = ref(false)
 // 戰鬥選單隱藏的能力（Character.hiddenAbilities）
 const hidden = computed(() => new Set(m.value.hiddenAbilities ?? []))
 const abilityDefs = computed(() => m.value.abilities.map(abilityDef))
+// 寄生物、流派、泌乳給的能力（engine/grantedAbilities.ts）
+const granted = computed(() => grantedAbilities(m.value))
 const shownGroups = computed(() => groupedAbilities(m.value)
   .map((g) => ({ ...g, items: g.items.filter((a) => (!abCat.value || abilityCategory(a) === abCat.value) && (!onlyCarried.value || carried.value.has(a.id))) }))
   .filter((g) => g.items.length))
@@ -475,7 +478,26 @@ function saveTags() {
               </article>
             </div>
           </div>
-          <p v-if="!m.abilities.length" class="muted small">還沒有能力。</p>
+          <!-- 寄生物（魅魔淫紋……）、流派、泌乳給的能力：不在自己的清單、不佔攜帶，戰鬥選單看得到，也可以隱藏 -->
+          <div v-if="granted.length" class="group">
+            <h4>其他來源的能力 <Hint text="身上的寄生物（例如魅魔淫紋）、流派或泌乳給的能力：不用學、不佔攜帶，戰鬥時自動出現在選單裡；來源沒了就跟著消失。不想在戰鬥選單看到的，按眼睛隱藏。" /></h4>
+            <div class="abilities">
+              <article v-for="g in granted" :key="g.id" class="ability" :class="[`q-${abilityQuality(abilityDef(g.id))}`, { veiled: hidden.has(g.id) }]">
+                <header>
+                  <ContentIcon kind="ability" :def="abilityDef(g.id)" :size="20" /><b>{{ abilityDef(g.id).name }}</b><span class="tag">{{ TYPE_NAME[abilityDef(g.id).type] }}</span><span class="tag from">來自{{ g.from }}</span>
+                  <button
+                    class="ghost small eye" :class="{ off: hidden.has(g.id) }" :aria-pressed="hidden.has(g.id)"
+                    :aria-label="hidden.has(g.id) ? '在戰鬥選單顯示' : '在戰鬥選單隱藏'"
+                    :title="hidden.has(g.id) ? '戰鬥選單隱藏中（照樣能用，戰鬥選單按「顯示隱藏的」才看得到）；按一下恢復顯示' : '在戰鬥選單隱藏這個能力（照樣能用，只是不列出來）'"
+                    @click="game.setAbilityHidden(m.id, g.id, !hidden.has(g.id))"
+                  ><GameIcon :name="hidden.has(g.id) ? 'eyeOff' : 'eye'" :size="14" /></button>
+                </header>
+                <div class="meta small muted">{{ abilityMeta(abilityDef(g.id)) }}</div>
+                <p class="small">{{ abilityDef(g.id).desc }}</p>
+              </article>
+            </div>
+          </div>
+          <p v-if="!m.abilities.length && !granted.length" class="muted small">還沒有能力。</p>
           <p v-else-if="!shownGroups.length" class="muted small">這個分類沒有{{ onlyCarried ? '攜帶中的' : '' }}能力。</p>
         </section>
       </template>
@@ -532,6 +554,7 @@ function saveTags() {
 .ability .carry { margin-left: auto; padding: 1px 8px; }
 .ability .eye { padding: 1px 4px; }
 .ability .eye.off { color: var(--danger); }
+.ability .tag.from { color: var(--accent); }
 .ability.veiled { border-left-style: dashed; }
 .choose { padding: 10px; border: 1px dashed var(--accent); border-radius: 3px; margin-bottom: 8px; background: #fff3cf66; }
 .choose .head { justify-content: space-between; }

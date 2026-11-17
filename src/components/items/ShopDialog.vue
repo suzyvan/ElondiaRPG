@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, reactive, ref } from 'vue'
 import { itemRules, shopDef, type ItemCategory, type ShopType } from '@/engine/data'
 import { formatMoney } from '@/engine/money'
@@ -63,7 +64,7 @@ const sort = ref<'default' | 'cheap' | 'dear' | 'name'>('default')
 const shownDeals = computed(() => {
   const q = query.value.trim()
   const list = deals.value.filter((d) => (filter.value === 'all' || groupOf(d) === filter.value)
-    && (!q || d.title.includes(q) || (isItemDeal(d) && (itemEffect(s.value, itemName(d)) ?? '').includes(q))))
+    && (!q || textHas(d.title, q) || (isItemDeal(d) && textHas(itemEffect(s.value, itemName(d)), q))))
   if (sort.value === 'cheap') return [...list].sort((a, b) => price(a) - price(b))
   if (sort.value === 'dear') return [...list].sort((a, b) => price(b) - price(a))
   if (sort.value === 'name') return [...list].sort((a, b) => a.title.localeCompare(b.title, 'zh-Hant'))
@@ -145,7 +146,7 @@ const bagCats = computed(() => {
 })
 const bag = computed(() => bagAll.value
   .filter((i) => (bagFilter.value === 'all' || bagCat(i.name) === bagFilter.value)
-    && (!bagQuery.value.trim() || i.name.includes(bagQuery.value.trim()) || (itemEffect(s.value, i.name) ?? '').includes(bagQuery.value.trim())))
+    && (!bagQuery.value.trim() || textHas(i.name, bagQuery.value.trim()) || textHas(itemEffect(s.value, i.name), bagQuery.value.trim())))
   .sort((a, b) => Number(b.price !== null) - Number(a.price !== null)))
 // 行囊依類別分段，材料再依小類（和行囊頁一樣，materialInfo.ts）；同一段裡能賣的在前、等級高的在前
 const bagGroups = computed(() => {

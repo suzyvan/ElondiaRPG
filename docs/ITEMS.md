@@ -1906,6 +1906,8 @@
 
 行囊與商店的「你的行囊」都讀 `materialInfo.ts`（類別欄與一行說明在 `components/items/itemInfo.ts`）。
 
+**行囊的「特殊」與裝備小分類**（`itemInfo.ts` 的 `isSpecialGear`、`gearKindOf`）：不能賣給商店的裝備（獨特效果、帶屬性或被詛咒的，`trade.ts` 的 `notForSale`）不和一般裝備混在一起，另成「特殊」分頁與段落；選了「裝備」或「特殊」時多一排小分類：武器・盾、防具、飾品、內衣、拘束具・額外（看底材放的位置，拘束具另成一類）。
+
 - **等級**（`materialTier`，第 1～7 級），依序取第一個有的：
   1. 手動填的 `tier`（`items.json`、世界編輯器物品的「材料等級」）。
   2. 能打造的：打造成的材料（`gear.json` 的 `materials`）的等級。

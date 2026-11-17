@@ -52,6 +52,19 @@ describe('relationships', () => {
     expect(lina.toPlayer).toBe('信任的同伴')
     expect(lina.toOthers).toEqual({ npc_kai: '聽說過' })
   })
+
+  it('edits the personality everywhere the AI reads it; blank keeps the old one', async () => {
+    const { npcRecord } = await import('@/engine/npcs')
+    const state = game()
+    recruit(state, 'npc_lina')
+    editRelationship(state, 'npc_lina', { personality: '  嘴硬心軟，喜歡逞強。 ' })
+    expect(state.relationships!.npc_lina!.personality).toBe('嘴硬心軟，喜歡逞強。')
+    expect(state.party.find((m) => m.id === 'npc_lina')!.personality).toBe('嘴硬心軟，喜歡逞強。')
+    expect(npcRecord(state, 'npc_lina')!.personality).toBe('嘴硬心軟，喜歡逞強。')
+    editRelationship(state, 'npc_lina', { personality: '   ' })
+    expect(state.relationships!.npc_lina!.personality).toBe('嘴硬心軟，喜歡逞強。')
+    expect(formatContext(state, { relationships: [state.relationships!.npc_lina!], memories: [] } as never)).toContain('性格：嘴硬心軟，喜歡逞強。')
+  })
 })
 
 describe('memories', () => {

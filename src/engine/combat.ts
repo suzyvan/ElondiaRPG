@@ -1854,7 +1854,7 @@ function applyValue(rng: Rng, actor: Combatant, a: AbilityDef, v?: ApplyDef['val
 
 function applyStatuses(
   combat: CombatState, rng: Rng, actor: Combatant, a: AbilityDef, target: Combatant | null,
-  when: 'hit' | 'fail' | 'always', effects: Effect[], dice?: string,
+  when: 'hit' | 'fail' | 'always', effects: Effect[], dice?: string, once?: Set<string>,
 ) {
   const defaultOn = a.resolve === 'attack' ? 'hit' : a.resolve === 'save' ? 'fail' : 'always'
   for (const ap of a.apply ?? []) {
@@ -1867,7 +1867,12 @@ function applyStatuses(
       : to === 'enemies' ? foesOf(combat, actor)
       : target && isActive(target) ? [target] : []
     // 對全隊或全體敵人的狀態，在多目標能力中只套用一次
-    if ((to === 'allies' || to === 'enemies' || to === 'self') && effects.some((e) => e.status === statusDef(ap.status).name && e.type === 'status_add')) continue
+    // （once：這次施放已經套用過的，多目標能力每個目標的紀錄是分開的，只看 effects 會每個目標都再套一次全隊）
+    if (to === 'allies' || to === 'enemies' || to === 'self') {
+      const key = `${to}:${ap.status}`
+      if (once?.has(key) || effects.some((e) => e.status === statusDef(ap.status).name && e.type === 'status_add')) continue
+      once?.add(key)
+    }
     for (const r of recipients) {
       if (a.hp_limit !== undefined && r.hp > a.hp_limit) {
         effects.push({ type: 'note', target: r.id, text: '生命值過高，無效' })
@@ -1967,6 +1972,8 @@ function useAbility(combat: CombatState, rng: Rng, actor: Combatant, base: Abili
   if (a.concentration) actor.concentration = a.id
   let anyHit = false
   let dealt = 0
+  // 給全隊、全體敵人、自己的狀態：整次施放只套一次（不是每個目標各套一次）
+  const appliedOnce = new Set<string>()
 
   for (const target of targets) {
     for (let h = 0; h < (a.hits ?? 1); h++) {
@@ -1986,7 +1993,7 @@ function useAbility(combat: CombatState, rng: Rng, actor: Combatant, base: Abili
             if (a.damage.some((p) => p.weapon)) rolls.push(...onHitExtras(actor, target, rng, effects))
             dealt += dealDamage(combat, rng, actor, target, rolls, effects, { mult: (a.mult ?? 1) * slaveMult(a, target) * pot, crit: r.lucky, aoe: isAoe(a) })
           }
-          applyStatuses(combat, rng, actor, a, target, 'hit', effects, statusDice)
+          applyStatuses(combat, rng, actor, a, target, 'hit', effects, statusDice, appliedOnce)
           implantBrood(actor, a, target, effects)
         }
       } else if (a.resolve === 'save') {
@@ -1997,11 +2004,11 @@ function useAbility(combat: CombatState, rng: Rng, actor: Combatant, base: Abili
           const rolls = rollParts(rng, actor, a, a.damage, false)
           dealt += dealDamage(combat, rng, actor, target, rolls, effects, { mult: (a.mult ?? 1) * slaveMult(a, target) * pot, half: s.success, aoe: isAoe(a) })
         }
-        if (!s.success) applyStatuses(combat, rng, actor, a, target, 'fail', effects, statusDice)
+        if (!s.success) applyStatuses(combat, rng, actor, a, target, 'fail', effects, statusDice, appliedOnce)
       } else {
         resolveAuto(combat, rng, actor, a, target, effects, spent)
         dealt += effects.filter((e) => e.type === 'damage').reduce((sum, e) => sum + (e.amount ?? 0), 0)
-        applyStatuses(combat, rng, actor, a, target, 'always', effects, statusDice)
+        applyStatuses(combat, rng, actor, a, target, 'always', effects, statusDice, appliedOnce)
       }
       // 不論命中與否都套用的狀態（on: always）：給自己、全隊、全體敵人的（例如魯莽猛擊的破綻）在第一個目標結算時套用一次；
       // 給目標的每個目標各套用一次
@@ -2009,8 +2016,8 @@ function useAbility(combat: CombatState, rng: Rng, actor: Combatant, base: Abili
         const always = (a.apply ?? []).filter((x) => x.on === 'always')
         const once = always.filter((x) => (x.to ?? 'target') !== 'target')
         const each = always.filter((x) => (x.to ?? 'target') === 'target')
-        if (once.length && target === targets[0]) applyStatuses(combat, rng, actor, { ...a, apply: once }, null, 'always', effects, statusDice)
-        if (each.length) applyStatuses(combat, rng, actor, { ...a, apply: each }, target, 'always', effects, statusDice)
+        if (once.length && target === targets[0]) applyStatuses(combat, rng, actor, { ...a, apply: once }, null, 'always', effects, statusDice, appliedOnce)
+        if (each.length) applyStatuses(combat, rng, actor, { ...a, apply: each }, target, 'always', effects, statusDice, appliedOnce)
       }
       push(combat, {
         actor: actor.id, action: label, target: target.id,

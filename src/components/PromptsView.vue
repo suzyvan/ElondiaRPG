@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { stripItemKeys } from '@/engine/itemKey'
 import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 import PromptSetBar from './PromptSetBar.vue'
@@ -133,7 +134,7 @@ const loreRows = computed(() => {
   const rows = prompts.items
     .map((it) => ({ it, st: states[it.uid] }))
     .filter(({ it, st }) => {
-      if (q && !it.comment.includes(q) && !it.keys.some((k) => k.includes(q)) && !it.content.includes(q)) return false
+      if (q && !textHas(it.comment, q) && !it.keys.some((k) => textHas(k, q)) && !textHas(it.content, q)) return false
       if (loreFilter.value === 'injected') return !!st?.position
       if (loreFilter.value === 'off') return it.mode === 'off'
       return true

@@ -44,6 +44,26 @@ describe('hiding abilities from the combat menu', () => {
   })
 })
 
+describe('abilities granted by parasites, schools and lactation', () => {
+  it('lists them with their source and lets them be hidden from the combat menu', async () => {
+    const { newGame } = await import('@/engine/state')
+    const { setAbilityHidden } = await import('@/engine/town')
+    const { grantedAbilities } = await import('@/engine/grantedAbilities')
+    const state = newGame({ name: '艾倫', race: 'human', classId: 'fighter', seed: 3 })
+    const pc = state.party[0]!
+    // 魅魔的契紋到了共生（第三階段以上）給魅惑之吻、傾國一笑
+    pc.parasites = [{ id: 'succubus_mark', corruption: 100 } as never]
+    const g = grantedAbilities(pc)
+    expect(g.map((x) => x.id)).toEqual(expect.arrayContaining(['lust_kiss', 'lust_smile']))
+    expect(g.find((x) => x.id === 'lust_kiss')!.from).toBe('魅魔的契紋')
+    expect(pc.abilities).not.toContain('lust_kiss')
+    setAbilityHidden(state, pc.id, 'lust_kiss', true)
+    expect(pc.hiddenAbilities).toEqual(['lust_kiss'])
+    setAbilityHidden(state, pc.id, 'lust_kiss', false)
+    expect(pc.hiddenAbilities).toBeUndefined()
+  })
+})
+
 describe('combat item kinds', () => {
   it('sorts items by what they do', async () => {
     const { combatItemKind } = await import('@/engine/combat')

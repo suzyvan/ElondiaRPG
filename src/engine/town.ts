@@ -1,5 +1,6 @@
 // 城鎮行動：旅店休息、酒館招募、公會委託、補給、升級選技能。
 
+import { hideableAbilities } from './grantedAbilities'
 import { tagsAllowed } from './content'
 import { condMet, openFor } from './storyFlags'
 import { checkModifiers } from './perks'
@@ -441,8 +442,10 @@ export function setAbilityCarried(state: GameState, memberId: string, abilityId:
 export function setAbilityHidden(state: GameState, memberId: string, abilityId: string, hidden: boolean) {
   const member = state.party.find((m) => m.id === memberId)
   if (!member) throw new Error('隊伍中沒有這位角色')
-  const rest = (member.hiddenAbilities ?? []).filter((id) => id !== abilityId && member.abilities.includes(id))
-  if (hidden && member.abilities.includes(abilityId)) rest.push(abilityId)
+  // 自己的能力，加上寄生物、流派、泌乳給的（不在自己的清單裡，但戰鬥選單看得到）
+  const ok = hideableAbilities(member)
+  const rest = (member.hiddenAbilities ?? []).filter((id) => id !== abilityId && ok.has(id))
+  if (hidden && ok.has(abilityId)) rest.push(abilityId)
   if (rest.length) member.hiddenAbilities = rest
   else delete member.hiddenAbilities
 }

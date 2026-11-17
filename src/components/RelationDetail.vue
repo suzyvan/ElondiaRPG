@@ -53,6 +53,8 @@ const identity = computed(() => {
 })
 const gender = computed(() => rec.value?.gender ?? '')
 const swapped = computed(() => !!(props.id && s.value.npcs?.[props.id]?.genderSwap))
+/** 性格：人際關係記的，沒有時看隊伍裡的角色或 NPC 自己的資料 */
+const personality = computed(() => r.value?.personality || member.value?.personality || rec.value?.personality || '')
 
 type Tab = 'info' | 'memories' | 'life'
 const tab = ref<Tab>('info')
@@ -134,13 +136,14 @@ function doSwap() {
 
 // ---- 編輯關係 ----
 const editing = ref(false)
-const draft = reactive({ appearance: '', toPlayer: '', aliases: '', others: [] as { id: string; text: string }[] })
+const draft = reactive({ appearance: '', personality: '', toPlayer: '', aliases: '', others: [] as { id: string; text: string }[] })
 const others = computed(() => Object.values(s.value.relationships ?? {}).filter((x) => x.id !== props.id))
 function startEdit() {
   if (!r.value) return
   tab.value = 'info'
   editing.value = true
   draft.appearance = r.value.appearance
+  draft.personality = personality.value
   draft.toPlayer = r.value.toPlayer
   draft.aliases = (r.value.aliases ?? []).join('、')
   draft.others = Object.entries(r.value.toOthers).map(([id, text]) => ({ id, text }))
@@ -149,6 +152,7 @@ function saveEdit() {
   if (!props.id) return
   game.editRelationship(props.id, {
     appearance: draft.appearance.trim(),
+    ...(draft.personality.trim() && draft.personality.trim() !== personality.value ? { personality: draft.personality.trim() } : {}),
     toPlayer: draft.toPlayer.trim(),
     aliases: draft.aliases.split(/[、,，]/).map((x) => x.trim()),
     toOthers: Object.fromEntries(draft.others.map((o) => [o.id, o.text.trim()])),
@@ -275,6 +279,7 @@ const showLife = computed(() => settings.sexRecords || news.value.length > 0)
             </div>
             <dl v-if="!editing" class="small">
               <dt>外貌</dt><dd>{{ r.appearance || '—' }}</dd>
+              <dt>性格</dt><dd>{{ personality || '—' }}</dd>
               <dt>與{{ pcName }}</dt><dd>{{ r.toPlayer || '—' }}</dd>
               <template v-if="Object.keys(r.toOthers).length">
                 <dt>與他人</dt>
@@ -284,6 +289,7 @@ const showLife = computed(() => settings.sexRecords || news.value.length > 0)
             </dl>
             <form v-else class="edit small" @submit.prevent="saveEdit">
               <label>外貌<textarea v-model="draft.appearance" rows="3" /></label>
+              <label>性格 <span class="muted">（AI 照這個演；空白時不改）</span><textarea v-model="draft.personality" rows="2" maxlength="200" /></label>
               <label>與{{ pcName }}的關係<textarea v-model="draft.toPlayer" rows="2" /></label>
               <label>別名（以頓號分隔）<input v-model="draft.aliases" /></label>
               <div>與他人的關係</div>

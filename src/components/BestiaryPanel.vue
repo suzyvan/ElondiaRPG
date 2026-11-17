@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { textHas } from '@/engine/script'
 import { computed, nextTick, ref, watch } from 'vue'
 import { BESTIARY_LEVEL_NAME, bestiaryCount, bestiaryLevel, habitats, weaknesses, type BestiaryLevel } from '@/engine/bestiary'
 import { abilityDef, enemies, isLayerBoss, monsterTraits, type EnemyDef } from '@/engine/data'
@@ -48,7 +49,7 @@ const rows = computed<Row[]>(() => {
     if (!level) continue
     if (only.value && RANK[level] < RANK[only.value]) continue
     if (kind.value && kindOf(def) !== kind.value) continue
-    if (q && !def.name.includes(q)) continue
+    if (q && !textHas(def.name, q)) continue
     out.push({ id: def.id, def, level, kills: book.value[def.id]?.defeated ?? 0 })
   }
   const by: Record<Sort, (a: Row, b: Row) => number> = {
