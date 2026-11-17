@@ -581,7 +581,7 @@ const rows = computed<Row[]>(() => {
       .filter((d) => !tagFilter.value || !!d.tags?.includes(tagFilter.value))
       .filter((d) => bodyMatch(d.start.pc_body))
       .filter((d) => flagMatch(d))
-      .filter((d) => !who || [...npcsIn(d)].some((id) => (namedNpcs.find((n) => n.id === id)?.name ?? id).includes(who)))
+      .filter((d) => !who || [...npcsIn(d)].some((id) => textHas(namedNpcs.find((n) => n.id === id)?.name ?? id, who)))
       .map((d) => ({ key: d.id, name: d.title, note: `${START_KINDS[d.start.kind]}・${d.nodes.length} 個任務點`, status: st(!!m.stories[d.id], !builtinStory(d.id)) }))
       .sort((a, b) => (a.status === 'custom' ? -1 : 0) - (b.status === 'custom' ? -1 : 0))
   } else if (sub.value === 'npcs') {

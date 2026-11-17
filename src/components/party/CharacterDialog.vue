@@ -210,6 +210,9 @@ const hidden = computed(() => new Set(m.value.hiddenAbilities ?? []))
 const abilityDefs = computed(() => m.value.abilities.map(abilityDef))
 // 寄生物、流派、泌乳給的能力（engine/grantedAbilities.ts）
 const granted = computed(() => grantedAbilities(m.value))
+// 分類按鈕也套到其他來源的能力（不佔攜帶，「只看攜帶中」不影響它們）
+const shownGranted = computed(() => granted.value.filter((g) => !abCat.value || abilityCategory(abilityDef(g.id)) === abCat.value))
+const chipDefs = computed(() => [...abilityDefs.value, ...granted.value.map((g) => abilityDef(g.id))])
 const shownGroups = computed(() => groupedAbilities(m.value)
   .map((g) => ({ ...g, items: g.items.filter((a) => (!abCat.value || abilityCategory(a) === abCat.value) && (!onlyCarried.value || carried.value.has(a.id))) }))
   .filter((g) => g.items.length))
@@ -453,7 +456,7 @@ function saveTags() {
             <Hint text="戰鬥中只能用攜帶的技能與法術（戲法不算，一直都帶著）；沒帶的留在技能庫，戰鬥以外隨時可以換。上限在設定的「遊戲規則」調整。" />
             <button class="small only-carried" :class="{ on: onlyCarried }" :aria-pressed="onlyCarried" @click="onlyCarried = !onlyCarried">只看攜帶中</button>
           </p>
-          <AbilityCategoryChips v-if="m.abilities.length" v-model="abCat" :abilities="abilityDefs" />
+          <AbilityCategoryChips v-if="m.abilities.length || granted.length" v-model="abCat" :abilities="chipDefs" />
           <div v-for="g in shownGroups" :key="g.type" class="group">
             <h4>{{ TYPE_NAME[g.type] }}</h4>
             <div class="abilities">
@@ -479,10 +482,10 @@ function saveTags() {
             </div>
           </div>
           <!-- 寄生物（魅魔淫紋……）、流派、泌乳給的能力：不在自己的清單、不佔攜帶，戰鬥選單看得到，也可以隱藏 -->
-          <div v-if="granted.length" class="group">
+          <div v-if="shownGranted.length" class="group">
             <h4>其他來源的能力 <Hint text="身上的寄生物（例如魅魔淫紋）、流派或泌乳給的能力：不用學、不佔攜帶，戰鬥時自動出現在選單裡；來源沒了就跟著消失。不想在戰鬥選單看到的，按眼睛隱藏。" /></h4>
             <div class="abilities">
-              <article v-for="g in granted" :key="g.id" class="ability" :class="[`q-${abilityQuality(abilityDef(g.id))}`, { veiled: hidden.has(g.id) }]">
+              <article v-for="g in shownGranted" :key="g.id" class="ability" :class="[`q-${abilityQuality(abilityDef(g.id))}`, { veiled: hidden.has(g.id) }]">
                 <header>
                   <ContentIcon kind="ability" :def="abilityDef(g.id)" :size="20" /><b>{{ abilityDef(g.id).name }}</b><span class="tag">{{ TYPE_NAME[abilityDef(g.id).type] }}</span><span class="tag from">來自{{ g.from }}</span>
                   <button
@@ -498,7 +501,7 @@ function saveTags() {
             </div>
           </div>
           <p v-if="!m.abilities.length && !granted.length" class="muted small">還沒有能力。</p>
-          <p v-else-if="!shownGroups.length" class="muted small">這個分類沒有{{ onlyCarried ? '攜帶中的' : '' }}能力。</p>
+          <p v-else-if="!shownGroups.length && !shownGranted.length" class="muted small">這個分類沒有{{ onlyCarried ? '攜帶中的' : '' }}能力。</p>
         </section>
       </template>
     </SwipeTabs>
