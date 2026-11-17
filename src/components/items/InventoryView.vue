@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { textHas } from '@/engine/script'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { itemRules, type ItemCategory } from '@/engine/data'
 import { canEquip, canUse, classWeaponBlockFor, isIntelItem } from '@/engine/inventory'
 import { formatMoney } from '@/engine/money'
@@ -20,47 +20,38 @@ const inCombat = computed(() => !!s.value.combat)
 
 /** 圖紙（R21）：底材 id，全隊共用、不會用掉 */
 const blueprints = computed(() => (s.value.blueprints ?? []).map(blueprintName).sort((a, b) => a.localeCompare(b, 'zh-Hant')))
-// 「特殊」：不能賣的裝備（獨特、有屬性、被詛咒的），不和一般裝備混在一起
-type Tab = ItemCategory | 'special'
-const filter = ref<Tab | 'all'>('all')
-const TAB_ORDER: Tab[] = CATEGORY_ORDER.flatMap((c) => (c === 'equipment' ? ['equipment', 'special'] as Tab[] : [c]))
-const tabName = (t: Tab) => (t === 'special' ? '特殊' : itemRules.categories[t])
-const tabIcon = (t: Tab): ItemCategory => (t === 'special' ? 'equipment' : t)
-const tabOf = (name: string): Tab | undefined => (isSpecialGear(s.value, name) ? 'special' : categoryOf(s.value, name))
-// 裝備與特殊的小分類（武器・盾、防具、飾品……）
-const gearKind = ref<GearKind | ''>('')
+const filter = ref<ItemCategory | 'all'>('all')
 const items = computed(() => s.value.inventory.filter((i) => i.qty > 0))
 const counts = computed(() => {
-  const out: Partial<Record<Tab, number>> = {}
+  const out: Partial<Record<ItemCategory, number>> = {}
   for (const i of items.value) {
-    const c = tabOf(i.name)
+    const c = categoryOf(s.value, i.name)
     if (c) out[c] = (out[c] ?? 0) + 1
   }
   return out
 })
-const gearTab = computed(() => filter.value === 'equipment' || filter.value === 'special')
-const kindCounts = computed(() => {
-  const out: Partial<Record<GearKind, number>> = {}
-  if (!gearTab.value) return out
-  for (const i of items.value) {
-    if (tabOf(i.name) !== filter.value) continue
-    const k = gearKindOf(s.value, i.name)
-    if (k) out[k] = (out[k] ?? 0) + 1
-  }
-  return out
-})
-function pickTab(t: Tab | 'all') {
-  filter.value = t
+// 裝備的篩選（下拉選單，可以一起用）：部位（武器・盾、防具、飾品……）與能不能賣（「特殊」：獨特、有屬性、被詛咒的）
+const gearKind = ref<GearKind | ''>('')
+const sellable = ref<'' | 'normal' | 'special'>('')
+const isGear = computed(() => filter.value === 'equipment')
+const kindOk = (name: string, k = gearKind.value) => !k || gearKindOf(s.value, name) === k
+const sellOk = (name: string, v = sellable.value) => !v || (v === 'special') === isSpecialGear(s.value, name)
+const gearItems = computed(() => (isGear.value ? items.value.filter((i) => categoryOf(s.value, i.name) === 'equipment') : []))
+// 每個選項旁的件數：照另一個下拉選單目前的選擇算
+const kindCount = (k: GearKind | '') => gearItems.value.filter((i) => kindOk(i.name, k) && sellOk(i.name)).length
+const sellCount = (v: '' | 'normal' | 'special') => gearItems.value.filter((i) => sellOk(i.name, v) && kindOk(i.name)).length
+watch(filter, () => {
   gearKind.value = ''
-}
+  sellable.value = ''
+})
 // 搜尋與排序
 const query = ref('')
 const sort = ref<'category' | 'name' | 'value' | 'qty'>('category')
 const value = (name: string) => itemValue(s.value, name)
 const shown = computed(() => {
   const q = query.value.trim()
-  const list = items.value.filter((i) => (filter.value === 'all' || tabOf(i.name) === filter.value)
-    && (!gearTab.value || !gearKind.value || gearKindOf(s.value, i.name) === gearKind.value)
+  const list = items.value.filter((i) => (filter.value === 'all' || categoryOf(s.value, i.name) === filter.value)
+    && (!isGear.value || (kindOk(i.name) && sellOk(i.name)))
     && (!q || textHas(i.name, q) || textHas(itemEffect(s.value, i.name), q)))
   if (sort.value === 'name') return [...list].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
   if (sort.value === 'value') return [...list].sort((a, b) => (value(b.name) ?? 0) - (value(a.name) ?? 0))
@@ -78,13 +69,13 @@ function materialSections(list: typeof items.value, nameOf: (g: ReturnType<typeo
 // 「全部」依類別分段，每段可以收合；材料的小段預設收合（搜尋時全部展開）
 const sections = computed(() => {
   if (filter.value === 'material') return materialSections(shown.value, materialGroupName)
-  if (filter.value !== 'all') return [{ id: filter.value, icon: tabIcon(filter.value) as ItemCategory | 'other', name: '', items: shown.value }]
-  const out = TAB_ORDER.flatMap((c) => {
-    const list = shown.value.filter((i) => tabOf(i.name) === c)
+  if (filter.value !== 'all') return [{ id: filter.value, icon: filter.value as ItemCategory | 'other', name: '', items: shown.value }]
+  const out = CATEGORY_ORDER.flatMap((c) => {
+    const list = shown.value.filter((i) => categoryOf(s.value, i.name) === c)
     if (c === 'material') return materialSections(list, (g) => `${itemRules.categories.material}・${materialGroupName(g)}`)
-    return [{ id: c as string, icon: tabIcon(c) as ItemCategory | 'other', name: c === 'special' ? '特殊（不能賣的裝備）' : tabName(c), items: list }]
+    return [{ id: c as string, icon: c as ItemCategory | 'other', name: itemRules.categories[c], items: list }]
   })
-  out.push({ id: 'other', icon: 'other', name: '其他', items: shown.value.filter((i) => !tabOf(i.name)) })
+  out.push({ id: 'other', icon: 'other', name: '其他', items: shown.value.filter((i) => !categoryOf(s.value, i.name)) })
   return out.filter((x) => x.items.length)
 })
 const folded = reactive(new Set<string>())
@@ -107,26 +98,29 @@ const target = reactive<Record<string, string>>({})
       <span class="small muted">共 {{ items.length }} 種物品・全隊共用</span>
     </div>
     <nav class="row tabs">
-      <button class="small" :class="{ active: filter === 'all' }" @click="pickTab('all')">全部 {{ items.length }}</button>
-      <template v-for="c in TAB_ORDER" :key="c">
-        <button
-          v-if="counts[c]" class="small" :class="{ active: filter === c }"
-          :title="c === 'special' ? '不能賣給商店的裝備：獨特效果、帶屬性或被詛咒的（任務、寶箱、事件給的）' : undefined"
-          @click="pickTab(c)"
-        >
-          <ItemIcon :category="tabIcon(c)" :size="14" /> {{ tabName(c) }} {{ counts[c] }}
+      <button class="small" :class="{ active: filter === 'all' }" @click="filter = 'all'">全部 {{ items.length }}</button>
+      <template v-for="c in CATEGORY_ORDER" :key="c">
+        <button v-if="counts[c]" class="small" :class="{ active: filter === c }" @click="filter = c">
+          <ItemIcon :category="c" :size="14" /> {{ itemRules.categories[c] }} {{ counts[c] }}
         </button>
-      </template>
-    </nav>
-    <!-- 裝備、特殊的小分類 -->
-    <nav v-if="gearTab && Object.keys(kindCounts).length > 1" class="row tabs kinds" aria-label="裝備的小分類">
-      <button class="small ghost" :class="{ active: !gearKind }" @click="gearKind = ''">全部</button>
-      <template v-for="k in GEAR_KINDS" :key="k.id">
-        <button v-if="kindCounts[k.id]" class="small ghost" :class="{ active: gearKind === k.id }" @click="gearKind = k.id">{{ k.name }} {{ kindCounts[k.id] }}</button>
       </template>
     </nav>
     <div class="row tools">
       <input v-model="query" class="grow" type="search" placeholder="搜尋名稱或效果" />
+      <!-- 裝備的篩選：部位、能不能賣（和搜尋、彼此都可以一起用） -->
+      <template v-if="isGear">
+        <select v-model="gearKind" class="small" aria-label="裝備的部位">
+          <option value="">所有部位 {{ kindCount('') }}</option>
+          <template v-for="k in GEAR_KINDS" :key="k.id">
+            <option v-if="kindCount(k.id)" :value="k.id">{{ k.name }} {{ kindCount(k.id) }}</option>
+          </template>
+        </select>
+        <select v-model="sellable" class="small" aria-label="能不能賣" title="特殊：不能賣給商店的裝備（獨特效果、帶屬性或被詛咒的，任務、寶箱、事件給的）">
+          <option value="">一般與特殊 {{ sellCount('') }}</option>
+          <option value="normal">一般（可以賣） {{ sellCount('normal') }}</option>
+          <option value="special">特殊（不能賣） {{ sellCount('special') }}</option>
+        </select>
+      </template>
       <select v-model="sort" class="small" aria-label="排序">
         <option value="category">依類別</option>
         <option value="name">名稱</option>
@@ -187,10 +181,9 @@ const target = reactive<Record<string, string>>({})
 .head { justify-content: space-between; }
 .tabs { gap: 4px; }
 .tabs button.active { border-color: var(--accent); color: var(--accent); }
-.tabs.kinds { margin-top: -2px; flex-wrap: wrap; }
-.tabs.kinds button { padding: 1px 8px; }
-.tools { flex-wrap: nowrap; }
-.grow { flex: 1; min-width: 0; }
+/* 搜尋框佔滿；手機上裝備的兩個下拉選單放不下時換到下一行 */
+.tools { flex-wrap: wrap; }
+.grow { flex: 1 1 12em; min-width: 0; }
 .qty { font-weight: 600; color: var(--accent-2); text-align: right; white-space: nowrap; }
 .effect { color: var(--accent); }
 .more .effect.full { white-space: pre-line; }
