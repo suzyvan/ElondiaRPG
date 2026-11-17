@@ -439,6 +439,14 @@ export function trainingRoomOf(home: Home): number {
   return Math.min(lewdRules.training.room_max, sum)
 }
 
+/** 舒適度達到的分段（沒到第一段時 undefined）與下一段 */
+export function comfortTier(comfort: number): { tier?: { at: number; condition: string }; next?: { at: number; condition: string } } {
+  const tiers = [...homeRules.comfort_tiers].sort((a, b) => a.at - b.at)
+  const reached = tiers.filter((t) => comfort >= t.at)
+  const next = tiers.find((t) => comfort < t.at)
+  return { ...(reached.length ? { tier: reached.at(-1)! } : {}), ...(next ? { next } : {}) }
+}
+
 export function hasBed(home: Home): boolean {
   return furnitureIn(home).some((f) => itemDef(f.name)?.furniture?.function === 'bed')
 }

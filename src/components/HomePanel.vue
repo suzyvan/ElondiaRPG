@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { craftRules, genderName, homeRules, itemDef, itemRules, raceName } from '@/engine/data'
+import { conditionName, craftRules, genderName, homeRules, itemDef, itemRules, raceName } from '@/engine/data'
 import {
-  comfortOf, describeHome, furnitureIn, hasBed, homeOfArea, lotHere, lotPrice, ownHomeOfArea, PLACE_NAME, placeOf, residents, stayRefusal,
+  comfortOf, comfortTier, describeHome, furnitureIn, hasBed, homeOfArea, lotHere, lotPrice, ownHomeOfArea, PLACE_NAME, placeOf, residents, stayRefusal,
 } from '@/engine/homes'
 import { cropStatus, plotPlace, seedsFor } from '@/engine/garden'
 import { depositRefusal, homeMoney, storageSlots, storageSpec, storedItems, storedMoney } from '@/engine/storage'
@@ -55,6 +55,7 @@ const choices = computed(() => s.value.inventory.filter((i) => {
 const pick = ref('')
 const all = computed(() => (home.value ? furnitureIn(home.value) : []))
 const comfort = computed(() => (home.value ? comfortOf(home.value, s.value) : 0))
+const tierInfo = computed(() => comfortTier(comfort.value))
 const benches = computed(() => all.value.filter((f) => itemDef(f.name)?.furniture?.function === 'workbench').map((f) => `${f.name}（${craftRules.skills[itemDef(f.name)!.furniture!.craft!].name}）`))
 const staying = computed(() => (home.value ? residents(s.value, home.value.id) : []))
 const companions = computed(() => s.value.party.filter((m) => !m.isPlayer))
@@ -157,7 +158,7 @@ function rename() {
       <h3 class="title"><GameIcon name="home" :size="16" />{{ home.name }}</h3>
       <button class="small ghost" title="改名" aria-label="改名" @click="rename"><GameIcon name="edit" :size="14" /></button>
     </div>
-    <p class="muted">{{ area.name.split('・').at(-1) }}・舒適度 {{ comfort }}／{{ homeRules.comfort_rested }}<template v-if="comfort >= homeRules.comfort_rested">（在家長休會睡得香甜）</template>・{{ hasBed(home) ? '有床，可以在家長休' : '還沒有床' }}<template v-if="benches.length">・工作台：{{ benches.join('、') }}</template><template v-if="plots.total">・苗圃 {{ plots.total }} 塊<template v-if="plots.ripe">（{{ plots.ripe }} 塊可以收成）</template></template></p>
+    <p class="muted">{{ area.name.split('・').at(-1) }}・舒適度 {{ comfort }}<template v-if="tierInfo.tier">（在家長休會{{ conditionName(tierInfo.tier.condition) }}<template v-if="tierInfo.next">，再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}</template>）</template><template v-else-if="tierInfo.next">（再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}）</template>・{{ hasBed(home) ? '有床，可以在家長休' : '還沒有床' }}<template v-if="benches.length">・工作台：{{ benches.join('、') }}</template><template v-if="plots.total">・苗圃 {{ plots.total }} 塊<template v-if="plots.ripe">（{{ plots.ripe }} 塊可以收成）</template></template></p>
 
     <div class="spot">
       <template v-if="cell.furniture">

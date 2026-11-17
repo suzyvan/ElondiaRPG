@@ -2448,7 +2448,8 @@ export const homeRules = homesJson as unknown as {
   by_location: Record<string, HomeDistrict>
   noble: HomeDistrict
   lots: Record<string, number>
-  comfort_rested: number
+  /** 舒適度的分段（由低到高）：在家長休後全隊得到達到的最高一段的狀態（docs/HOMES.md 第 4 節） */
+  comfort_tiers: { at: number; condition: string }[]
   staff: StaffRules
 }
 

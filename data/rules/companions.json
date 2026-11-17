@@ -105,7 +105,19 @@
   "well_rested": {
    "name": "睡得香甜",
    "desc": "在舒適的家裡好好睡了一覺。下次長休前，每場戰鬥開始時獲得 5 點暫時生命，主動行動檢定 +1。",
-   "combat_temp_hp": 5, "check_penalty": -1,
+   "group": "home_rest", "rank": 1, "combat_temp_hp": 5, "check_penalty": -1,
+   "clears": "long_rest"
+  },
+  "refreshed": {
+   "name": "精神飽滿",
+   "desc": "在佈置得很講究的家裡睡了一覺，整個人神清氣爽。下次長休前，每場戰鬥開始時獲得 8 點暫時生命，主動行動檢定 +1，豁免 +1。",
+   "group": "home_rest", "rank": 2, "combat_temp_hp": 8, "check_penalty": -1, "combat_mods": { "save": 1 },
+   "clears": "long_rest"
+  },
+  "invigorated": {
+   "name": "神采奕奕",
+   "desc": "在華美得像宮殿的家裡睡了一覺，精力充沛。下次長休前，每場戰鬥開始時獲得 12 點暫時生命，主動行動檢定 +1，豁免 +1，迴避 +1。",
+   "group": "home_rest", "rank": 3, "combat_temp_hp": 12, "check_penalty": -1, "combat_mods": { "save": 1, "evade": 1 },
    "clears": "long_rest"
   },
   "fed_well": {

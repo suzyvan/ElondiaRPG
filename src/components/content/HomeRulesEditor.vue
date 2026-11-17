@@ -7,7 +7,7 @@ import Hint from '../ui/Hint.vue'
 import EditorHeader from './EditorHeader.vue'
 import FoldSet from './FoldSet.vue'
 
-// 房屋設定（docs/HOMES.md 第 8 節）：家僕的職位名稱與日薪、上限、工錢與應徵，以及睡得香甜的門檻。家具本身在物品編輯器
+// 房屋設定（docs/HOMES.md 第 8 節）：家僕的職位名稱與日薪、上限、工錢與應徵，以及舒適度三段的門檻。家具本身在物品編輯器
 const content = useContent()
 const game = useGame()
 
@@ -49,7 +49,7 @@ function setValue(path: string, v: unknown) {
 <template>
   <div class="editor">
     <EditorHeader :title="'⚙️ 房屋設定'" :kind="'rules'" :edited="edited" :dirty="dirty" @save="save" @discard="reset" @restore="restore" />
-    <p class="small muted">家僕的職位名稱、日薪與上限，欠薪辭職、應徵者、請認識的人與奴隸做家務的數值，以及睡得香甜的舒適度（docs/HOMES.md 第 8 節）。職位的種類與效果是固定的；家具在物品編輯器的「家具」欄位。</p>
+    <p class="small muted">家僕的職位名稱、日薪與上限，欠薪辭職、應徵者、請認識的人與奴隸做家務的數值，以及舒適度三段的門檻（docs/HOMES.md 第 4、8 節）。職位的種類與效果是固定的；家具在物品編輯器的「家具」欄位。</p>
     <FoldSet>
       <template #legend>職位的名稱 <Hint text="名稱寫在房屋區塊與日誌；職業描述是家僕的職業，照性別換稱謂（例如女僕／男僕、廚娘／廚子）。" /></template>
       <div class="grid">

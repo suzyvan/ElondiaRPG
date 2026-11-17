@@ -672,7 +672,7 @@ function setFuel(v: string) {
           <input type="checkbox" :checked="furn.places.includes(p)" @change="toggleFurnPlace(p)" /> {{ PLACE_NAME[p] }}
         </label>
       </div>
-      <p class="small muted">家具擺在自己房子的格子上。床讓你在家長休；舒適度加總達到 {{ homeRules.comfort_rested }} 時，在家長休後睡得香甜；高階工作台讓這種工藝能處理第四、五級的材料；苗圃可以種下種子（種子的「能種在」要和苗圃擺的地方一樣）；儲物箱收行囊裡的東西（容量算種類，在這棟房子做工藝、播種時箱子裡的也算），保險箱還能存錢。</p>
+      <p class="small muted">家具擺在自己房子的格子上。床讓你在家長休；舒適度加總達到 {{ homeRules.comfort_tiers.map((t) => t.at).join('／') }} 時，在家長休後分別是睡得香甜、精神飽滿、神采奕奕；高階工作台讓這種工藝能處理第四、五級的材料；苗圃可以種下種子（種子的「能種在」要和苗圃擺的地方一樣）；儲物箱收行囊裡的東西（容量算種類，在這棟房子做工藝、播種時箱子裡的也算），保險箱還能存錢。</p>
     </FoldSet>
 
     <FoldSet v-if="draft.category !== 'equipment'">

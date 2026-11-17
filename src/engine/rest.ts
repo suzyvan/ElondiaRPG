@@ -11,20 +11,20 @@ import { maybeParasiteEvent } from './parasiteEvents'
 import { perksOf } from './perks'
 import { attrOf, mod, snapshot } from './character'
 import { encounterFor, startCombat, type CombatState } from './combat'
-import { abilities, classDef, companionRules, homeRules, lewdRules, locationById, regionById, slaveryRules, specialMaps, wildEncounters, type DungeonLayerId } from './data'
+import { abilities, classDef, companionRules, conditionName, homeRules, lewdRules, locationById, regionById, slaveryRules, specialMaps, wildEncounters, type DungeonLayerId } from './data'
 import { charmLevel } from './charm'
 import { tagsAllowed } from './content'
 import { teachAbility } from './effects'
 import { addLewd } from './lewd'
 import { currentArea, currentCell, DUNGEON_LAYERS } from './grid'
-import { comfortOf, hasBed, homeOfArea } from './homes'
+import { comfortOf, comfortTier, hasBed, homeOfArea } from './homes'
 import { serveBreakfast } from './staff'
 import { maybeHomeEvent } from './homeEvents'
 import { morningSickness } from './pregnancy'
 import { maybePregnancyEvent } from './pregnancyEvents'
 import { formatMoney } from './money'
 import { clearInviteCooldowns } from './companions'
-import { addAffinity, addCondition, isBound, isFugitive, leaderGroup, leaderOf, leaveParty, pcOf, punish, recapturePlayer, removeCondition } from './party'
+import { addAffinity, addCondition, gainCondition, isBound, isFugitive, leaderGroup, leaderOf, leaveParty, pcOf, punish, recapturePlayer, removeCondition } from './party'
 import { roll, withBonus, type Rng } from './rng'
 import { contractTerms } from './slavery'
 import { bestTool } from './tools'
@@ -320,8 +320,10 @@ export function longRest(state: GameState, place: RestPlace): Report {
   }
   // 在舒適的家裡睡：睡得香甜
   const home = place === 'home' ? homeOfArea(state, area) : undefined
-  const rested = !!home && comfortOf(home, state) >= homeRules.comfort_rested
-  if (rested) for (const m of state.party) addCondition(m, 'well_rested', report)
+  // 舒適度分段：全隊得到達到的最高一段（睡得香甜、精神飽滿、神采奕奕；同一組只留最高的）
+  const tier = home ? comfortTier(comfortOf(home, state)).tier : undefined
+  const rested = !!tier
+  if (tier) for (const m of state.party) gainCondition(m, tier.condition, report)
   // 家裡的廚師：醒來有早餐（staff.ts）
   const breakfast = home && !home.master ? serveBreakfast(state, home, report) : ''
   // 懷孕初期：一早起來可能孕吐（docs/FAMILY.md）
@@ -332,7 +334,7 @@ export function longRest(state: GameState, place: RestPlace): Report {
   state.lastLongRest = { ...report.time.end }
   report.outcome = {
     result: 'success',
-    summary: [place === 'slave_room' ? `大家在${scene}過了一夜${costText}。` : `在${scene}好好睡了一覺${costText}。`, ...(rested ? ['家裡佈置得很舒服，大家都睡得很香甜。'] : []), ...(breakfast ? [breakfast] : []), ...room, ...checks].join(''),
+    summary: [place === 'slave_room' ? `大家在${scene}過了一夜${costText}。` : `在${scene}好好睡了一覺${costText}。`, ...(rested ? [`家裡佈置得很舒服，大家都${conditionName(tier!.condition)}。`] : []), ...(breakfast ? [breakfast] : []), ...room, ...checks].join(''),
     tags: ['長休', ...(place === 'safe' ? ['安全房'] : place === 'home' ? ['在家'] : place === 'slave_room' ? ['奴房'] : place === 'camp' ? ['紮營'] : [])],
   }
   const committed = commitReport(state, report)

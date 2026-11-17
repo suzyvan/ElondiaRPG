@@ -1,6 +1,6 @@
 // 房屋設定（docs/HOMES.md 第 8 節）：homes.json 的家僕與舒適度數值，內容頁籤「🎒 物品」的「⚙️ 房屋設定」。
 // 只有一筆（ContentMods.homes 的 rules）。套用時直接改 homes.json 載入的物件（data.ts 的 homeRules 就是它），恢復預設時套回快照。
-// 能改的：職位的名稱與日薪、女僕的舒適度、各地段的家僕上限、欠薪辭職的天數、應徵者、請認識的人、奴隸做家務、睡得香甜的門檻。
+// 能改的：職位的名稱與日薪、女僕的舒適度、各地段的家僕上限、欠薪辭職的天數、應徵者、請認識的人、奴隸做家務、舒適度三段的門檻。
 // 職位的種類與效果是程式固定的，不能新增。
 
 import homesJson from '@data/rules/homes.json'
@@ -13,7 +13,11 @@ const f = (path: string, label: string, min: number, max: number, step: number, 
 
 /** 設定頁的數值欄位（依分組）；職位的名稱另外是文字欄位（HOME_TEXT_FIELDS） */
 export const HOME_GROUPS: HomeGroup[] = [
-  { name: '舒適度', fields: [f('comfort_rested', '睡得香甜的舒適度', 1, 50, 1, '家具與女僕的舒適度合計到這裡時，在家長休後睡得香甜')] },
+  { name: '舒適度', fields: [
+    f('comfort_tiers.0.at', '睡得香甜的舒適度', 1, 99, 1, '家具、女僕與成套家具的舒適度合計到這裡時，在家長休後睡得香甜'),
+    f('comfort_tiers.1.at', '精神飽滿的舒適度', 1, 99, 1, '三段由低到高；存的時候後一段至少比前一段多 1'),
+    f('comfort_tiers.2.at', '神采奕奕的舒適度', 1, 99, 1),
+  ] },
   { name: '職位', fields: [
     f('staff.jobs.maid.wage_cc', '女僕的日薪（白鸛）', 0, 1000, 1),
     f('staff.jobs.maid.comfort', '女僕加的舒適度', 0, 10, 1),
@@ -101,6 +105,13 @@ export function sanitizeHomeRules(raw: unknown): HomeRulesMod {
   for (const fd of HOME_TEXT_FIELDS) {
     const v = get(raw, fd.path)
     if (typeof v === 'string' && v.trim()) set(out, fd.path, [...v.trim()].slice(0, 8).join(''))
+  }
+  // 舒適度的分段由低到高
+  let prev = 0
+  for (let i = 0; i < 3; i++) {
+    const at = Math.max(prev + 1, Number(get(out, `comfort_tiers.${i}.at`)))
+    set(out, `comfort_tiers.${i}.at`, at)
+    prev = at
   }
   const lo = Number(get(out, 'staff.candidates_per_job.0'))
   if (Number(get(out, 'staff.candidates_per_job.1')) < lo) set(out, 'staff.candidates_per_job.1', lo)

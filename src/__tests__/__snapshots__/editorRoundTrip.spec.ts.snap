@@ -85,21 +85,21 @@ exports[`world editor round trip > classes: opening and saving without changes k
 
 exports[`world editor round trip > conditions: opening and saving without changes keeps the data 1`] = `
 {
-  "afterglow": "06c801a1bd82",
-  "aroused": "06c801a1bd82",
   "away": "06c801a1bd82",
   "backache": "06c801a1bd82",
-  "cheered": "06c801a1bd82",
-  "dazed": "06c801a1bd82",
-  "disheveled": "06c801a1bd82",
+  "drained": "06c801a1bd82",
   "family_smile": "06c801a1bd82",
-  "fed_feast": "06c801a1bd82",
+  "fed_fine": "06c801a1bd82",
+  "fed_legend": "06c801a1bd82",
   "fed_light": "06c801a1bd82",
-  "fed_well": "06c801a1bd82",
-  "honed": "06c801a1bd82",
   "morning_sickness": "06c801a1bd82",
   "punished": "06c801a1bd82",
+  "refreshed": "06c801a1bd82",
+  "relaxed": "06c801a1bd82",
+  "sensitive": "06c801a1bd82",
   "slave_mark": "06c801a1bd82",
+  "tipsy": "06c801a1bd82",
+  "virile": "06c801a1bd82",
 }
 `;
 
@@ -146,7 +146,7 @@ exports[`world editor round trip > family: opening and saving without changes ke
 
 exports[`world editor round trip > homes: opening and saving without changes keeps the data 1`] = `
 {
-  "homes": "c26b515ae4f1",
+  "homes": "3f603d01062e",
 }
 `;
 
