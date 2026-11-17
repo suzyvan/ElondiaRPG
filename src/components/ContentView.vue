@@ -49,6 +49,7 @@ import { parasiteRules } from '@/engine/parasites'
 import MarkRulesEditor from './content/MarkRulesEditor.vue'
 import { builtinStory, copyStory, newStory, START_KINDS } from '@/engine/storyMods'
 import TravelEventEditor from './content/TravelEventEditor.vue'
+import { EVENT_TYPES, eventIcon, eventTypeOf, eventTypeRank } from './content/events/eventTypes'
 import MasterEventEditor from './content/MasterEventEditor.vue'
 import { allMasterEvents, builtinMasterEvent, masterEventById, newMasterEvent, POOL_IDS } from '@/engine/masterEventMods'
 import EventRulesEditor from './content/EventRulesEditor.vue'
@@ -356,7 +357,7 @@ const FILTERS: Record<Sub, FilterDef[]> = {
   dungeons: [],
   shops: [],
   events: [
-    { model: eventScope, name: '種類', all: '所有事件', options: () => [['road', '🧭 旅途事件'], ['town', '🏘️ 城鎮事件'], ['dungeon', '⚠️ 地下城事件'], ['parasite', '💗 寄生物的發作'], ['lead', '🔎 線索事件'], ['pregnancy', '🍼 懷孕的事件'], ['lactation', '💧 泌乳的事件'], ['brood', '🪺 苗床的事件']] },
+    { model: eventScope, name: '種類', all: '所有事件', options: () => EVENT_TYPES.map((t) => [t.id, `${t.icon} ${t.legend}事件`]) },
     placeDef('沒有限制地點'),
     { model: eventHours, name: '時段', all: '所有時段', options: () => [['day', '☀️ 只在白天'], ['night', '🌙 只在夜裡'], ['none', '不限時段']] },
     adultDef, tagDef_, bodyDef, flagDef,
@@ -552,14 +553,9 @@ const rows = computed<Row[]>(() => {
       .filter((t) => bodyMatch(t.pc_body))
       .filter((t) => flagMatch(t))
       .map((t) => ({
-        key: t.id, name: `${t.scope === 'town' ? '🏘️' : t.scope === 'dungeon' ? '⚠️' : t.scope === 'parasite' ? '💗' : t.scope === 'lead' ? '🔎' : t.scope === 'pregnancy' ? '🍼' : t.scope === 'lactation' ? '💧' : t.scope === 'brood' ? '🪺' : t.tier === 'advanced' ? '✨' : '🧭'} ${t.title}${t.hours === 'night' ? ' 🌙' : t.hours === 'day' ? ' ☀️' : ''}`,
-        note: t.scope === 'town' ? `城鎮・${t.kind === 'check' ? '檢定' : '選擇'}`
-          : t.scope === 'parasite' ? `發作・${parasiteRules.parasites[t.parasite ?? '']?.name ?? t.parasite}${t.stages?.length ? `・${t.stages.map((i) => parasiteRules.stages[i]?.name).join('、')}` : ''}`
-          : t.scope === 'pregnancy' ? `${t.known ? '孕期' : '察覺'}・${t.subject === 'companion' ? '夥伴' : '主角'}${t.preg_stages?.length ? `・${t.preg_stages.map((x) => PREG_STAGE_NAME[x]).join('、')}` : ''}${t.tags?.includes('adult') && t.scene ? '・親密場景' : ''}`
-          : t.scope === 'lead' ? `線索・登場 ${t.cast ?? 0} 人${t.layers?.length ? `・${t.layers.map((i) => EVENT_LAYERS[i]).join('、')}` : ''}`
-          : t.scope === 'dungeon' ? `地下城・${(t.triggers ?? []).map((x) => DUNGEON_TRIGGERS[x]).join('、')}${t.tags?.includes('adult') ? '・成人向' : ''}`
-          : `${(t.modes ?? []).map((m) => MODE_NAME[m]).join('、') || '任何路段'}・${t.kind === 'check' ? '檢定' : '選擇'}`,
-        status: st(!!m.travelEvents?.[t.id], !builtinTravelEvent(t.id)), sort: t.scope === 'town' ? 1 : t.scope === 'dungeon' ? 2 : t.scope === 'parasite' ? 2.5 : t.scope === 'pregnancy' ? 2.6 : t.scope === 'lactation' ? 2.62 : t.scope === 'brood' ? 2.64 : t.scope === 'lead' ? 2.7 : 0,
+        key: t.id, name: `${eventIcon(t)} ${t.title}${t.hours === 'night' ? ' 🌙' : t.hours === 'day' ? ' ☀️' : ''}`,
+        note: eventTypeOf(t).note(t),
+        status: st(!!m.travelEvents?.[t.id], !builtinTravelEvent(t.id)), sort: eventTypeRank(t),
       }))
     list = evs.sort((a, b) => (a.status === 'custom' ? -1 : 0) - (b.status === 'custom' ? -1 : 0) || a.sort - b.sort)
   } else if (sub.value === 'masterEvents') {
