@@ -7,7 +7,7 @@ import { furnitureSummary } from '@/engine/homes'
 import { gearKnown, gearRules, gearSpecOf, gearStats, gearSummaryParts, type SummaryPart } from '@/engine/gear'
 import { intelSummary, isIntelItem, useSummary } from '@/engine/inventory'
 import { toolSummary } from '@/engine/tools'
-import { itemCategory, notForSale } from '@/engine/trade'
+import { isUniqueItem, itemCategory } from '@/engine/trade'
 import { materialLabel, materialUses } from '@/engine/materialInfo'
 import type { GameState, GearSpec } from '@/engine/types'
 
@@ -82,9 +82,7 @@ export function gearKindOf(state: GameState, name: string): GearKind | undefined
   return KIND_OF_SLOT[base.slot] ?? 'extra'
 }
 
-/** 不能賣給商店的裝備（獨特、有屬性、被詛咒的）：行囊另外放在「特殊」，不和一般裝備混在一起 */
+/** 不能賣給商店的裝備（獨特的：任務、寶箱、事件給的獨一無二的東西）：和商店收購同一個判斷（trade.ts 的 isUniqueItem） */
 export function isSpecialGear(state: GameState, name: string): boolean {
-  if (itemCategory(state, name) !== 'equipment') return false
-  const def = itemDef(name) ?? state.customItems?.[name]
-  return !!def && notForSale(def as Parameters<typeof notForSale>[0])
+  return itemCategory(state, name) === 'equipment' && isUniqueItem(state, name)
 }

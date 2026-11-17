@@ -30,7 +30,7 @@ const counts = computed(() => {
   }
   return out
 })
-// 裝備的篩選（下拉選單，可以一起用）：部位（武器・盾、防具、飾品……）與能不能賣（「特殊」：獨特、有屬性、被詛咒的）
+// 裝備的篩選（下拉選單，可以一起用）：部位（武器・盾、防具、飾品……）與能不能賣（「特殊」：獨特裝備，商店不收）
 const gearKind = ref<GearKind | ''>('')
 const sellable = ref<'' | 'normal' | 'special'>('')
 const isGear = computed(() => filter.value === 'equipment')
@@ -112,10 +112,10 @@ const target = reactive<Record<string, string>>({})
         <select v-model="gearKind" class="small" aria-label="裝備的部位">
           <option value="">所有部位 {{ kindCount('') }}</option>
           <template v-for="k in GEAR_KINDS" :key="k.id">
-            <option v-if="kindCount(k.id)" :value="k.id">{{ k.name }} {{ kindCount(k.id) }}</option>
+            <option v-if="kindCount(k.id) || gearKind === k.id" :value="k.id">{{ k.name }} {{ kindCount(k.id) }}</option>
           </template>
         </select>
-        <select v-model="sellable" class="small" aria-label="能不能賣" title="特殊：不能賣給商店的裝備（獨特效果、帶屬性或被詛咒的，任務、寶箱、事件給的）">
+        <select v-model="sellable" class="small" aria-label="能不能賣" title="特殊：不能賣給商店的獨特裝備（任務、寶箱、事件給的獨一無二的東西）">
           <option value="">一般與特殊 {{ sellCount('') }}</option>
           <option value="normal">一般（可以賣） {{ sellCount('normal') }}</option>
           <option value="special">特殊（不能賣） {{ sellCount('special') }}</option>
