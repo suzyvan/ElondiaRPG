@@ -9,11 +9,14 @@ export interface StatItem {
   wide?: boolean
 }
 withDefaults(defineProps<{ items: StatItem[]; columns?: number }>(), { columns: 1 })
+// 數值與補充加起來太長時，補充自動換到下一行：不然數值那一欄會被擠成一個字一行（例如身上一串拘束具、戰鬥中的加成）
+const LONG = 36
+const isWide = (it: StatItem) => !!it.wide || String(it.value).length + (it.note?.length ?? 0) > LONG
 </script>
 
 <template>
   <div class="stat-grid" :style="{ '--cols': columns }">
-    <div v-for="it in items" :key="it.label" class="kv" :class="{ wide: it.wide }" :title="it.hint">
+    <div v-for="it in items" :key="it.label" class="kv" :class="{ wide: isWide(it) }" :title="it.hint">
       <span class="label">{{ it.label }}</span>
       <span class="v">{{ it.value }}</span>
       <span v-if="it.note" class="note">{{ it.note }}</span>
@@ -23,7 +26,7 @@ withDefaults(defineProps<{ items: StatItem[]; columns?: number }>(), { columns: 
 
 <style scoped>
 .stat-grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 0 24px; }
-.kv { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px dotted var(--border); }
+.kv { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) fit-content(50%); gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px dotted var(--border); }
 .v { font-weight: 700; font-variant-numeric: tabular-nums; }
 .note { font-size: var(--fs-sm); color: var(--muted); text-align: right; }
 .kv.wide .v { grid-column: 2 / -1; }

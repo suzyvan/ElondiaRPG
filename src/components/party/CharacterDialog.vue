@@ -145,6 +145,7 @@ const lewdItems = computed<StatItem[]>(() => {
       label: '拘束',
       value: binds.map((b) => `${b.name}（${bindLabel(b.kind, b.bind)}${b.lock ? `・${lockName(b.lock)}` : ''}）`).join('、'),
       note: tf.active.length ? `戰鬥中：${twoFaceText(tf)}` : schools.length ? '鎖上之後戰鬥中才有增益' : '沒修流派：只有平常的檢定減值',
+      wide: true,
     })
   }
   // 寄生類的雙面效應（第 14.1 節）
