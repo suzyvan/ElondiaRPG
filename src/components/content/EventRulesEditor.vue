@@ -76,6 +76,15 @@ const WEIGHT_NAME = { auto: '原本的旅途事件與普通檢定', choice: '普
         <label v-for="(n, i) in EVENT_LAYERS" :key="n"><span>{{ n }}普通難度的 DC <Hint text="選項寫的 DC 以 14 為「普通」：實際 DC = 這一層的 DC +（寫的 DC − 14）。" /></span><input v-model.number="draft.dungeon.dc![i]" type="number" min="5" max="30" class="num" /></label>
       </div>
     </FoldSet>
+    <FoldSet>
+      <template #legend>家裡的事 <Hint text="有家僕（或做家務的奴隸）時，在自己的房子裡走動（每一步）、在家長休醒來時的機率（docs/HOMES.md 第 8.1 節）。分類的權重和城鎮事件共用。" /></template>
+      <div class="grid">
+        <label>在家裡走動，每一步的機率（0～1）<input v-model.number="draft.home.chance.step" type="number" min="0" max="1" step="0.01" class="num" /></label>
+        <label>在家長休醒來的機率（0～1）<input v-model.number="draft.home.chance.rest" type="number" min="0" max="1" step="0.01" class="num" /></label>
+        <label>兩次事件至少隔幾小時 <input v-model.number="draft.home.cooldown_hours" type="number" min="0" max="168" class="num" /></label>
+        <label>同一事件預設幾天後才會再出現 <input v-model.number="draft.home.repeat_days" type="number" min="0" max="60" class="num" /></label>
+      </div>
+    </FoldSet>
   </div>
 </template>
 

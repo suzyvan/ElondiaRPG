@@ -44,9 +44,14 @@ export function choreSlaves(state: GameState, homeId: string): NpcRecord[] {
   return Object.values(state.npcs ?? {}).filter((r) => r.staying === homeId && !!r.chore && isOwnSlave(state, r.character))
 }
 
-/** 做這份家務的人：雇來的家僕與分派了家務的奴隸 */
+/** 請假中（家裡的事給的 staff_pause）：這幾天效果停掉 */
+export function onLeave(state: GameState, rec: NpcRecord): boolean {
+  return (rec.staffPause ?? 0) >= state.time.day
+}
+
+/** 做這份家務的人：雇來的家僕與分派了家務的奴隸（請假中的不算） */
 export function workersFor(state: GameState, homeId: string, job: StaffJob): NpcRecord[] {
-  return [...staffOf(state, homeId).filter((r) => r.staff!.job === job), ...choreSlaves(state, homeId).filter((r) => r.chore === job)]
+  return [...staffOf(state, homeId).filter((r) => r.staff!.job === job), ...choreSlaves(state, homeId).filter((r) => r.chore === job)].filter((r) => !onLeave(state, r))
 }
 
 export function hasWorker(state: GameState, homeId: string, job: StaffJob): boolean {

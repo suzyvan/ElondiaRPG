@@ -623,6 +623,8 @@ export interface NpcRecord extends NpcDef {
   staff?: { home: string; job: StaffJob; wage_cc: number; paidUntil: number; since: GameTime }
   /** 自己的奴隸留在家裡時分派的家務（staff.ts；不用工錢、不佔家僕上限） */
   chore?: StaffJob
+  /** 家僕（或做家務的奴隸）的效果停到第幾天（家裡的事的 staff_pause：請假） */
+  staffPause?: number
 }
 
 /** 等主角決定的入隊：kind join＝加入主角的隊伍（npcs 第一位是本人，其餘是一起來的小隊隊員）；follow＝主角跟著 npcs[0] 的隊伍 */
@@ -1185,10 +1187,12 @@ export interface GameState {
   road?: RoadState
   /** 旅途上等待回應的事件（選擇、高階事件） */
   roadEvent?: { x: number; template: string }
-  /** 城鎮裡等待回應的事件（townEvents.ts） */
-  townEvent?: { template: string }
+  /** 城鎮裡等待回應的事件（townEvents.ts）；家裡的事（homeEvents.ts）也放這裡，staff 是挑到的家僕 */
+  townEvent?: { template: string; staff?: string }
   /** 城鎮事件的紀錄：上一次的時間（絕對小時）、每個事件上次出現的日子、最近的種類 */
   townEvents?: { last?: number; seen: Record<string, number>; recent: string[] }
+  /** 家裡的事的紀錄（homeEvents.ts）：上一次的時間、每個事件上次出現的日子、最近的分類 */
+  homeEvents?: { last?: number; seen: Record<string, number>; recent: string[] }
   /** 地下城與近郊等待回應的事件（dungeonEvents.ts）：模板與觸發點 */
   dungeonEvent?: { template: string; trigger: string; /** 用引子引來的：文字照模板的 lure */ lure?: boolean }
   /** 走到線索事件的格子、等主角回應（leadEvents.ts）：哪一則線索、在哪一格 */

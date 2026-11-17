@@ -17,6 +17,7 @@ import { commitReport, newReportId, withRng } from './state'
 import { condMet } from './storyFlags'
 import { exposureAt } from './lewd'
 import { dayPartOk } from './timeOfDay'
+import { castStaff, maybeHomeEvent } from './homeEvents'
 import type { GameState, GameTime, Report } from './types'
 
 /** 可以遇到事件的設施（自建商店另外算） */
@@ -72,6 +73,11 @@ export function maybeTownEvent(state: GameState): { report?: Report } {
   const rules = travelEvents.town
   if (!rules || state.townEvent || state.parasiteEvent || state.pregnancyEvent || state.pendingBirth || state.pendingBroodBirth || state.leadEvent || state.combat || state.standoff || state.pendingMasterEvent || state.pendingAction || state.road) return {}
   const area = currentArea(state)
+  // 自己的房子裡：家裡的事（homeEvents.ts；都是等玩家選的事件）
+  if (area.kind === 'home') {
+    maybeHomeEvent(state, 'step')
+    return {}
+  }
   if (area.kind !== 'settlement') return {}
   const p = position(state)
   const cell = area.cells[p.y * area.width + p.x]
@@ -109,7 +115,7 @@ function remember(state: GameState, t: RoadTemplate) {
   }
 }
 
-function townReport(state: GameState, title: string): Report {
+function townReport(state: GameState, title: string, home = false): Report {
   const area = currentArea(state)
   const loc = locationById(area.location)
   const pc = pcOf(state)
@@ -120,7 +126,7 @@ function townReport(state: GameState, title: string): Report {
     time: { start: { ...state.time }, end: { ...state.time } },
     location: { at: loc.id, region: loc.region, scene: `${area.name}・${title}` },
     party: state.party.map((m) => snapshot(m, undefined, pc)),
-    outcome: { result: 'neutral', tags: ['城鎮事件'] },
+    outcome: { result: 'neutral', tags: [home ? '家裡的事' : '城鎮事件'] },
     changes: {},
     narration: { pov: 'second_person', length: 'short', tone: '日常' },
     lore_keys: [loc.name, regionById(loc.region).name],
@@ -140,10 +146,15 @@ function revealCheck(state: GameState, t: RoadTemplate, natural: number): Report
   return committed
 }
 
-/** 等待回應的城鎮事件 */
+/** 等待回應的城鎮事件；家裡的事把那位家僕代進去（人已經不在了就作廢） */
 export function pendingTownEvent(state: GameState): RoadTemplate | undefined {
-  const id = state.townEvent?.template
-  return id ? travelEvents.templates.find((t) => t.id === id && t.scope === 'town') : undefined
+  const ev = state.townEvent
+  if (!ev) return undefined
+  const t = travelEvents.templates.find((x) => x.id === ev.template && (x.scope === 'town' || x.scope === 'home'))
+  if (!t || t.scope === 'town') return t
+  const rec = ev.staff ? state.npcs?.[ev.staff] : undefined
+  if (!rec || (!rec.staff && !rec.chore)) return undefined
+  return castStaff(t, rec)
 }
 
 /** 選一個選項（有檢定的依規則擲骰） */
@@ -152,7 +163,8 @@ export function answerTownEvent(state: GameState, index: number): Report {
   const o = t?.options?.[index]
   assertOption(state, o)
   if (!t || !o) throw new Error('沒有這個選項')
-  const report = townReport(state, t.title)
+  const home = t.scope === 'home'
+  const report = townReport(state, t.title, home)
   let ok = true
   if (o.check) {
     const r = roll(state, o.check, withRng(state, (rng) => rng.int(1, 20)), 'town')
@@ -160,7 +172,7 @@ export function answerTownEvent(state: GameState, index: number): Report {
     report.timeline = [{ seq: 1, ...r.entry, action: `${t.title}：${o.label}` }]
   }
   const lines = [`${t.title}：${o.label}。`, ...applyRoadOutcome(state, report, ok ? o.success : o.fail)]
-  report.outcome = { result: o.check ? (ok ? 'success' : 'failure') : 'neutral', summary: lines.join(''), tags: ['城鎮事件'] }
+  report.outcome = { result: o.check ? (ok ? 'success' : 'failure') : 'neutral', summary: lines.join(''), tags: [home ? '家裡的事' : '城鎮事件'] }
   report.narration = { ...report.narration, focus: [t.text, `主角的選擇：${o.label}`] }
   if (t.scene && sceneOn(o, ok)) report.narration = { ...report.narration, length: 'medium', adult_scene: t.scene }
   if (t.pc_body?.length) report.narration = { ...report.narration, body_limited: true }

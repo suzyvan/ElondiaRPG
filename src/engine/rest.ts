@@ -19,6 +19,7 @@ import { addLewd } from './lewd'
 import { currentArea, currentCell, DUNGEON_LAYERS } from './grid'
 import { comfortOf, hasBed, homeOfArea } from './homes'
 import { serveBreakfast } from './staff'
+import { maybeHomeEvent } from './homeEvents'
 import { morningSickness } from './pregnancy'
 import { maybePregnancyEvent } from './pregnancyEvents'
 import { formatMoney } from './money'
@@ -343,6 +344,8 @@ export function longRest(state: GameState, place: RestPlace): Report {
   maybeParasiteEvent(state, 'rest', slept)
   // 懷孕的事件（察覺、孕期）：時段看入睡的時間
   maybePregnancyEvent(state, 'rest', slept)
+  // 家裡的事（家僕，homeEvents.ts）：在自己家醒來時；時段看入睡的時間
+  if (place === 'home') maybeHomeEvent(state, 'rest', slept)
   return committed
 }
 

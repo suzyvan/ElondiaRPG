@@ -14,7 +14,9 @@ import { attachParasite, changeCorruption, detachParasite, tameParasite } from '
 import { pcBodyAllowed, tagsAllowed } from './content'
 import { characterBody } from './look'
 import { addItem } from './state'
-import { abilities, classAbilities, classes, enemies, locationById, masterEventPool, perkDef, slaveryRules, type AbilityDef, type AttrId, type LewdKey, type LockGrade, type MasterEventPool } from './data'
+import { abilities, classAbilities, classes, enemies, itemDef, locationById, masterEventPool, perkDef, slaveryRules, type AbilityDef, type AttrId, type LewdKey, type LockGrade, type MasterEventPool } from './data'
+import { currentArea } from './grid'
+import { ownHomeOfArea } from './homes'
 import { fillPerkOptions, grantPerk, losePerk, offerPerks } from './perks'
 import { abilityChoices, abilityQuality, carryLearned, learnable, learnAbility, maxCircle, recalc } from './character'
 import { formatMoney } from './money'
@@ -145,12 +147,19 @@ export type RewardEffect =
   | { type: 'pregnancy'; op: 'conceive' | 'reveal'; target: string; father?: string; father_name?: string }
   /** 泌乳：add 泌乳 days 天、remove 拿掉事件與道具的泌乳。target：pc 或隊員的 id */
   | { type: 'lactation'; op: 'add' | 'remove'; target: string; days?: number }
+  /** 家僕請假（家裡的事，docs/HOMES.md 第 8.1 節）：這位家僕（或做家務的奴隸）的效果停 days 天。npc 通常是 $a */
+  | { type: 'staff_pause'; npc: string; days: number }
+  /** 家僕的工錢：負的是扣幾天（當作已經付了），正的是多給幾天（從身上的錢付） */
+  | { type: 'staff_wage'; npc: string; days: number }
+  /** 收起房子裡一件裝飾家具（只有舒適度、沒有功能的）放回行囊：打破了花瓶這類事（不會真的壞掉） */
+  | { type: 'stow_decor' }
 
 export const EFFECT_TYPES: RewardEffect['type'][] = [
   'money', 'item', 'affinity', 'reputation', 'xp', 'flag', 'companion', 'join_party', 'leave',
   'relationship_text', 'memory', 'condition', 'hp', 'enslave_player', 'free', 'change_master', 'quest_reward', 'quest_flag', 'meet', 'ability', 'slot', 'hit_dice', 'mark', 'gear',
   'intel', 'start_story', 'master_home', 'strict', 'home_extend', 'perk', 'lose_perk', 'tattoo', 'remove_tattoo', 'force_equip', 'restrain',
   'parasite', 'corruption', 'lewd', 'ability_pool', 'rumor', 'blueprint', 'pregnancy', 'lactation',
+  'staff_pause', 'staff_wage', 'stow_decor',
 ]
 
 /** NPC 參照：已登場的 id，或是一份規格（生成新角色）。 */
@@ -469,7 +478,8 @@ export function applyEffects(state: GameState, report: Report, effects: RewardEf
         break
       }
       case 'lewd': {
-        const who = e.target ? state.party.find((m) => m.id === e.target) ?? pcOf(state) : pcOf(state)
+        // 對象：隊員，或留在家裡的人（家裡的事的 $a：做家務的奴隸）；找不到時是主角
+        const who = e.target ? state.party.find((m) => m.id === e.target) ?? state.npcs?.[e.target]?.character ?? pcOf(state) : pcOf(state)
         const d = addLewd(state, who, e.stat, e.delta, report)
         if (d) notes.push(`${who.name}的${lewdName(e.stat)} ${d > 0 ? '+' : ''}${d}`)
         break
@@ -505,6 +515,42 @@ export function applyEffects(state: GameState, report: Report, effects: RewardEf
           ;(report.changes.tattoos ??= []).push({ actor: 'pc', place, kind: t.kind, name: t.name ?? '', added: false })
           notes.push(`主角${placeName(place)}的${tattooKindName(t.kind)}【${t.name}】被洗掉了`)
         }
+        break
+      }
+      case 'staff_pause': {
+        const rec = state.npcs?.[e.npc]
+        if (!rec || (!rec.staff && !rec.chore) || e.days <= 0) break
+        rec.staffPause = Math.max(rec.staffPause ?? 0, state.time.day + e.days - 1)
+        notes.push(`${rec.name}請假 ${e.days} 天`)
+        break
+      }
+      case 'staff_wage': {
+        const rec = state.npcs?.[e.npc]
+        if (!rec?.staff || !e.days) break
+        if (e.days < 0) {
+          rec.staff.paidUntil += -e.days
+          notes.push(`扣了${rec.name} ${-e.days} 天工錢`)
+        } else {
+          const amount = rec.staff.wage_cc * e.days
+          c.money_cc = (c.money_cc ?? 0) - amount
+          ;(c.money_parts ??= []).push({ amount: -amount, label: `給${rec.name}的工錢` })
+          notes.push(`多給了${rec.name} ${e.days} 天工錢`)
+        }
+        break
+      }
+      case 'stow_decor': {
+        const home = ownHomeOfArea(state, currentArea(state))
+        if (!home) break
+        const decor = Object.values(home.areas).flatMap((a) => a.cells).filter((x) => {
+          const f = x.furniture ? itemDef(x.furniture)?.furniture : undefined
+          return !!f && !f.function && (f.comfort ?? 0) > 0
+        })
+        if (!decor.length) break
+        const cell = withRng(state, (rng) => rng.pick(decor))
+        const name = cell.furniture!
+        delete cell.furniture
+        addItem(state.inventory, name, 1)
+        notes.push(`${name}收進了行囊，要再擺回去`)
         break
       }
       case 'home_extend':

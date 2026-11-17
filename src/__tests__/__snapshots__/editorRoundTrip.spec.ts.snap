@@ -317,7 +317,7 @@ exports[`world editor round trip > perks: opening and saving without changes kee
 
 exports[`world editor round trip > rules: opening and saving without changes keeps the data 1`] = `
 {
-  "eventRules": "eb15f6969735",
+  "eventRules": "9945a5dfa6e8",
 }
 `;
 
