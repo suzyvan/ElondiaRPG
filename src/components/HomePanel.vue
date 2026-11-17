@@ -10,6 +10,8 @@ import { candidates, CHORE_JOBS, choreRefusal, hireRefusal, jobDef, jobName, owe
 import { isOwnSlave } from '@/engine/ownedSlaves'
 import type { StaffJob } from '@/engine/data'
 import { isBound } from '@/engine/party'
+import { agingHours, agingRecipes, agingShort, agingStatus, vesselSpec } from '@/engine/aging'
+import { VESSEL_NAME } from '@/engine/data'
 import { formatMoney } from '@/engine/money'
 import { childrenAtHome, hasTemple } from '@/engine/children'
 import { useGame } from '@/stores/game'
@@ -82,6 +84,19 @@ function plantIt() {
   if (!seedPick.value) return
   game.plant(seedPick.value)
   seedPick.value = ''
+}
+// 熟成桶（docs/HOMES.md 第 6.1 節）：放進去、取出、倒掉
+const vessel = computed(() => (home.value ? vesselSpec(cell.value) : undefined))
+const aged = computed(() => agingStatus(s.value, cell.value))
+const brews = computed(() => (vessel.value ? agingRecipes(vessel.value.vessel).map((r) => ({ ...r, short: agingShort(s.value, r.spec), hours: agingHours(area.value, r.spec) })) : []))
+const brewPick = ref('')
+function brewIt() {
+  if (!brewPick.value) return
+  game.startAging(brewPick.value)
+  brewPick.value = ''
+}
+function dumpIt() {
+  if (aged.value && confirm(`倒掉還沒熟成的${aged.value.item}？材料不會退回。`)) game.dumpAging()
 }
 function uprootIt() {
   if (crop.value && confirm(`拔掉還沒成熟的${crop.value.seed}？種子不會退回。`)) game.uproot()
@@ -166,7 +181,7 @@ function rename() {
     <div class="spot">
       <template v-if="cell.furniture">
         <span>這一格：{{ itemDef(cell.furniture)?.furniture?.icon ?? '🪑' }} {{ cell.furniture }}</span>
-        <button v-if="!cell.crop && !chest?.storage" class="small" @click="game.takeFurniture()">收起</button>
+        <button v-if="!cell.crop && !chest?.storage && !cell.aging" class="small" @click="game.takeFurniture()">收起</button>
       </template>
       <template v-else-if="place">
         <span>這一格（{{ PLACE_NAME[place] }}）是空的</span>
@@ -180,6 +195,23 @@ function rename() {
         <span v-else class="muted">行囊裡沒有能放在{{ PLACE_NAME[place] }}的家具（雜貨店、鐵匠鋪、裁縫店、珠寶店有賣）。</span>
       </template>
       <span v-else class="muted">站在空的地板或院子上可以擺家具。</span>
+    </div>
+
+    <div v-if="vessel || cell.aging" class="spot">
+      <template v-if="aged">
+        <span>{{ aged.ready ? '🍶' : '⏳' }} {{ aged.item }}：{{ aged.ready ? '熟成好了' : `還要${waitText(aged.hoursLeft)}` }}</span>
+        <button v-if="aged.ready" class="primary small" @click="game.takeAged()">取出</button>
+        <button v-else class="small" @click="dumpIt">倒掉</button>
+      </template>
+      <template v-else-if="vessel && brews.length">
+        <select v-model="brewPick">
+          <option value="">放進{{ VESSEL_NAME[vessel.vessel!] }}…</option>
+          <option v-for="b in brews" :key="b.name" :value="b.name" :disabled="b.short.length > 0">{{ b.name }}×{{ b.spec.qty }}（{{ b.spec.inputs.map((x) => `${x.name}×${x.qty}`).join('、') }}，{{ waitText(b.hours) }}）{{ b.short.length ? `：缺 ${b.short.join('、')}` : '' }}</option>
+        </select>
+        <button class="small" :disabled="!brewPick" @click="brewIt">放進去</button>
+        <Hint text="材料從行囊拿，不夠的從這棟房子的箱子補。放在地下室熟得比較快；熟成好的東西不會壞，可以放著；還沒好的可以倒掉（材料不退回）。" />
+      </template>
+      <span v-else class="muted">這種桶子目前沒有能熟成的東西。</span>
     </div>
 
     <div v-if="chest" class="spot chest">

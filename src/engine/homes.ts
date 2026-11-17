@@ -6,7 +6,7 @@
 // - 夥伴可以留在家裡（不算離隊）：不佔隊伍人數、不參加戰鬥，回家時可以帶上。
 
 import { snapshot } from './character'
-import { craftRules, geography, homeRules, itemDef, lewdRules, locationById, type FurniturePlace, type FurnitureSpec, type HomeDistrict } from './data'
+import { craftRules, geography, homeRules, itemDef, lewdRules, locationById, VESSEL_NAME, type FurniturePlace, type FurnitureSpec, type HomeDistrict } from './data'
 import { blocksFor, placeAt, position, settlementKey, type Area, type Cell } from './grid'
 import { npcRecord, registerNpc } from './npcs'
 import { enforceClassWeapons, enforceExtraSlots } from './inventory'
@@ -407,7 +407,8 @@ export function furnitureSummary(f: FurnitureSpec | undefined): string {
   if (!f) return ''
   const fn = f.function === 'bed' ? '床' : f.function === 'workbench' ? `${f.craft ? craftRules.skills[f.craft].name : ''}的高階工作台`
     : f.function === 'garden' ? '苗圃' : f.function === 'training' ? `調教室（在家調教 +${f.training ?? 0}）` : f.function === 'crib' ? '搖籃'
-    : f.function === 'storage' ? `儲物箱（${f.slots ?? 0} 種${f.money ? '，可以存錢' : ''}）` : ''
+    : f.function === 'storage' ? `儲物箱（${f.slots ?? 0} 種${f.money ? '，可以存錢' : ''}）`
+    : f.function === 'aging' ? `熟成桶（${f.vessel ? VESSEL_NAME[f.vessel] : ''}）` : ''
   const set = f.set ? homeRules.furniture_sets[f.set] : undefined
   return [fn, f.comfort ? `舒適 +${f.comfort}` : '', `放在${f.places.map((p) => PLACE_NAME[p]).join('、')}`, set ? `成套：${set.name}（湊齊 ${set.need} 件）` : ''].filter(Boolean).join('，')
 }
@@ -501,6 +502,7 @@ export function takeFurniture(state: GameState, area: Area, x: number, y: number
   if (!cell?.furniture) throw new Error('這一格沒有家具')
   if (cell.crop) throw new Error('苗圃上還種著東西，先收成或拔掉')
   if (storageInUse(cell)) throw new Error('箱子裡還有東西，先拿出來')
+  if (cell.aging) throw new Error('桶子裡還在熟成，先取出或倒掉')
   if (itemDef(cell.furniture)?.furniture?.function === 'crib') {
     const refused = cribRefusal(state, ownHomeOfArea(state, area)!)
     if (refused) throw new Error(refused)

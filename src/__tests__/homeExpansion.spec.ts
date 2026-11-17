@@ -1,12 +1,14 @@
 // 房子的擴充（R32，docs/plan/roadmap/HOME_EXPANSION_PLAN.md）：舒適度分段、成套家具、熟成桶
 import { describe, expect, it } from 'vitest'
-import { companionRules, homeRules, itemDef } from '@/engine/data'
+import { companionRules, homeRules, itemDef, itemRules } from '@/engine/data'
+import { agingRecipes, agingStatus, dumpAging, startAging, takeAged } from '@/engine/aging'
+import { depositItem, homeStock } from '@/engine/storage'
 import { sanitizeItem } from '@/engine/mods'
 import { enterLocation, placeAt, type Area } from '@/engine/grid'
-import { buyHome, comfortOf, comfortTier, completeSets, lotsOf, placeFurniture, setProgress } from '@/engine/homes'
+import { buyHome, comfortOf, comfortTier, completeSets, lotsOf, placeFurniture, setProgress, takeFurniture } from '@/engine/homes'
 import { sanitizeHomeRules } from '@/engine/homeMods'
 import { longRest } from '@/engine/rest'
-import { addItem, newGame } from '@/engine/state'
+import { addHours, addItem, newGame } from '@/engine/state'
 import type { GameState, Home } from '@/engine/types'
 
 function game(birthplace = 'soriel'): GameState {
@@ -108,5 +110,70 @@ describe('成套家具（X4）', () => {
     expect(setProgress(home).find((x) => x.id === 'scholar')).toMatchObject({ have: 2, done: false })
     expect(sanitizeItem('x', { category: 'furniture', furniture: { places: ['indoor'], set: 'scholar' } } as never, true).furniture?.set).toBe('scholar')
     expect(sanitizeItem('x', { category: 'furniture', furniture: { places: ['indoor'], set: 'nope' } } as never, true).furniture?.set).toBeUndefined()
+  })
+})
+
+describe('熟成桶（X5）', () => {
+  const qty = (state: GameState, name: string) => state.inventory.find((i) => i.name === name)?.qty ?? 0
+
+  it('五種熟成，材料都存在；做出來轉賣不會賺錢', () => {
+    const list = agingRecipes()
+    expect(list.map((r) => r.name).sort()).toEqual(['梅子酒', '燻肉', '熒光蜜酒', '藥酒', '陳年果酒'].sort())
+    const sell = (n: string) => { const d = itemDef(n)!; return d.price_cc * (d.category === 'material' ? itemRules.material_sell_ratio : itemRules.sell_ratio) }
+    for (const { name, spec } of list) {
+      for (const x of spec.inputs) expect(itemDef(x.name), `${name} ← ${x.name}`).toBeDefined()
+      const input = spec.inputs.reduce((n, x) => n + itemDef(x.name)!.price_cc * x.qty, 0)
+      expect(input, name).toBeGreaterThanOrEqual(sell(name) * spec.qty)
+    }
+  })
+
+  it('放進去用掉材料（行囊不夠的從箱子補）；熟成好了取出；桶子裡有東西不能收起', () => {
+    const state = game()
+    const home = moveIn(state)
+    const g = ground(home)
+    const cask = spot(g, 1)
+    addItem(state.inventory, '橡木桶', 1)
+    placeFurniture(state, g, cask.x, cask.y, '橡木桶')
+    const box = spot(g, 1)
+    addItem(state.inventory, '木箱', 1)
+    placeFurniture(state, g, box.x, box.y, '木箱')
+    addItem(state.inventory, '野莓', 6)
+    depositItem(state, g, box.x, box.y, '野莓', 4)
+    expect(() => startAging(state, g, cask.x, cask.y, '燻肉')).toThrow('燻製架')
+    startAging(state, g, cask.x, cask.y, '陳年果酒')
+    expect(qty(state, '野莓')).toBe(0)
+    expect(homeStock(home).has('野莓')).toBe(false)
+    const cell = g.cells[cask.y * g.width + cask.x]!
+    expect(agingStatus(state, cell)).toMatchObject({ item: '陳年果酒', ready: false, hoursLeft: 7 * 24 })
+    expect(() => takeFurniture(state, g, cask.x, cask.y)).toThrow('熟成')
+    expect(() => takeAged(state, g, cask.x, cask.y)).toThrow('小時')
+    state.time = addHours(state.time, 7 * 24)
+    const r = takeAged(state, g, cask.x, cask.y)
+    expect(r.outcome.tags).toContain('熟成')
+    expect(qty(state, '陳年果酒')).toBe(1)
+    expect(cell.aging).toBeUndefined()
+  })
+
+  it('放在地下室熟得比較快；還沒好的可以倒掉', () => {
+    const state = game()
+    const home = moveIn(state)
+    const b = Object.values(home.areas).find((a) => a.homeFloor === 'basement')!
+    const p = spot(b, 0)
+    addItem(state.inventory, '燻製架', 1)
+    placeFurniture(state, b, p.x, p.y, '燻製架')
+    addItem(state.inventory, '生肉', 3)
+    placeAt(state, b, p.x, p.y)
+    startAging(state, b, p.x, p.y, '燻肉')
+    const cell = b.cells[p.y * b.width + p.x]!
+    expect(cell.aging?.hours).toBe(Math.round(3 * 24 * homeRules.aging.basement_mult))
+    dumpAging(state, b, p.x, p.y)
+    expect(cell.aging).toBeUndefined()
+    expect(qty(state, '生肉')).toBe(0)
+  })
+
+  it('世界編輯器整理：桶子的種類、熟成的材料（不能是自己）', () => {
+    const r = sanitizeItem('自釀酒', { category: 'food', price_cc: 5, aging: { vessel: 'cask', inputs: [{ name: '野莓', qty: 3 }, { name: '自釀酒', qty: 1 }], days: 99, qty: 2 } } as never, true)
+    expect(r.aging).toEqual({ vessel: 'cask', inputs: [{ name: '野莓', qty: 3 }], days: 60, qty: 2 })
+    expect(sanitizeItem('桶', { category: 'furniture', furniture: { places: ['indoor'], function: 'aging', vessel: 'bad' } } as never, true).furniture).toMatchObject({ function: 'aging', vessel: 'cask' })
   })
 })

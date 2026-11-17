@@ -2056,6 +2056,8 @@ export interface ItemDef {
   recipe?: RecipeSpec
   /** 種子：種在房子的苗圃會長出什麼（見 docs/HOMES.md） */
   seed?: SeedSpec
+  /** 熟成（docs/HOMES.md 第 6.1 節）：這件物品可以用熟成桶做出來：什麼桶、放進哪些材料、幾天、做出幾份 */
+  aging?: AgingSpec
   /** 主人會強制主角裝上這件裝備（主人的事件 force_equip）；tags：只有這些身分的主人會用（沒有時任何主人） */
   master_force?: { tags?: string[] }
   /** 成人向的物品：內容編輯器的篩選用 */
@@ -2089,6 +2091,19 @@ export interface RecipeSpec {
 }
 
 /** 種子：種在苗圃（place）上，days 天後收成 yields，數量在 qty 之間；yields 有好幾種時隨機一種 */
+/** 熟成桶的種類：cask 橡木桶（酒）、smoke 燻製架（肉）、jar 醃缸（醃漬、梅酒） */
+export const AGING_VESSELS = ['cask', 'smoke', 'jar'] as const
+export type AgingVessel = (typeof AGING_VESSELS)[number]
+export const VESSEL_NAME: Record<AgingVessel, string> = { cask: '橡木桶', smoke: '燻製架', jar: '醃缸' }
+
+export interface AgingSpec {
+  vessel: AgingVessel
+  inputs: { name: string; qty: number }[]
+  days: number
+  /** 做出幾份 */
+  qty: number
+}
+
 export interface SeedSpec {
   yields: string[]
   qty: [number, number]
@@ -2413,7 +2428,7 @@ export const CRAFT_IDS = Object.keys(craftRules.skills) as CraftId[]
 
 export type FurniturePlace = 'indoor' | 'yard' | 'basement'
 
-export const FURNITURE_FUNCTIONS = ['bed', 'workbench', 'garden', 'training', 'crib', 'storage'] as const
+export const FURNITURE_FUNCTIONS = ['bed', 'workbench', 'garden', 'training', 'crib', 'storage', 'aging'] as const
 export type FurnitureFunction = (typeof FURNITURE_FUNCTIONS)[number]
 
 export interface FurnitureSpec {
@@ -2427,6 +2442,8 @@ export interface FurnitureSpec {
   money?: boolean
   /** 成套家具：套組 id（homes.json 的 furniture_sets） */
   set?: string
+  /** 熟成桶：哪一種（物品的 aging.vessel 要對上） */
+  vessel?: AgingVessel
   /** 調教室的家具：在家調教時的檢定加值 */
   training?: number
   comfort?: number
@@ -2454,6 +2471,8 @@ export const homeRules = homesJson as unknown as {
   comfort_tiers: { at: number; condition: string }[]
   /** 成套家具：湊齊 need 件不同的同套家具時，舒適度 + comfort，在家長休後得到 condition */
   furniture_sets: Record<string, FurnitureSetDef>
+  /** 熟成桶：放在地下室時時間的倍率 */
+  aging: { basement_mult: number }
   staff: StaffRules
 }
 

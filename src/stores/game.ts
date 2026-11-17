@@ -78,6 +78,7 @@ import * as partyEngine from '@/engine/party'
 import * as garden from '@/engine/garden'
 import * as storage from '@/engine/storage'
 import * as staff from '@/engine/staff'
+import * as aging from '@/engine/aging'
 import * as invention from '@/engine/invention'
 import * as fieldCast from '@/engine/fieldCast'
 import type { CustomDifficulty, DefeatLoot, Difficulty, GameState, GearSlot, LewdStat, NpcNews, Report, TattooPlace } from '@/engine/types'
@@ -1783,6 +1784,19 @@ export const useGame = defineStore('game', () => {
     payWages: () => run((s) => staff.payWages(s), { narrate: false }),
     ackStaffNotes: () => run((s) => staff.ackStaffNotes(s), { narrate: false }),
     assignChore: (id: string, job: StaffJob | null) => run((s) => staff.assignChore(s, id, job)),
+    // 熟成桶（aging.ts）：放進去、取出、倒掉
+    startAging: (product: string) => run((s) => {
+      const p = grid.position(s)
+      aging.startAging(s, grid.currentArea(s), p.x, p.y, product)
+    }),
+    takeAged: () => run((s) => {
+      const p = grid.position(s)
+      return aging.takeAged(s, grid.currentArea(s), p.x, p.y)
+    }, { narrate: false }),
+    dumpAging: () => run((s) => {
+      const p = grid.position(s)
+      aging.dumpAging(s, grid.currentArea(s), p.x, p.y)
+    }),
     // 儲物箱（storage.ts）：站在箱子上存取，不花時間
     deposit: (name: string, qty?: number) => run((s) => {
       const p = grid.position(s)

@@ -20,7 +20,7 @@ import mapsJson from '@data/world/maps.json'
 import { COSTUME_SHOPS,
   abilities, attributeRules, ATTR_IDS, bumpContentRevision, MASTER_EVENT_POOLS, masterEventPool, type MasterEventPool, classes, NONCOMBAT_CLASS, companionRules, CRAFT_IDS, craftRules, damageTypes, dungeonEncounters, enemies, equipment, GENDER_IDS, geography, itemDef, itemRules, monsterTraits,
   npcs as namedNpcs, npcTags, isChoosablePerk, perkDef, perkRules, reindexItems, statuses, storyCounters, wildEncounterTables, type ArmorDef, type AttrId, type NpcTagDef, type DungeonEncounters, type EncounterGroup,
-  type EnemyDef, FURNITURE_FUNCTIONS, furnitureSetIds, type FurniturePlace, type FurnitureSpec, type ItemCategory, type ItemDef, type ItemUse, type Mods, type NpcDef, type WeaponDef, wildEncounters,
+  type EnemyDef, AGING_VESSELS, type AgingSpec, type AgingVessel, FURNITURE_FUNCTIONS, furnitureSetIds, type FurniturePlace, type FurnitureSpec, type ItemCategory, type ItemDef, type ItemUse, type Mods, type NpcDef, type WeaponDef, wildEncounters,
   stories, type RecipeSpec, type SeedSpec, type StoryCond, type AbilityDef, type AbilityTarget, type AbilityType, type ApplyDef, type DamagePart, type PerkDef,
   type Control, type LuckRoll, type StatusDef, type ConditionDef, slaveryRules, lewdRules, type ContractDef, isKeeperShop, isCustomShopId, isLandmarkId, landmarks, specialMaps, shopRules, DUNGEON_LAYER_IDS, DUNGEON_LAYER_NAME, BOSS_LAYER_IDS, type DungeonLayerId, BIND_KINDS, type BindKind, LOCK_GRADES,
 } from './data'
@@ -1011,6 +1011,8 @@ export function sanitizeItem(name: string, raw: Partial<ItemMod>, custom: boolea
       ...(int(f.comfort, 0, 10, 0) ? { comfort: int(f.comfort, 0, 10, 0) } : {}),
       // 成套家具：存在的套組才留（homes.json 的 furniture_sets）
       ...(typeof f.set === 'string' && furnitureSetIds().includes(f.set) ? { set: f.set } : {}),
+      // 熟成桶：哪一種桶
+      ...(f.function === 'aging' ? { vessel: AGING_VESSELS.includes(f.vessel as never) ? f.vessel : 'cask' } : {}),
       ...(typeof f.icon === 'string' && f.icon.trim() ? { icon: [...f.icon.trim()].slice(0, 2).join('') } : {}),
     }
   }
@@ -1044,6 +1046,18 @@ export function sanitizeItem(name: string, raw: Partial<ItemMod>, custom: boolea
       const hi = int(sd.qty?.[1], 1, 20, lo)
       const place: FurniturePlace = sd.place === 'basement' || sd.place === 'indoor' ? sd.place : 'yard'
       out.seed = { yields, qty: [Math.min(lo, hi), Math.max(lo, hi)], days: int(sd.days, 1, 30, 3), place }
+    }
+  }
+  // 熟成：用哪一種熟成桶、放進哪些材料（最多 4 種、不能是自己）、幾天、做出幾份（裝備以外）
+  if (category !== 'equipment' && raw.aging && typeof raw.aging === 'object') {
+    const ag: Partial<AgingSpec> = raw.aging
+    const inputs = new Map<string, number>()
+    for (const x of Array.isArray(ag.inputs) ? ag.inputs : []) {
+      const n = cleanItemName(x?.name)
+      if (n && n !== out.name) inputs.set(n, Math.min(99, (inputs.get(n) ?? 0) + int(x?.qty, 1, 99, 1)))
+    }
+    if (inputs.size && AGING_VESSELS.includes(ag.vessel as never)) {
+      out.aging = { vessel: ag.vessel as AgingVessel, inputs: [...inputs].slice(0, 4).map(([name, qty]) => ({ name, qty })), days: int(ag.days, 1, 60, 3), qty: int(ag.qty, 1, 20, 1) }
     }
   }
   // 光源與燃料：每一份能照亮幾格

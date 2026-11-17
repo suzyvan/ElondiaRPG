@@ -14,6 +14,7 @@
     { "at": 12, "condition": "refreshed" },
     { "at": 20, "condition": "invigorated" }
   ],
+  "aging": { "$comment": "熟成桶（docs/HOMES.md 第 6.1 節）：放在地下室時熟成的時間乘上 basement_mult（地窖陰涼）。", "basement_mult": 0.75 },
   "furniture_sets": {
     "$comment": "成套家具（docs/HOMES.md 第 4.1 節）：家具的 furniture.set 寫套組 id；同一棟房子擺了 need 件不同的同套家具就算湊齊（不必同一間），舒適度 + comfort，在家長休後全隊得到 condition。",
     "noble": { "name": "貴族的居所", "need": 4, "comfort": 3, "condition": "set_noble" },

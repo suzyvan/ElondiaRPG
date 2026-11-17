@@ -95,6 +95,8 @@ export interface Cell {
   furniture?: string
   /** 苗圃上種的東西：種子與播種的時間（見 garden.ts） */
   crop?: { seed: string; planted: GameTime }
+  /** 熟成桶裡正在熟成的東西：做出什麼、從什麼時候開始、要幾小時（見 aging.ts） */
+  aging?: { item: string; started: GameTime; hours: number }
   /** 儲物箱裡放的東西與錢（見 storage.ts） */
   storage?: { items: InventoryItem[]; money_cc?: number }
 }

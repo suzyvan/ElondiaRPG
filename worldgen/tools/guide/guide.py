@@ -355,6 +355,16 @@ def recipe_source(it):
     return [f"製作：{craft} Lv.{r.get('level', 1)}" + (f"（{inputs}）" if inputs else '')]
 
 
+VESSEL = {'cask': '橡木桶', 'smoke': '燻製架', 'jar': '醃缸'}
+
+
+def aging_source(it):
+    a = it.get('aging')
+    if not a: return []
+    inputs = '、'.join(f"{x['name']}×{x.get('qty', 1)}" for x in a.get('inputs', []))
+    return [f"熟成：{VESSEL.get(a['vessel'], a['vessel'])} {a.get('days', 1)} 天（{inputs}）"]
+
+
 CATEGORY_NAME = {k: v if isinstance(v, str) else v.get('name', k) for k, v in ld('data/rules/items.json')['categories'].items()}
 
 
@@ -370,7 +380,7 @@ def items_page(src):
         out.append('| 物品 | 價格 | 取得方式 |')
         out.append('|---|---|---|')
         for it in sorted(its, key=lambda i: i['price_cc']):
-            ways = shop_source(it) + recipe_source(it) + src.get(it['name'], [])
+            ways = shop_source(it) + recipe_source(it) + aging_source(it) + src.get(it['name'], [])
             if it.get('forge') and not ways: ways.append('打造材料：怪物型層主與寶箱的掉落（越深的層越高級）')
             name = it['name'] + (' 🔞' if it.get('adult') else '')
             out.append(f"| {esc(name)} | {it['price_cc']} 白鸛 | {esc('；'.join(ways)) or '目前沒有固定的取得方式'} |")

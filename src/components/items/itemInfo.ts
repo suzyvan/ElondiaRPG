@@ -2,6 +2,7 @@
 
 import { craftRules, itemDef, itemRules, type ItemCategory } from '@/engine/data'
 import { seedSummary } from '@/engine/garden'
+import { agingSummary } from '@/engine/aging'
 import { furnitureSummary } from '@/engine/homes'
 import { gearKnown, gearRules, gearSpecOf, gearStats, gearSummaryParts, type SummaryPart } from '@/engine/gear'
 import { intelSummary, isIntelItem, useSummary } from '@/engine/inventory'
@@ -45,7 +46,7 @@ export function itemEffectParts(state: GameState, name: string): SummaryPart[] {
   const forge = materialUses(state, name)
   const recipe = def?.recipe ? `配方：${craftRules.skills[def.recipe.craft].name} Lv.${def.recipe.level}` : ''
   const rest = [useSummary(def?.use), toolSummary(def?.tool), isIntelItem(state, name) ? intelSummary(def?.intel) : '', forge,
-    furnitureSummary(def?.furniture), seedSummary(def?.seed), recipe].filter(Boolean).map((text) => ({ text }))
+    furnitureSummary(def?.furniture), seedSummary(def?.seed), agingSummary(def?.aging), recipe].filter(Boolean).map((text) => ({ text }))
   return [...(spec ? gearSummaryParts(spec) : []), ...rest]
 }
 

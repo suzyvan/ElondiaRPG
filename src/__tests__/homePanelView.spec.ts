@@ -54,4 +54,31 @@ describe('房屋區塊', () => {
     expect(staffOf(game.state!, home.id).map((r) => r.id)).toEqual([first.id])
     c.unmount()
   })
+
+  it('站在熟成桶上：列出能熟成的東西，放進去開始熟成', async () => {
+    const state = newGame({ name: '艾倫', race: 'human', classId: 'fighter', seed: 6, birthplace: 'soriel' })
+    enterLocation(state)
+    state.money_cc = 100000
+    buyHome(state, lotsOf(state.location).find((l) => l.district === 'house')!.id)
+    const home = Object.values(state.homes!)[0]!
+    const ground = Object.values(home.areas).find((a) => a.homeFloor === 'ground')!
+    const i = ground.cells.findIndex((c) => c.kind === 'floor' && !c.furniture)
+    const p = { x: i % ground.width, y: Math.floor(i / ground.width) }
+    addItem(state.inventory, '橡木桶', 1)
+    placeFurniture(state, ground, p.x, p.y, '橡木桶')
+    placeAt(state, ground, p.x, p.y)
+    addItem(state.inventory, '野莓', 6)
+    const game = useGame()
+    game.state = state
+    const c = mount(HomePanel, { attachTo: document.body })
+    await flushPromises()
+    const select = c.findAll('select').find((x) => x.text().includes('陳年果酒'))!
+    expect(select.text()).toContain('熒光蜜酒')
+    await select.setValue('陳年果酒')
+    await c.findAll('button').find((b) => b.text() === '放進去')!.trigger('click')
+    await flushPromises()
+    expect(ground.cells[i]!.aging?.item).toBe('陳年果酒')
+    expect(document.body.textContent).toContain('陳年果酒：還要')
+    c.unmount()
+  })
 })
