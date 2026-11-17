@@ -112,7 +112,7 @@ const target = reactive<Record<string, string>>({})
         <select v-model="gearKind" class="small" aria-label="裝備的部位">
           <option value="">所有部位 {{ kindCount('') }}</option>
           <template v-for="k in GEAR_KINDS" :key="k.id">
-            <option v-if="kindCount(k.id)" :value="k.id">{{ k.name }} {{ kindCount(k.id) }}</option>
+            <option v-if="kindCount(k.id) || gearKind === k.id" :value="k.id">{{ k.name }} {{ kindCount(k.id) }}</option>
           </template>
         </select>
         <select v-model="sellable" class="small" aria-label="能不能賣" title="特殊：不能賣給商店的裝備（獨特效果、帶屬性或被詛咒的，任務、寶箱、事件給的）">
