@@ -20,7 +20,7 @@ import mapsJson from '@data/world/maps.json'
 import { COSTUME_SHOPS,
   abilities, attributeRules, ATTR_IDS, bumpContentRevision, MASTER_EVENT_POOLS, masterEventPool, type MasterEventPool, classes, NONCOMBAT_CLASS, companionRules, CRAFT_IDS, craftRules, damageTypes, dungeonEncounters, enemies, equipment, GENDER_IDS, geography, itemDef, itemRules, monsterTraits,
   npcs as namedNpcs, npcTags, isChoosablePerk, perkDef, perkRules, reindexItems, statuses, storyCounters, wildEncounterTables, type ArmorDef, type AttrId, type NpcTagDef, type DungeonEncounters, type EncounterGroup,
-  type EnemyDef, FURNITURE_FUNCTIONS, type FurniturePlace, type FurnitureSpec, type ItemCategory, type ItemDef, type ItemUse, type Mods, type NpcDef, type WeaponDef, wildEncounters,
+  type EnemyDef, FURNITURE_FUNCTIONS, furnitureSetIds, type FurniturePlace, type FurnitureSpec, type ItemCategory, type ItemDef, type ItemUse, type Mods, type NpcDef, type WeaponDef, wildEncounters,
   stories, type RecipeSpec, type SeedSpec, type StoryCond, type AbilityDef, type AbilityTarget, type AbilityType, type ApplyDef, type DamagePart, type PerkDef,
   type Control, type LuckRoll, type StatusDef, type ConditionDef, slaveryRules, lewdRules, type ContractDef, isKeeperShop, isCustomShopId, isLandmarkId, landmarks, specialMaps, shopRules, DUNGEON_LAYER_IDS, DUNGEON_LAYER_NAME, BOSS_LAYER_IDS, type DungeonLayerId, BIND_KINDS, type BindKind, LOCK_GRADES,
 } from './data'
@@ -1009,6 +1009,8 @@ export function sanitizeItem(name: string, raw: Partial<ItemMod>, custom: boolea
       // 儲物箱：能放幾種（1～99）、能不能存錢
       ...(f.function === 'storage' ? { slots: int(f.slots, 1, 99, 12), ...(f.money === true ? { money: true } : {}) } : {}),
       ...(int(f.comfort, 0, 10, 0) ? { comfort: int(f.comfort, 0, 10, 0) } : {}),
+      // 成套家具：存在的套組才留（homes.json 的 furniture_sets）
+      ...(typeof f.set === 'string' && furnitureSetIds().includes(f.set) ? { set: f.set } : {}),
       ...(typeof f.icon === 'string' && f.icon.trim() ? { icon: [...f.icon.trim()].slice(0, 2).join('') } : {}),
     }
   }

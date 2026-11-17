@@ -6,6 +6,10 @@
 import homesJson from '@data/rules/homes.json'
 import { STAFF_JOBS } from './data'
 
+/** 內建的成套家具（設定頁的欄位依這份產生；新的套組不能從設定頁新增） */
+const SETS = (homesJson as unknown as { furniture_sets: Record<string, { name: string }> }).furniture_sets
+const SET_IDS = Object.keys(SETS).filter((k) => !k.startsWith('$'))
+
 export interface HomeField { path: string; label: string; min: number; max: number; step: number; hint?: string }
 export interface HomeGroup { name: string; fields: HomeField[] }
 
@@ -39,6 +43,10 @@ export const HOME_GROUPS: HomeGroup[] = [
     f('staff.candidates_per_job.0', '每個職位的應徵者：最少', 0, 5, 1),
     f('staff.candidates_per_job.1', '每個職位的應徵者：最多', 0, 5, 1),
   ] },
+  { name: '成套家具', fields: SET_IDS.flatMap((id) => [
+    f(`furniture_sets.${id}.need`, `${SETS[id]!.name}：湊齊幾件`, 1, 20, 1),
+    f(`furniture_sets.${id}.comfort`, `${SETS[id]!.name}：舒適度 +`, 0, 20, 1),
+  ]) },
   { name: '請認識的人、奴隸做家務', fields: [
     f('staff.invite_affinity', '請認識的人：親密度至少', -100, 100, 1),
     f('staff.invite_dc', '請認識的人：參考 DC（減去親密度 / 10）', 5, 30, 1),
@@ -50,10 +58,10 @@ export const HOME_GROUPS: HomeGroup[] = [
 export const HOME_FIELDS = HOME_GROUPS.flatMap((g) => g.fields)
 
 /** 文字欄位：職位的名稱與職業描述（照性別換稱謂） */
-export const HOME_TEXT_FIELDS: { path: string; label: string }[] = STAFF_JOBS.flatMap((j) => [
+export const HOME_TEXT_FIELDS: { path: string; label: string }[] = [...SET_IDS.map((id) => ({ path: `furniture_sets.${id}.name`, label: `成套家具「${SETS[id]!.name}」的名稱` })), ...STAFF_JOBS.flatMap((j) => [
   { path: `staff.jobs.${j}.name`, label: `${(homesJson as { staff: { jobs: Record<string, { name: string }> } }).staff.jobs[j]!.name}的名稱` },
   { path: `staff.jobs.${j}.occupation`, label: `${(homesJson as { staff: { jobs: Record<string, { name: string }> } }).staff.jobs[j]!.name}的職業描述` },
-])
+])]
 
 export type HomeRulesMod = Record<string, unknown>
 

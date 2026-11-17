@@ -15,7 +15,7 @@ import { formatMoney } from '@/engine/money'
 import { inferTradeCategory, marketRules, tradeCategoryName } from '@/engine/market'
 import { inferMaterialTier, maxMaterialTier } from '@/engine/materialInfo'
 import { TOOL_KINDS, toolSummary } from '@/engine/tools'
-import { choosablePerks, CRAFT_IDS, craftRules, FURNITURE_FUNCTIONS, homeRules, type FurnitureFunction, type FurniturePlace } from '@/engine/data'
+import { choosablePerks, CRAFT_IDS, craftRules, FURNITURE_FUNCTIONS, furnitureSetIds, homeRules, type FurnitureFunction, type FurniturePlace } from '@/engine/data'
 import { PLACE_NAME } from '@/engine/homes'
 import { CONTENT_TAGS, FILTER_TAGS } from '@/engine/content'
 import { categoryIconSource, gearIconSource, type IconSource } from '@/engine/itemIcons'
@@ -664,6 +664,12 @@ function setFuel(v: string) {
           </select>
         </label>
         <label>舒適度 <input v-model.number="furn.comfort" type="number" min="0" max="10" /></label>
+        <label><span>成套家具 <Hint text="同一棟房子擺了這一套裡規定件數的不同家具，就算湊齊：舒適度再加、在家長休後多一個狀態（⚙️ 房屋設定可以改）。" /></span>
+          <select :value="furn.set ?? ''" @change="(($event.target as HTMLSelectElement).value ? (furn.set = ($event.target as HTMLSelectElement).value) : delete furn.set)">
+            <option value="">（不屬於任何一套）</option>
+            <option v-for="id in furnitureSetIds()" :key="id" :value="id">{{ homeRules.furniture_sets[id]!.name }}（湊齊 {{ homeRules.furniture_sets[id]!.need }} 件）</option>
+          </select>
+        </label>
         <label>地圖符號 <input v-model="furn.icon" title="擺在家裡時，地圖格上顯示的 emoji" maxlength="4" placeholder="🪑" /></label>
       </div>
       <div class="row small">

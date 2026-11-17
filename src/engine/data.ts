@@ -2425,6 +2425,8 @@ export interface FurnitureSpec {
   slots?: number
   /** 儲物箱：可以存錢（保險箱） */
   money?: boolean
+  /** 成套家具：套組 id（homes.json 的 furniture_sets） */
+  set?: string
   /** 調教室的家具：在家調教時的檢定加值 */
   training?: number
   comfort?: number
@@ -2450,7 +2452,16 @@ export const homeRules = homesJson as unknown as {
   lots: Record<string, number>
   /** 舒適度的分段（由低到高）：在家長休後全隊得到達到的最高一段的狀態（docs/HOMES.md 第 4 節） */
   comfort_tiers: { at: number; condition: string }[]
+  /** 成套家具：湊齊 need 件不同的同套家具時，舒適度 + comfort，在家長休後得到 condition */
+  furniture_sets: Record<string, FurnitureSetDef>
   staff: StaffRules
+}
+
+export interface FurnitureSetDef { name: string; need: number; comfort: number; condition?: string }
+
+/** 成套家具的 id（不含 $comment） */
+export function furnitureSetIds(): string[] {
+  return Object.keys(homeRules.furniture_sets).filter((k) => !k.startsWith('$'))
 }
 
 /** 家僕的職位（homes.json 的 staff.jobs；docs/HOMES.md 第 8 節） */

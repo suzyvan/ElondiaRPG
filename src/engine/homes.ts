@@ -408,7 +408,8 @@ export function furnitureSummary(f: FurnitureSpec | undefined): string {
   const fn = f.function === 'bed' ? '床' : f.function === 'workbench' ? `${f.craft ? craftRules.skills[f.craft].name : ''}的高階工作台`
     : f.function === 'garden' ? '苗圃' : f.function === 'training' ? `調教室（在家調教 +${f.training ?? 0}）` : f.function === 'crib' ? '搖籃'
     : f.function === 'storage' ? `儲物箱（${f.slots ?? 0} 種${f.money ? '，可以存錢' : ''}）` : ''
-  return [fn, f.comfort ? `舒適 +${f.comfort}` : '', `放在${f.places.map((p) => PLACE_NAME[p]).join('、')}`].filter(Boolean).join('，')
+  const set = f.set ? homeRules.furniture_sets[f.set] : undefined
+  return [fn, f.comfort ? `舒適 +${f.comfort}` : '', `放在${f.places.map((p) => PLACE_NAME[p]).join('、')}`, set ? `成套：${set.name}（湊齊 ${set.need} 件）` : ''].filter(Boolean).join('，')
 }
 
 /** 房子裡所有的家具 */
@@ -424,10 +425,29 @@ export function furnitureIn(home: Home): { name: string; area: string; x: number
   return out
 }
 
-/** 舒適度：所有家具的 comfort 加總；給了 state 時加上家僕（女僕，staff.ts） */
+/** 成套家具：每一套擺了幾件不同的家具（homes.json 的 furniture_sets） */
+export function setProgress(home: Home): { id: string; name: string; have: number; need: number; done: boolean }[] {
+  const pieces = new Map<string, Set<string>>()
+  for (const f of furnitureIn(home)) {
+    const set = itemDef(f.name)?.furniture?.set
+    if (set && !set.startsWith('$') && homeRules.furniture_sets[set]) (pieces.get(set) ?? pieces.set(set, new Set()).get(set)!).add(f.name)
+  }
+  return [...pieces].map(([id, names]) => {
+    const def = homeRules.furniture_sets[id]!
+    return { id, name: def.name, have: names.size, need: def.need, done: names.size >= def.need }
+  })
+}
+
+/** 湊齊的成套家具 */
+export function completeSets(home: Home): string[] {
+  return setProgress(home).filter((x) => x.done).map((x) => x.id)
+}
+
+/** 舒適度：所有家具的 comfort 加總，加上湊齊的成套家具；給了 state 時加上家僕（女僕，staff.ts） */
 export function comfortOf(home: Home, state?: GameState): number {
   const furniture = furnitureIn(home).reduce((n, f) => n + (itemDef(f.name)?.furniture?.comfort ?? 0), 0)
-  return furniture + (state && !home.master ? staffComfort(state, home) : 0)
+  const sets = completeSets(home).reduce((n, id) => n + (homeRules.furniture_sets[id]?.comfort ?? 0), 0)
+  return furniture + sets + (state && !home.master ? staffComfort(state, home) : 0)
 }
 
 /** 調教室：房子裡調教家具的加值合計（lewd.json 的 training.room_max 為上限） */

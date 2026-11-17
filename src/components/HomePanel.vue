@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { conditionName, craftRules, genderName, homeRules, itemDef, itemRules, raceName } from '@/engine/data'
 import {
-  comfortOf, comfortTier, describeHome, furnitureIn, hasBed, homeOfArea, lotHere, lotPrice, ownHomeOfArea, PLACE_NAME, placeOf, residents, stayRefusal,
+  comfortOf, comfortTier, describeHome, setProgress, furnitureIn, hasBed, homeOfArea, lotHere, lotPrice, ownHomeOfArea, PLACE_NAME, placeOf, residents, stayRefusal,
 } from '@/engine/homes'
 import { cropStatus, plotPlace, seedsFor } from '@/engine/garden'
 import { depositRefusal, homeMoney, storageSlots, storageSpec, storedItems, storedMoney } from '@/engine/storage'
@@ -56,6 +56,9 @@ const pick = ref('')
 const all = computed(() => (home.value ? furnitureIn(home.value) : []))
 const comfort = computed(() => (home.value ? comfortOf(home.value, s.value) : 0))
 const tierInfo = computed(() => comfortTier(comfort.value))
+// 成套家具（docs/HOMES.md 第 4.1 節）：每一套擺了幾件
+const sets = computed(() => (home.value ? setProgress(home.value) : []))
+const setOf = (name: string) => { const id = itemDef(name)?.furniture?.set; return id ? sets.value.find((x) => x.id === id) : undefined }
 const benches = computed(() => all.value.filter((f) => itemDef(f.name)?.furniture?.function === 'workbench').map((f) => `${f.name}（${craftRules.skills[itemDef(f.name)!.furniture!.craft!].name}）`))
 const staying = computed(() => (home.value ? residents(s.value, home.value.id) : []))
 const companions = computed(() => s.value.party.filter((m) => !m.isPlayer))
@@ -158,7 +161,7 @@ function rename() {
       <h3 class="title"><GameIcon name="home" :size="16" />{{ home.name }}</h3>
       <button class="small ghost" title="改名" aria-label="改名" @click="rename"><GameIcon name="edit" :size="14" /></button>
     </div>
-    <p class="muted">{{ area.name.split('・').at(-1) }}・舒適度 {{ comfort }}<template v-if="tierInfo.tier">（在家長休會{{ conditionName(tierInfo.tier.condition) }}<template v-if="tierInfo.next">，再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}</template>）</template><template v-else-if="tierInfo.next">（再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}）</template>・{{ hasBed(home) ? '有床，可以在家長休' : '還沒有床' }}<template v-if="benches.length">・工作台：{{ benches.join('、') }}</template><template v-if="plots.total">・苗圃 {{ plots.total }} 塊<template v-if="plots.ripe">（{{ plots.ripe }} 塊可以收成）</template></template></p>
+    <p class="muted">{{ area.name.split('・').at(-1) }}・舒適度 {{ comfort }}<template v-if="tierInfo.tier">（在家長休會{{ conditionName(tierInfo.tier.condition) }}<template v-if="tierInfo.next">，再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}</template>）</template><template v-else-if="tierInfo.next">（再 {{ tierInfo.next.at - comfort }} 點{{ conditionName(tierInfo.next.condition) }}）</template>・{{ hasBed(home) ? '有床，可以在家長休' : '還沒有床' }}<template v-if="sets.length">・成套家具：{{ sets.map((x) => `${x.name} ${x.have}／${x.need}${x.done ? '（湊齊）' : ''}`).join('、') }}</template><template v-if="benches.length">・工作台：{{ benches.join('、') }}</template><template v-if="plots.total">・苗圃 {{ plots.total }} 塊<template v-if="plots.ripe">（{{ plots.ripe }} 塊可以收成）</template></template></p>
 
     <div class="spot">
       <template v-if="cell.furniture">
@@ -311,7 +314,7 @@ function rename() {
 
     <FoldMenu id="home.furniture" icon="sofa" label="家具" detail="擺在這棟房子裡的家具" :badge="all.length">
       <ul class="plain">
-        <li v-for="f in all" :key="`${f.area}:${f.x},${f.y}`">{{ itemDef(f.name)?.furniture?.icon }} {{ f.name }} <span class="muted">（{{ floorName(f.area) }}<template v-if="f.stored">・放了 {{ f.stored }} 種</template>）</span></li>
+        <li v-for="f in all" :key="`${f.area}:${f.x},${f.y}`">{{ itemDef(f.name)?.furniture?.icon }} {{ f.name }} <span class="muted">（{{ floorName(f.area) }}<template v-if="f.stored">・放了 {{ f.stored }} 種</template>）</span><span v-if="setOf(f.name)" class="tag small" :class="{ ok: setOf(f.name)!.done }">{{ setOf(f.name)!.name }} {{ setOf(f.name)!.have }}／{{ setOf(f.name)!.need }}</span></li>
         <li v-if="!all.length" class="muted">還沒有家具。</li>
       </ul>
     </FoldMenu>

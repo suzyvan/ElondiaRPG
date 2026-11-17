@@ -108,6 +108,10 @@
    "group": "home_rest", "rank": 1, "combat_temp_hp": 5, "check_penalty": -1,
    "clears": "long_rest"
   },
+  "set_noble": { "name": "貴族的品味", "desc": "在湊齊了貴族擺設的家裡醒來，舉手投足都多了幾分氣派：下次長休前魅力檢定 +1。", "check_penalty": -1, "check_attrs": ["cha"], "clears": "long_rest" },
+  "set_hunter": { "name": "獵人的晨起", "desc": "在獵人小屋般的家裡醒來，手腳格外俐落：下次長休前力量與靈巧檢定 +1。", "check_penalty": -1, "check_attrs": ["str", "dex"], "clears": "long_rest" },
+  "set_east": { "name": "庭院的靜心", "desc": "在東方庭院般的家裡醒來，心神澄明：下次長休前豁免 +1。", "combat_mods": { "save": 1 }, "clears": "long_rest" },
+  "set_scholar": { "name": "書齋的沉思", "desc": "在學者書齋般的家裡醒來，腦子轉得特別快：下次長休前智力檢定 +1。", "check_penalty": -1, "check_attrs": ["int"], "clears": "long_rest" },
   "refreshed": {
    "name": "精神飽滿",
    "desc": "在佈置得很講究的家裡睡了一覺，整個人神清氣爽。下次長休前，每場戰鬥開始時獲得 8 點暫時生命，主動行動檢定 +1，豁免 +1。",
