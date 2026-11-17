@@ -285,6 +285,8 @@ export const useGame = defineStore('game', () => {
   interface Toast extends ErrorParts { id: number; text: string; count: number }
   const toasts = ref<Toast[]>([])
   let toastSeq = 0
+  // 同步（flush: 'sync'）：run() 一開始把 error 清成 null、出錯時又設回同一則訊息，都在同一個 tick 裡；
+  // 預設的 watch 只看到「沒變」，連續發生同一個錯誤就不會計次
   watch(error, (text) => {
     if (!text) return
     const same = toasts.value.find((t) => t.text === text)
@@ -294,7 +296,7 @@ export const useGame = defineStore('game', () => {
       return
     }
     toasts.value = [...toasts.value, { id: ++toastSeq, text, count: 1, ...splitError(text) }].slice(-4)
-  })
+  }, { flush: 'sync' })
   function dismissToast(id: number) {
     const t = toasts.value.find((x) => x.id === id)
     toasts.value = toasts.value.filter((x) => x.id !== id)
