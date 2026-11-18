@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { Character } from '@/engine/types'
 import { actionRules, attrName } from '@/engine/data'
-import { parasiteDef, parasiteEffects, parasiteRules, parasitesOf, stageName, stageOf } from '@/engine/parasites'
+import { parasiteDef, parasiteEffects, parasiteRules, parasitesOf, stageLabel, stageOf } from '@/engine/parasites'
 import { flaresOn, triggerBlock } from '@/engine/parasiteEvents'
 import { broodOf } from '@/engine/brood'
 import { tagsAllowed } from '@/engine/content'
@@ -27,6 +27,10 @@ function effectText(p: Parameters<typeof parasiteEffects>[0]): string {
 const block = (id: string) => (game.state ? triggerBlock(game.state, id) : '')
 // 苗床（蜂卵、觸手之種……）沒有「發作」：照時間長大、有自己的苗床事件，只有關掉「怪物的苗床」時才停
 const brood = (p: { id: string }) => !!broodOf(p.id)
+// 苗床沒有「發作」：階段標成第幾階段，不用寄生物的階段名稱（潛伏、發作、共生、支配）
+const lastStage = parasiteRules.stages.length
+// 拿掉苗床：卵生、寄生可以到魔法物品店取出；胎生只能解咒（brood.ts 的 extractOffers）
+const removal = (p: { id: string }) => (broodOf(p.id)?.kind === 'live' ? '去神殿、刻印師解咒' : '去神殿、刻印師解咒，或到魔法物品店取出')
 const quiet = (p: Parameters<typeof flaresOn>[1]) => !!game.state && (brood(p) ? !tagsAllowed(['monster_brood']) : !flaresOn(game.state, p))
 </script>
 
@@ -41,19 +45,19 @@ const quiet = (p: Parameters<typeof flaresOn>[1]) => !!game.state && (brood(p) ?
         {{ def.name }}
         <span v-if="p.tamed" class="tag good">已馴服</span>
         <span v-else-if="p.dormant" class="tag">沉睡中</span>
-        <span v-else class="tag bad">{{ stageName(p.corruption) }}</span>
+        <span v-else class="tag bad">{{ stageLabel(p) }}</span>
       </h4>
       <p class="small">{{ def.desc }}</p>
       <template v-if="!p.tamed && !p.dormant">
         <div class="bar" :title="`侵蝕度 ${p.corruption}／100`">
           <span :style="{ width: `${p.corruption}%` }" />
-          <i v-for="st in parasiteRules.stages.slice(1)" :key="st.min" :style="{ left: `${st.min}%` }" :title="st.name" />
+          <i v-for="st in parasiteRules.stages.slice(1)" :key="st.min" :style="{ left: `${st.min}%` }" :title="brood(p) ? `第 ${parasiteRules.stages.indexOf(st) + 1} 階段` : st.name" />
         </div>
         <p class="small">侵蝕度 <b>{{ p.corruption }}</b>／100<template v-if="effectText(p)">・{{ effectText(p) }}</template></p>
       </template>
       <template v-if="!p.tamed && !p.dormant">
-        <p v-if="brood(p) && quiet(p)" class="small muted">內容篩選關掉了「怪物的苗床」：苗床停止長大，也不會有苗床的事件；要拿掉就去解咒或取出。</p>
-        <p v-else-if="brood(p)" class="small muted">苗床不會「發作」：它會隨時間長大，途中有苗床的事件，長到支配時產下；也可以去神殿、刻印師解咒或取出。</p>
+        <p v-if="brood(p) && quiet(p)" class="small muted">內容篩選關掉了「怪物的苗床」：苗床停止長大，也不會有苗床的事件；要拿掉就{{ removal(p) }}。</p>
+        <p v-else-if="brood(p)" class="small muted">苗床不會「發作」：它會隨時間長大，途中有苗床的事件，長到第 {{ lastStage }} 階段時產下；也可以{{ removal(p) }}。</p>
         <p v-else-if="quiet(p)" class="small muted">發作已經關掉（內容篩選、主角的形象或存檔規則「寄生發作的機率」）：它就像一道詛咒，不會發作、侵蝕度也不增長，但被動效果還在；要拿掉就去解咒。</p>
       </template>
       <p v-if="p.dormant" class="small muted">被奴隸印記頂掉了，不會發作；可以到刻印師那裡紋回來。</p>
@@ -63,7 +67,7 @@ const quiet = (p: Parameters<typeof flaresOn>[1]) => !!game.state && (brood(p) ?
         <button class="small" :disabled="!!block(p.id) || game.judging" @click="game.triggerParasite(p.id)">主動喚醒</button>
         <span v-if="block(p.id)" class="small muted">{{ block(p.id) }}</span>
       </div>
-      <p v-if="stageOf(p.corruption) >= 3 && !p.tamed && !p.dormant" class="small warn">它幾乎支配了你的身體，發作得更頻繁了。</p>
+      <p v-if="stageOf(p.corruption) >= 3 && !p.tamed && !p.dormant && !brood(p)" class="small warn">它幾乎支配了你的身體，發作得更頻繁了。</p>
     </article>
     <p v-if="!list.length" class="muted small">身上沒有寄生物。</p>
   </div>

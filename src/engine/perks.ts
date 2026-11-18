@@ -7,7 +7,7 @@
 //   受訓或事件的 lose_perk 克服。AI 設計的特質不能是缺陷。
 
 import { pcTagModifiers } from './pcTags'
-import { activeParasites, parasiteDef, parasiteEffects, stageName } from './parasites'
+import { activeParasites, parasiteDef, parasiteEffects, stageLabel } from './parasites'
 import {
   actionRules, ATTR_IDS, attrName, skillName, SKILL_IDS, type SkillId, choosablePerks, damageTypeName, isChoosablePerk, lewdRules, npcTags, perkDef, perkRules, type ActionKind, type AffinityMap, type AttrId, type CheckContext, type CheckFilter, type Degree, type Mods,
   type LustPerk, type PerkDef, type PerkEffect,
@@ -113,7 +113,7 @@ export function gearCheckModifiers(c: Pick<Character, 'gear'>, ctx: CheckCtx): {
 export function parasiteCheckModifiers(c: Pick<Character, 'parasites' | 'tattoos'>, ctx: CheckCtx): { label: string; value: number }[] {
   const out: { label: string; value: number }[] = []
   for (const p of activeParasites(c)) {
-    for (const e of parasiteEffects(p)) if (matches(e.check, ctx)) out.push({ label: `寄生【${parasiteDef(p.id)!.name}・${stageName(p.corruption)}】`, value: e.bonus })
+    for (const e of parasiteEffects(p)) if (matches(e.check, ctx)) out.push({ label: `寄生【${parasiteDef(p.id)!.name}・${stageLabel(p)}】`, value: e.bonus })
   }
   for (const t of c.tattoos ?? []) if (t.kind === 'curse' && t.tamed && t.unique && matches(t.unique.check, ctx)) out.push({ label: `印記【${t.name ?? ''}】`, value: t.unique.bonus })
   return out

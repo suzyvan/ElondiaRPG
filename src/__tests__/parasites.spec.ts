@@ -349,3 +349,13 @@ describe('parasite flare time of day', () => {
     }
   })
 })
+
+describe('階段的顯示', () => {
+  it('苗床標成第幾階段（沒有「發作」），其他寄生物用階段名稱', async () => {
+    const { stageLabel, stageName } = await import('@/engine/parasites')
+    expect(stageLabel({ id: 'brood_wasp_egg', corruption: 30 })).toBe('第 2 階段')
+    expect(stageLabel({ id: 'brood_goblin', corruption: 0 })).toBe('第 1 階段')
+    expect(stageLabel({ id: 'parasite_seed', corruption: 30 })).toBe(stageName(30))
+  })
+})
+

@@ -98,6 +98,7 @@ import { useContent, VANILLA, VANILLA_NAME, type WorldRef } from './content'
 import { usePortraits } from './portraits'
 import { usePrompts } from './prompts'
 import { useScenes } from './scenes'
+import { useImageSettings } from './image'
 import { AI_FEATURES, judgeTimeout, useSettings, type AiFeature } from './settings'
 import { archiveOldReports, mergeUsage } from './logArchive'
 import { actionInputOf, firstNewReport, midTurn, restoreTurn, UNDO_STEPS, type UndoStep } from './undo'
@@ -1173,14 +1174,18 @@ export const useGame = defineStore('game', () => {
   }
 
   /**
-   * 寫經過時要不要請寫手標出親密場景（<intimate_scene>）：自動記性經歷開著、來源設定好，
-   * 這則日誌還不是已知的親密場景、也還沒記過（休息、移動、規則判定的行動……寫出了性愛場景時才記得到）
+   * 寫經過時要不要請寫手標出親密場景（<intimate_scene>）：這則日誌還不是已知的親密場景、也還沒記過，而且
+   * 標了有用處：自動記性經歷開著、來源設定好（休息、移動、規則判定的行動……寫出了性愛場景時才記得到），
+   * 或日誌插圖設定好了（一般或成人場景用的生圖服務；標出來才畫得了成人插圖，sceneInfo.ts 的 adultScene）。
+   * 記性經歷照舊只在自動記錄開著時做（recordSex）
    */
   function flagIntimate(report: Report): boolean {
     const settings = useSettings()
+    const image = useImageSettings()
     const s = state.value
-    return !!s && settings.sexRecords && settings.sexRecordAi && settings.ready('sexlog')
-      && !sexRecord.intimateReport(report) && !sexRecord.sexLogged(s, report.report_id)
+    const records = settings.sexRecords && settings.sexRecordAi && settings.ready('sexlog')
+    const scenes = image.ready(image.sceneService(false)) || image.ready(image.sceneService(true))
+    return !!s && (records || scenes) && !sexRecord.intimateReport(report) && !sexRecord.sexLogged(s, report.report_id)
   }
 
   /** 寫手標出了親密場景：記在日誌上（之後就算親密場景、可以記性經歷），回傳更新後的日誌 */

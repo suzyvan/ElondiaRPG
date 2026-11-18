@@ -17,7 +17,7 @@ import NameTag from '../NameTag.vue'
 import MasterRosterPropose from './MasterRosterPropose.vue'
 import { perksOf } from '@/engine/perks'
 import { placeName, tattooName, tattoosOf } from '@/engine/tattoos'
-import { parasiteDef, parasitesOf, stageName } from '@/engine/parasites'
+import { parasiteDef, parasitesOf, stageLabel } from '@/engine/parasites'
 import type { Character } from '@/engine/types'
 import { useGame } from '@/stores/game'
 import Avatar from '../ui/Avatar.vue'
@@ -154,7 +154,7 @@ function canDismiss(m: Character) {
       <button v-if="parasitesOf(m).length" class="sec ghost" @click="emit('detail', m.id, 'parasites')">
         <span class="label">寄生物</span>
         <span class="items">
-          <span v-for="p in parasitesOf(m)" :key="p.id" class="tag" :class="{ bad: !p.tamed && !p.dormant }">{{ parasiteDef(p.id)?.name ?? p.id }}・{{ p.tamed ? '已馴服' : p.dormant ? '沉睡' : stageName(p.corruption) }}</span>
+          <span v-for="p in parasitesOf(m)" :key="p.id" class="tag" :class="{ bad: !p.tamed && !p.dormant }">{{ parasiteDef(p.id)?.name ?? p.id }}・{{ p.tamed ? '已馴服' : p.dormant ? '沉睡' : stageLabel(p) }}</span>
         </span>
         <span class="go">詳情<GameIcon name="right" :size="12" /></span>
       </button>

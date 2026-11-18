@@ -122,6 +122,33 @@ describe('record sex after an intimate scene', () => {
     await vi.waitFor(() => expect(sexLogged(g.state!, r.report_id)).toBe(true))
   })
 
+  it('auto record off: the writer is still asked to flag when scene illustrations are set up (adult pictures need it), but nothing is recorded', async () => {
+    const { g, settings, providers } = await setup()
+    const { sexLogged } = await import('@/engine/sexRecord')
+    const { useImageSettings } = await import('@/stores/image')
+    const rest = () => commitReport(g.state!, {
+      schema_version: '0.1', report_id: `r-test-${g.state!.nextReportNo++}`, kind: 'rest',
+      time: { start: { ...g.state!.time }, end: addHours(g.state!.time, 8) },
+      location: { at: g.state!.location }, party: [{ id: 'pc', name: '艾倫' }], others: [{ id: 'npc_lina', name: '莉娜' }],
+      outcome: { result: 'success', summary: '長休' }, changes: {},
+    })
+    settings.sexRecordAi = false
+    story = ['夜裡，莉娜鑽進了你的被窩。', '\n<intimate_scene>艾倫與莉娜發生關係</intimate_scene>']
+    // 插圖沒設定：不請寫手標
+    await g.narrate(rest())
+    expect((vi.mocked(providers.streamNarration).mock.calls.at(-1)![2] as { user: string }).user).not.toContain('<intimate_scene>')
+    // 成人場景用的服務設定好了：請寫手標，記在日誌上（插圖認得出成人場景），但不自動記性經歷
+    const image = useImageSettings()
+    image.sceneAdultService = 'novelai'
+    image.configs.novelai = { ...image.configs.novelai, apiKey: 'x' }
+    const r = rest()
+    await g.narrate(r)
+    expect((vi.mocked(providers.streamNarration).mock.calls.at(-1)![2] as { user: string }).user).toContain('<intimate_scene>')
+    expect(g.state!.reports.find((x) => x.report_id === r.report_id)!.narration?.intimate_note).toBe('艾倫與莉娜發生關係')
+    expect(providers.completeText).not.toHaveBeenCalled()
+    expect(sexLogged(g.state!, r.report_id)).toBe(false)
+  })
+
   it('a report the writer did not flag is not recorded automatically, but the heart still works on it', async () => {
     const { g, providers } = await setup()
     const { sexLogged } = await import('@/engine/sexRecord')

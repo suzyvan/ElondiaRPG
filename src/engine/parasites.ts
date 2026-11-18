@@ -133,6 +133,11 @@ export function stageName(corruption: number): string {
   return parasiteRules.stages[stageOf(corruption)]?.name ?? ''
 }
 
+/** 顯示用的階段：苗床沒有「發作」，標成「第 N 階段」；其他寄生物用階段名稱（潛伏、發作、共生、支配） */
+export function stageLabel(p: { id: string; corruption: number }): string {
+  return parasiteDef(p.id)?.category === 'brood' ? `第 ${stageOf(p.corruption) + 1} 階段` : stageName(p.corruption)
+}
+
 /** 會發作、有被動效果的寄生物：沒有沉睡、還沒馴服 */
 export function activeParasites(c: Pick<Character, 'parasites'> | undefined): ParasiteState[] {
   return parasitesOf(c).filter((p) => !p.dormant && !p.tamed && parasiteDef(p.id))
