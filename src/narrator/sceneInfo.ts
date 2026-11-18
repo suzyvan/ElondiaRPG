@@ -93,8 +93,8 @@ export function scenePrompt(
   state: GameState, report: Report, cast: SceneCastMember[], opts: { format?: ImagePreprocessor; multi: boolean; narration?: string; style?: string; segments?: SceneSegments },
 ): Prompt {
   const loc = findLocation(report.location.at)
-  // 分流：帶親密場景的日誌才可以畫成人場景
-  const adult = !!report.narration?.adult_scene
+  // 分流：親密場景的日誌才可以畫成人場景（判定時標的、寫正文時標出的、記下了性經歷的）
+  const adult = adultScene(report)
   const seg = opts.segments
   const one = '{"rating": "general | suggestive | explicit", "scene": "整體畫面", "characters": [{"id": "登場角色的 id", "position": "left | center | right", "prompt": "這個角色"}]}'
   const head = !seg
@@ -137,7 +137,7 @@ export function scenePrompt(
     `經過：${report.outcome.summary ?? ''}`,
     report.check?.action ? `主角的行動：${report.check.action}` : '',
     report.narration?.player_intent ? `玩家描述的做法：${report.narration.player_intent}` : '',
-    adult ? `這段是成人場景：${report.narration?.adult_scene}` : '',
+    adult ? `這段是成人場景：${adultSceneText(report)}` : '',
     seg ? `\n日誌正文（已分段）：\n${numberedParagraphs(seg.paragraphs)}` : opts.narration ? `\n日誌正文：\n${opts.narration.slice(0, 1500)}` : '',
     '\n可以登場的人：',
     ...cast.map((c) => `- id: ${c.id}｜${c.player ? '主角' : '其他人'}｜${c.description}`),
@@ -165,6 +165,19 @@ function monsterScene(state: GameState, report: Report): string[] {
 }
 
 const POSITIONS: ScenePosition[] = ['left', 'center', 'right']
+
+/**
+ * 這則日誌可以畫成人場景嗎：判定時標了親密場景（adult_scene）、寫正文時寫手標出了性愛場景（intimate_note，
+ * 長休、旅行、續寫……）、或記下了性經歷（sex_log 有內容，包括手動按 ♥ 記的）。只看 adult_scene 時，後兩種一律被當成一般場景
+ */
+export function adultScene(report: Report): boolean {
+  return !!report.narration?.adult_scene || !!report.narration?.intimate_note || !!report.sex_log?.length
+}
+
+/** 交給分鏡的成人場景說明 */
+export function adultSceneText(report: Report): string {
+  return report.narration?.adult_scene || report.narration?.intimate_note || report.sex_log?.join('；') || ''
+}
 
 /** 讀分鏡的回覆：不認識的人略過、位置補上；adult：日誌帶親密場景，不是的話一律 general */
 export function parseScenePlan(raw: unknown, cast: SceneCastMember[], adult: boolean): ScenePlan {

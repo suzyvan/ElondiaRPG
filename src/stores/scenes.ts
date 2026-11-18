@@ -10,7 +10,7 @@ import type { GameState, Report } from '@/engine/types'
 import type { SceneCharacter } from '@/narrator/imageProviders'
 import { anchorMatches, narrationParagraphs, paragraphAnchor } from '@/narrator/paragraphs'
 import {
-  autoSceneCount, composeScene, extractSceneJson, GIRL_SCENE_NEGATIVE, parseScenePlan, parseScenePlans, sceneCast, sceneHasGirls, sceneMulti, scenePrompt,
+  adultScene, autoSceneCount, composeScene, extractSceneJson, GIRL_SCENE_NEGATIVE, parseScenePlan, parseScenePlans, sceneCast, sceneHasGirls, sceneMulti, scenePrompt,
   type ScenePlan, type SceneSegments, type SegmentPlan,
 } from '@/narrator/sceneInfo'
 import { useGame } from './game'
@@ -186,7 +186,7 @@ export const useScenes = defineStore('scenes', () => {
     jobs.value[base] = { stage: 'plan' }
     try {
       // 分流：帶親密場景的日誌才是成人場景（插圖服務、分級）
-      const adult = !!report.narration?.adult_scene
+      const adult = adultScene(report)
       const cast = sceneCast(state, report)
       const narration = game.narrations[report.report_id]?.text
       const paragraphs = narration ? narrationParagraphs(narration) : []
@@ -286,7 +286,7 @@ export const useScenes = defineStore('scenes', () => {
    */
   async function auto(state: GameState, report: Report) {
     const image = useImageSettings()
-    const adult = !!report.narration?.adult_scene
+    const adult = adultScene(report)
     if (image.sceneAuto === 'off' || (image.sceneAuto === 'adult' && !adult)) return
     const service = image.sceneService(adult)
     // 成人場景 ChatGPT 畫不出來：沒指定成人場景用的服務時不自動畫，免得白花整理分鏡的 token

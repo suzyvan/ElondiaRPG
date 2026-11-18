@@ -4,6 +4,8 @@ import type { Character } from '@/engine/types'
 import { actionRules, attrName } from '@/engine/data'
 import { parasiteDef, parasiteEffects, parasiteRules, parasitesOf, stageName, stageOf } from '@/engine/parasites'
 import { flaresOn, triggerBlock } from '@/engine/parasiteEvents'
+import { broodOf } from '@/engine/brood'
+import { tagsAllowed } from '@/engine/content'
 import { placeName } from '@/engine/tattoos'
 import { useGame } from '@/stores/game'
 import Hint from '../ui/Hint.vue'
@@ -23,7 +25,9 @@ function effectText(p: Parameters<typeof parasiteEffects>[0]): string {
   }).join('，')
 }
 const block = (id: string) => (game.state ? triggerBlock(game.state, id) : '')
-const quiet = (p: Parameters<typeof flaresOn>[1]) => !!game.state && !flaresOn(game.state, p)
+// 苗床（蜂卵、觸手之種……）沒有「發作」：照時間長大、有自己的苗床事件，只有關掉「怪物的苗床」時才停
+const brood = (p: { id: string }) => !!broodOf(p.id)
+const quiet = (p: Parameters<typeof flaresOn>[1]) => !!game.state && (brood(p) ? !tagsAllowed(['monster_brood']) : !flaresOn(game.state, p))
 </script>
 
 <template>
@@ -47,7 +51,11 @@ const quiet = (p: Parameters<typeof flaresOn>[1]) => !!game.state && !flaresOn(g
         </div>
         <p class="small">侵蝕度 <b>{{ p.corruption }}</b>／100<template v-if="effectText(p)">・{{ effectText(p) }}</template></p>
       </template>
-      <p v-if="!p.tamed && !p.dormant && quiet(p)" class="small muted">發作已經關掉（內容篩選或存檔規則）：它就像一道詛咒，不會發作、侵蝕度也不增長，但被動效果還在；要拿掉就去解咒。</p>
+      <template v-if="!p.tamed && !p.dormant">
+        <p v-if="brood(p) && quiet(p)" class="small muted">內容篩選關掉了「怪物的苗床」：苗床停止長大，也不會有苗床的事件；要拿掉就去解咒或取出。</p>
+        <p v-else-if="brood(p)" class="small muted">苗床不會「發作」：它會隨時間長大，途中有苗床的事件，長到支配時產下；也可以去神殿、刻印師解咒或取出。</p>
+        <p v-else-if="quiet(p)" class="small muted">發作已經關掉（內容篩選、主角的形象或存檔規則「寄生發作的機率」）：它就像一道詛咒，不會發作、侵蝕度也不增長，但被動效果還在；要拿掉就去解咒。</p>
+      </template>
       <p v-if="p.dormant" class="small muted">被奴隸印記頂掉了，不會發作；可以到刻印師那裡紋回來。</p>
       <p v-else-if="p.tamed && p.stored" class="small muted">印記不在身上，可以到刻印師那裡紋回來。</p>
       <p v-if="p.covered" class="small muted">刻上時蓋掉了{{ placeName(p.covered.place) }}的「{{ p.covered.name }}」，可以到刻印師那裡紋回來。</p>

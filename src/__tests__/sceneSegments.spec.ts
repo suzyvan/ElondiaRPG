@@ -98,3 +98,24 @@ describe('reading a messy storyboard reply', () => {
     expect(() => extractSceneJson('{"images": [{"after": 1, "sce')).toThrow('截斷')
   })
 })
+
+describe('插圖的成人場景判斷', () => {
+  it('寫正文時標出的性愛場景、記下的性經歷也算成人場景，不只判定時標的', async () => {
+    const { adultScene, adultSceneText } = await import('@/narrator/sceneInfo')
+    const { state, report, cast } = setup()
+    expect(adultScene(report)).toBe(false)
+    expect(scenePrompt(state, report, cast, { multi: true }).system).toContain('rating 一律 general')
+    // 長休、旅行、續寫：寫手在正文標出了性愛場景
+    const noted = { ...report, narration: { intimate_note: '艾倫和莉娜在旅店過夜' } } as Report
+    expect(adultScene(noted)).toBe(true)
+    expect(adultSceneText(noted)).toBe('艾倫和莉娜在旅店過夜')
+    const p = scenePrompt(state, noted, cast, { multi: true })
+    expect(p.system).toContain('成人場景照實畫')
+    expect(p.user).toContain('這段是成人場景：艾倫和莉娜在旅店過夜')
+    // 手動按 ♥ 記下的性經歷
+    expect(adultScene({ ...report, sex_log: ['艾倫：性交 1 次'] } as Report)).toBe(true)
+    // 記了但沒有需要記的（空的）不算
+    expect(adultScene({ ...report, sex_log: [] } as Report)).toBe(false)
+    expect(adultScene({ ...report, narration: { adult_scene: '親密場景' } } as Report)).toBe(true)
+  })
+})
