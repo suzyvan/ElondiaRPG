@@ -8,6 +8,7 @@ import { craftRules, CRAFT_IDS, itemDef, itemRules, locationById, npcTags, type 
 import { gearRules, type MaterialKind } from './gear'
 import { cellName, currentArea, currentCell } from './grid'
 import { homeOfArea, residentsHere, workbenchFor } from './homes'
+import { inventoryHere } from './storage'
 import type { Character, CraftSkill, GameState, NpcRecord } from './types'
 import { contractOf } from './tattoos'
 
@@ -144,7 +145,8 @@ export function atSafePoint(state: GameState): boolean {
  */
 export function toolAccess(state: GameState, id: CraftId, need = 2): ToolAccess {
   let best: ToolAccess = { tier: 0, source: '沒有工具' }
-  for (const i of state.inventory) {
+  // 工具：行囊裡的，加上在自己家裡時箱子裡的
+  for (const i of inventoryHere(state)) {
     const t = itemDef(i.name)?.tool
     if (i.qty <= 0 || t?.kind !== 'craft' || t.craft !== id) continue
     // 攜帶式工坊：在旅店、安全房才展開得了，其他地方當作隨身工具用

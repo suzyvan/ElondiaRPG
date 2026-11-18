@@ -239,7 +239,7 @@ describe('resting at home', () => {
     const yard = find(ground, (c) => c.kind === 'yard')
     addItem(state.inventory, '噴水池', 1)
     placeFurniture(state, ground, yard.x, yard.y, '噴水池')
-    expect(comfortOf(home)).toBeGreaterThanOrEqual(homeRules.comfort_rested)
+    expect(comfortOf(home)).toBeGreaterThanOrEqual(homeRules.comfort_tiers[0]!.at)
     state.lastLongRest = undefined
     longRest(state, 'home')
     expect(state.party[0]!.status).toContain('well_rested')

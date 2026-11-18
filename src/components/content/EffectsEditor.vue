@@ -3,7 +3,7 @@ import { computed, inject, type Ref } from 'vue'
 import { abilities, ATTR_IDS, attrName, conditionName, contractDef, geography, itemRules, lewdRules, LOCK_GRADES, npcs as namedNpcs, choosablePerks, perkDef, slaveryRules, stories, tagDef } from '@/engine/data'
 import type { RewardEffect } from '@/engine/effects'
 import { gearRules } from '@/engine/gear'
-import { EFFECT_CONDITIONS, MASTER_EVENT_EFFECTS, STORY_EFFECTS } from '@/engine/storyMods'
+import { EFFECT_CONDITIONS, HOME_EVENT_EFFECTS, MASTER_EVENT_EFFECTS, STORY_EFFECTS } from '@/engine/storyMods'
 import { LEWD_KEYS, lewdName } from '@/engine/lewd'
 import { MASTER_EVENT_POOLS } from '@/engine/data'
 import { oathError, oathText, TATTOO_PLACES, placeName, tattooKindName, tattooRules } from '@/engine/tattoos'
@@ -17,7 +17,9 @@ const model = defineModel<RewardEffect[] | undefined>()
 // master：主人事件格式（主人事件、調教、娼館）：效果清單換成 MASTER_EVENT_EFFECTS，親密度可以選「主人」
 const props = defineProps<{ types?: RewardEffect['type'][]; master?: boolean }>()
 const LABELS = computed(() => (props.master ? MASTER_EVENT_EFFECTS : STORY_EFFECTS))
-const effectOptions = computed(() => Object.entries(LABELS.value).filter(([t]) => !props.types || props.types.includes(t as RewardEffect['type'])))
+// 家僕的效果只在家裡的事（TravelEventEditor 的 eventHome）列出
+const eventHome = inject<Ref<boolean> | undefined>('eventHome', undefined)
+const effectOptions = computed(() => Object.entries(LABELS.value).filter(([t]) => (!props.types || props.types.includes(t as RewardEffect['type'])) && (eventHome?.value || !HOME_EVENT_EFFECTS.includes(t as RewardEffect['type']))))
 const ALL_LABELS: Partial<Record<RewardEffect['type'], string>> = { ...STORY_EFFECTS, ...MASTER_EVENT_EFFECTS }
 const masterGear = computed(() => {
   void content.version
@@ -68,6 +70,9 @@ const DEFAULTS: Partial<Record<RewardEffect['type'], () => RewardEffect>> = {
   ability_pool: () => ({ type: 'ability_pool', pool: 'master', fallback: [{ type: 'lewd', stat: 'lewdness', delta: 3 }] }),
   strict: () => ({ type: 'strict', delta: 1 }),
   home_extend: () => ({ type: 'home_extend', hours: 24 }),
+  staff_pause: () => ({ type: 'staff_pause', npc: '$a', days: 3 }),
+  staff_wage: () => ({ type: 'staff_wage', npc: '$a', days: -1 }),
+  stow_decor: () => ({ type: 'stow_decor' }),
   master_home: () => ({ type: 'master_home' }),
   force_equip: () => ({ type: 'force_equip', npc: 'master' }),
   restrain: () => ({ type: 'restrain', item: restraintItems.value[0] ?? '' }),
@@ -342,6 +347,9 @@ function setBase(r: Row, base: string) {
         <EffectsEditor v-model="(r as Record<string, unknown>).fallback as RewardEffect[] | undefined" :master="master" :types="['money', 'xp', 'lewd', 'affinity', 'memory']" />
       </template>
       <template v-else-if="r.type === 'strict'"><input v-model.number="r.delta" type="number" min="-5" max="5" class="num" />點 <Hint text="出門與出城的 DC 加減（主人的家）。" /></template>
+      <template v-else-if="r.type === 'staff_pause'"><input v-model.number="r.days" type="number" min="1" max="30" class="num" />天 <Hint text="這件事的家僕（或做家務的奴隸）請假：這幾天效果停掉（女僕不加舒適度、廚師不做早餐……），工錢照算。" /></template>
+      <template v-else-if="r.type === 'staff_wage'"><input v-model.number="r.days" type="number" min="-7" max="7" class="num" />天 <Hint text="負的是扣這位家僕幾天工錢（當作已經付了）；正的是多給幾天（從身上的錢付）。做家務的奴隸沒有工錢，不做。" /></template>
+      <template v-else-if="r.type === 'stow_decor'"><Hint text="房子裡隨機一件裝飾家具（只有舒適度、沒有功能的）收回行囊，要再擺回去：打破了花瓶這類事，不會真的壞掉。沒有裝飾家具時不做。" /></template>
       <template v-else-if="r.type === 'home_extend'"><input v-model.number="r.hours" type="number" class="num" />小時</template>
       <template v-else-if="r.type === 'master_home'"><span class="small muted">把主角帶回主人的家（沒有家時沒事）</span></template>
       <template v-else-if="r.type === 'force_equip'">

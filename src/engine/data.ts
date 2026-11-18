@@ -1431,6 +1431,8 @@ export interface ConditionDef {
   /** 只影響這些屬性的檢定（沒有時所有檢定） */
   check_attrs?: AttrId[]
   clears?: 'long_rest'
+  /** 長休解除時換成這個狀態（例如育嬰室的「家人的笑容」多持續一次長休） */
+  then?: string
   /** 每場戰鬥的加減 */
   combat_mods?: Mods
   /** 每場戰鬥開始時的暫時生命 */
@@ -1754,7 +1756,7 @@ export function contractDef(id: string): ContractDef {
   return c
 }
 
-export type ActionKind = 'free' | 'hire' | 'haggle' | 'invite' | 'squad_join' | 'black_market' | 'negotiate' | 'escape' | 'bargain' | 'negotiation' | 'rest_talk'
+export type ActionKind = 'free' | 'hire' | 'haggle' | 'invite' | 'squad_join' | 'staff_invite' | 'cohabit_invite' | 'black_market' | 'negotiate' | 'escape' | 'bargain' | 'negotiation' | 'rest_talk'
   | 'chat' | 'gift' | 'flatter' | 'seduce' | 'bluff' | 'intimidate' | 'steal' | 'attack' | 'master_permit' | 'master_leave' | 'master_extend' | 'marking' | 'master_event'
   | 'master_return' | 'seek_master' | 'unmark' | 'unbind' | 'work' | 'patron' | 'craft' | 'make' | 'produce' | 'invent' | 'defeat_event' | 'story' | 'propose'
   | 'train' | 'perk_pitch' | 'explore' | 'palace_gate' | 'resign'
@@ -2056,6 +2058,8 @@ export interface ItemDef {
   recipe?: RecipeSpec
   /** 種子：種在房子的苗圃會長出什麼（見 docs/HOMES.md） */
   seed?: SeedSpec
+  /** 熟成（docs/HOMES.md 第 6.1 節）：這件物品可以用熟成桶做出來：什麼桶、放進哪些材料、幾天、做出幾份 */
+  aging?: AgingSpec
   /** 主人會強制主角裝上這件裝備（主人的事件 force_equip）；tags：只有這些身分的主人會用（沒有時任何主人） */
   master_force?: { tags?: string[] }
   /** 成人向的物品：內容編輯器的篩選用 */
@@ -2089,6 +2093,19 @@ export interface RecipeSpec {
 }
 
 /** 種子：種在苗圃（place）上，days 天後收成 yields，數量在 qty 之間；yields 有好幾種時隨機一種 */
+/** 熟成桶的種類：cask 橡木桶（酒）、smoke 燻製架（肉）、jar 醃缸（醃漬、梅酒） */
+export const AGING_VESSELS = ['cask', 'smoke', 'jar'] as const
+export type AgingVessel = (typeof AGING_VESSELS)[number]
+export const VESSEL_NAME: Record<AgingVessel, string> = { cask: '橡木桶', smoke: '燻製架', jar: '醃缸' }
+
+export interface AgingSpec {
+  vessel: AgingVessel
+  inputs: { name: string; qty: number }[]
+  days: number
+  /** 做出幾份 */
+  qty: number
+}
+
 export interface SeedSpec {
   yields: string[]
   qty: [number, number]
@@ -2413,11 +2430,22 @@ export const CRAFT_IDS = Object.keys(craftRules.skills) as CraftId[]
 
 export type FurniturePlace = 'indoor' | 'yard' | 'basement'
 
+export const FURNITURE_FUNCTIONS = ['bed', 'workbench', 'garden', 'training', 'crib', 'storage', 'aging', 'teleport'] as const
+export type FurnitureFunction = (typeof FURNITURE_FUNCTIONS)[number]
+
 export interface FurnitureSpec {
   places: FurniturePlace[]
-  /** bed：在家長休；workbench：高階工作台（craft）；garden：可以播種的苗圃；training：調教室的家具（docs/LEWD_STATS.md 第 19 節）；crib：搖籃（家裡的嬰兒，docs/FAMILY.md） */
-  function?: 'bed' | 'workbench' | 'garden' | 'training' | 'crib'
+  /** bed：在家長休；workbench：高階工作台（craft）；garden：可以播種的苗圃；training：調教室的家具（docs/LEWD_STATS.md 第 19 節）；crib：搖籃（家裡的嬰兒，docs/FAMILY.md）；storage：儲物箱（slots、money，docs/HOMES.md） */
+  function?: FurnitureFunction
   craft?: CraftId
+  /** 儲物箱：能放幾種東西（同一種的數量不限） */
+  slots?: number
+  /** 儲物箱：可以存錢（保險箱） */
+  money?: boolean
+  /** 成套家具：套組 id（homes.json 的 furniture_sets） */
+  set?: string
+  /** 熟成桶：哪一種（物品的 aging.vessel 要對上） */
+  vessel?: AgingVessel
   /** 調教室的家具：在家調教時的檢定加值 */
   training?: number
   comfort?: number
@@ -2441,7 +2469,98 @@ export const homeRules = homesJson as unknown as {
   by_location: Record<string, HomeDistrict>
   noble: HomeDistrict
   lots: Record<string, number>
-  comfort_rested: number
+  /** 舒適度的分段（由低到高）：在家長休後全隊得到達到的最高一段的狀態（docs/HOMES.md 第 4 節） */
+  comfort_tiers: { at: number; condition: string }[]
+  /** 成套家具：湊齊 need 件不同的同套家具時，舒適度 + comfort，在家長休後得到 condition */
+  furniture_sets: Record<string, FurnitureSetDef>
+  /** 熟成桶：放在地下室時時間的倍率 */
+  aging: { basement_mult: number }
+  /** 傳送陣（teleport.ts） */
+  teleport: { stone: string; per_member: number; hours: number }
+  /** 同居（cohabit.ts） */
+  cohabit: {
+    min_affinity: number
+    leave_affinity: number
+    caps: Record<HomeDistrict, number>
+    invite_dc: number
+    affinity_step: number
+    daily_affinity: number
+    week_cap: number
+    comfort: number
+    condition: string
+    kick_affinity: number
+  }
+  /** 房間用途（rooms.ts） */
+  rooms: {
+    bedroom_comfort: number
+    study_items: string[]
+    study_need: number
+    study_comfort: number
+    study_condition: string
+    study_set: string
+    study_set_condition: string
+    workshop_mult: number
+    cellar_mult: number
+    guest_affinity: number
+    guest_week_cap: number
+    nursery_condition: string
+  }
+  /** 擴建：加蓋一層、挖地下室、擴院子（homeExpand.ts） */
+  expand: {
+    floor: { price_ratio: number; days: number; max_floors: Record<HomeDistrict, number> }
+    basement: { price_ratio: number; days: number }
+    yard: { price_cc: number; days: number; max: number }
+  }
+  staff: StaffRules
+}
+
+export interface FurnitureSetDef { name: string; need: number; comfort: number; condition?: string }
+
+/** 成套家具的 id（不含 $comment） */
+export function furnitureSetIds(): string[] {
+  return Object.keys(homeRules.furniture_sets).filter((k) => !k.startsWith('$'))
+}
+
+/** 家僕的職位（homes.json 的 staff.jobs；docs/HOMES.md 第 8 節） */
+export const STAFF_JOBS = ['maid', 'cook', 'gardener', 'steward'] as const
+export type StaffJob = (typeof STAFF_JOBS)[number]
+
+export interface StaffJobDef {
+  /** 職位名稱（女僕、廚師……） */
+  name: string
+  /** 職業描述（照性別換稱謂，npc_tags.json 的 gendered_occupations） */
+  occupation: string
+  /** 日薪（乘這座城的物價） */
+  wage_cc: number
+  /** 一行說明 */
+  desc: string
+  /** 女僕：房子的舒適度加多少 */
+  comfort?: number
+  /** 廚師：在家長休後的早餐（狀態 id）；有烹飪的高階工作台時改成 fine_condition */
+  condition?: string
+  fine_condition?: string
+}
+
+export interface StaffRules {
+  jobs: Record<StaffJob, StaffJobDef>
+  /** 各地段能雇幾個家僕 */
+  caps: Record<HomeDistrict, number>
+  /** 有管家時上限再加幾個 */
+  steward_bonus: number
+  /** 欠工錢超過幾天就辭職 */
+  quit_days: number
+  /** 每個職位的應徵者人數 [最少, 最多] */
+  candidates_per_job: [number, number]
+  /** 應徵者每幾天換一批 */
+  refresh_days: number
+  /** 辭職時親密度的變化 */
+  quit_affinity: number
+  /** 請認識的人來家裡做事：親密度至少多少、參考 DC（減去親密度 / 10，加上標籤的邀請修正） */
+  invite_affinity: number
+  invite_dc: number
+  /** 奴隸做家務：順從至少多少才肯做、每天順從加多少 */
+  slave_chore_submission: number
+  slave_chore_daily: number
 }
 
 // ---- 特質（被動，data/rules/perks.json，見 docs/PERKS.md） ----

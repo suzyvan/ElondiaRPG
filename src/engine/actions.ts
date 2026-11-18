@@ -11,6 +11,9 @@
 
 import { applyUnbind } from './restraints'
 import { applyExplore, withLandmark } from './landmarks'
+import { withHomeStorage } from './storage'
+import { applyStaffInvite, withHomeStaff } from './staff'
+import { applyCohabitInvite } from './cohabit'
 import { applyPitch, applyTrain, pruneOffers } from './perkActions'
 import { parsePitchTarget } from './perks'
 import { checkModifiers, checkSkills, type CheckCtx } from './perks'
@@ -261,8 +264,8 @@ export function prepareAction(state: GameState, input: ActionInput): ActionPendi
     outcomes: setup.outcomes,
     ...(setup.targetName ? { targetName: setup.targetName } : {}),
     ...(setup.adultScene ? { adultScene: setup.adultScene } : {}),
-    // 站在地標上：場景帶上地標的氛圍
-    scene: withLandmark(state, setup.scene),
+    // 站在地標上：場景帶上地標的氛圍；在自己的房子裡：箱子裡收著什麼（storage.ts）、家裡的僕人（staff.ts）
+    scene: withHomeStaff(state, withHomeStorage(state, withLandmark(state, setup.scene))),
     time: { ...state.time },
     location: state.location,
     ...(used?.change ? { spent: [used.change] } : {}),
@@ -827,6 +830,8 @@ function applyMechanics(state: GameState, report: Report, p: ActionPending, degr
     }
     case 'invite': return applyInvite(state, report, p.target!, degree)
     case 'squad_join': return applySquadJoin(state, report, p.target!, degree)
+    case 'staff_invite': return applyStaffInvite(state, report, p.target!, degree)
+    case 'cohabit_invite': return applyCohabitInvite(state, report, p.target!, degree)
     case 'propose': return applyProposal(state, report, p.target!, degree)
     case 'black_market': return applyBlackMarket(state, report, degree)
     case 'palace_gate': return applyPalaceGate(state, degree)

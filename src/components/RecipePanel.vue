@@ -223,7 +223,7 @@ function produce() {
             <tr v-for="x in plan.inputs" :key="x.name">
               <td>{{ x.name }}</td>
               <td class="num">{{ x.need }}</td>
-              <td class="num" :class="{ short: x.have < x.need }">{{ x.have }}</td>
+              <td class="num" :class="{ short: x.have < x.need }" :title="x.home ? `行囊 ${x.have - x.home}、家裡的箱子 ${x.home}` : undefined">{{ x.home ? `${x.have - x.home}＋家裡 ${x.home}` : x.have }}</td>
               <td class="num">{{ x.offer ? `${formatMoney(x.offer.price)}（剩 ${x.offer.stock}）` : '—' }}</td>
               <td class="num">
                 <span v-if="x.buy" class="ok">{{ x.buy }} 份</span>

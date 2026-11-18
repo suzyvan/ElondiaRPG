@@ -2,11 +2,11 @@
 // - 每座聚落有幾塊待售的空地：從固定地圖上挑臨街的建築格（同一座城一直一樣），買下後變成房子的門。
 // - 房子的地圖依地段生成（樓層、院子、地下室，房間用隔牆分開），買下時存進存檔。
 // - 樓梯與門都是通道（link）：走上去就到另一層或回到街上。
-// - 家具擺在格子上：床讓你在家長休、高階工作台讓你處理第四、五級的材料，舒適度高時睡得香甜。
+// - 家具擺在格子上：床讓你在家長休、高階工作台讓你處理第四、五級的材料，舒適度高時睡得香甜，儲物箱收東西（storage.ts）。
 // - 夥伴可以留在家裡（不算離隊）：不佔隊伍人數、不參加戰鬥，回家時可以帶上。
 
 import { snapshot } from './character'
-import { craftRules, geography, homeRules, itemDef, lewdRules, locationById, type FurniturePlace, type FurnitureSpec, type HomeDistrict } from './data'
+import { craftRules, geography, homeRules, itemDef, lewdRules, locationById, VESSEL_NAME, type FurniturePlace, type FurnitureSpec, type HomeDistrict } from './data'
 import { blocksFor, placeAt, position, settlementKey, type Area, type Cell } from './grid'
 import { npcRecord, registerNpc } from './npcs'
 import { enforceClassWeapons, enforceExtraSlots } from './inventory'
@@ -17,6 +17,10 @@ import { locationMult } from './trade'
 import { formatMoney } from './money'
 import { cribRefusal } from './children'
 import { resolveMasterHome } from './homeResolver'
+import { storageInUse, storedItems } from './storage'
+import { staffComfort } from './staff'
+import { cohabitComfort } from './cohabit'
+import { roomComfort } from './rooms'
 import type { Character, GameState, Home, Report } from './types'
 
 // ---- 空地 ----
@@ -225,7 +229,7 @@ function connected(cells: Cell[], w: number, from: number): boolean {
 }
 
 /** 一層的地圖：外牆、隔間；ground 有院子與出口 */
-function buildFloor(home: Pick<Home, 'id' | 'name' | 'location' | 'district'>, key: string, floor: 'basement' | 'ground' | 'upper', level: number, rng: Rng): Area {
+export function buildFloor(home: Pick<Home, 'id' | 'name' | 'location' | 'district'>, key: string, floor: 'basement' | 'ground' | 'upper', level: number, rng: Rng): Area {
   const def = homeRules.districts[home.district]
   const [w, bh] = def.size
   const yard = floor === 'ground' ? def.yard : 0
@@ -266,7 +270,7 @@ function buildFloor(home: Pick<Home, 'id' | 'name' | 'location' | 'district'>, k
 }
 
 /** 室內可以放樓梯的格子：一般地板、不靠門 */
-function stairSpots(area: Area, avoid: Set<number>): number[] {
+export function stairSpots(area: Area, avoid: Set<number>): number[] {
   const w = area.width
   return area.cells.map((c, i) => i).filter((i) => {
     const c = area.cells[i]!
@@ -347,10 +351,15 @@ export function buyHome(state: GameState, lotId: string, name?: string): Report 
   return done
 }
 
-/** 房子的規格：幾層、院子、地下室 */
-export function describeHome(home: Pick<Home, 'district'>): string {
+/** 房子的規格：幾層、院子、地下室（已經蓋好的房子照實際的樓層，擴建過的也算） */
+export function describeHome(home: Pick<Home, 'district'> & Partial<Pick<Home, 'areas'>>): string {
   const def = homeRules.districts[home.district]
-  return [`地上 ${def.floors} 層`, def.basement ? '地下室' : '', def.yard ? '院子' : ''].filter(Boolean).join('、')
+  const floors = home.areas ? Object.values(home.areas) : undefined
+  const above = floors ? floors.filter((a) => a.homeFloor !== 'basement').length : def.floors
+  const basement = floors ? floors.some((a) => a.homeFloor === 'basement') : def.basement
+  const ground = floors?.find((a) => a.homeFloor === 'ground')
+  const yard = ground ? Math.max(0, ground.height - def.size[1] - 1) : def.yard
+  return [`地上 ${above} 層`, basement ? '地下室' : '', yard ? `院子（深 ${yard} 格）` : ''].filter(Boolean).join('、')
 }
 
 export function renameHome(state: GameState, id: string, name: string) {
@@ -404,22 +413,50 @@ export const PLACE_NAME: Record<FurniturePlace, string> = { indoor: '室內', ya
 export function furnitureSummary(f: FurnitureSpec | undefined): string {
   if (!f) return ''
   const fn = f.function === 'bed' ? '床' : f.function === 'workbench' ? `${f.craft ? craftRules.skills[f.craft].name : ''}的高階工作台`
-    : f.function === 'garden' ? '苗圃' : f.function === 'training' ? `調教室（在家調教 +${f.training ?? 0}）` : f.function === 'crib' ? '搖籃' : ''
-  return [fn, f.comfort ? `舒適 +${f.comfort}` : '', `放在${f.places.map((p) => PLACE_NAME[p]).join('、')}`].filter(Boolean).join('，')
+    : f.function === 'garden' ? '苗圃' : f.function === 'training' ? `調教室（在家調教 +${f.training ?? 0}）` : f.function === 'crib' ? '搖籃'
+    : f.function === 'storage' ? `儲物箱（${f.slots ?? 0} 種${f.money ? '，可以存錢' : ''}）`
+    : f.function === 'aging' ? `熟成桶（${f.vessel ? VESSEL_NAME[f.vessel] : ''}）`
+    : f.function === 'teleport' ? '傳送陣（傳送到另一棟有傳送陣的房子，一棟一座）' : ''
+  const set = f.set ? homeRules.furniture_sets[f.set] : undefined
+  return [fn, f.comfort ? `舒適 +${f.comfort}` : '', `放在${f.places.map((p) => PLACE_NAME[p]).join('、')}`, set ? `成套：${set.name}（湊齊 ${set.need} 件）` : ''].filter(Boolean).join('，')
 }
 
 /** 房子裡所有的家具 */
-export function furnitureIn(home: Home): { name: string; area: string; x: number; y: number }[] {
-  const out: { name: string; area: string; x: number; y: number }[] = []
+export function furnitureIn(home: Home): { name: string; area: string; x: number; y: number; stored?: number }[] {
+  const out: { name: string; area: string; x: number; y: number; stored?: number }[] = []
   for (const a of Object.values(home.areas)) {
-    a.cells.forEach((c, i) => { if (c.furniture) out.push({ name: c.furniture, area: a.key, x: i % a.width, y: Math.floor(i / a.width) }) })
+    a.cells.forEach((c, i) => {
+      if (!c.furniture) return
+      const stored = storedItems(c).length
+      out.push({ name: c.furniture, area: a.key, x: i % a.width, y: Math.floor(i / a.width), ...(stored ? { stored } : {}) })
+    })
   }
   return out
 }
 
-/** 舒適度：所有家具的 comfort 加總 */
-export function comfortOf(home: Home): number {
-  return furnitureIn(home).reduce((n, f) => n + (itemDef(f.name)?.furniture?.comfort ?? 0), 0)
+/** 成套家具：每一套擺了幾件不同的家具（homes.json 的 furniture_sets） */
+export function setProgress(home: Home): { id: string; name: string; have: number; need: number; done: boolean }[] {
+  const pieces = new Map<string, Set<string>>()
+  for (const f of furnitureIn(home)) {
+    const set = itemDef(f.name)?.furniture?.set
+    if (set && !set.startsWith('$') && homeRules.furniture_sets[set]) (pieces.get(set) ?? pieces.set(set, new Set()).get(set)!).add(f.name)
+  }
+  return [...pieces].map(([id, names]) => {
+    const def = homeRules.furniture_sets[id]!
+    return { id, name: def.name, have: names.size, need: def.need, done: names.size >= def.need }
+  })
+}
+
+/** 湊齊的成套家具 */
+export function completeSets(home: Home): string[] {
+  return setProgress(home).filter((x) => x.done).map((x) => x.id)
+}
+
+/** 舒適度：所有家具的 comfort 加總，加上湊齊的成套家具、房間用途；給了 state 時加上家僕（女僕，staff.ts）與同居的人（cohabit.ts） */
+export function comfortOf(home: Home, state?: GameState): number {
+  const furniture = furnitureIn(home).reduce((n, f) => n + (itemDef(f.name)?.furniture?.comfort ?? 0), 0)
+  const sets = completeSets(home).reduce((n, id) => n + (homeRules.furniture_sets[id]?.comfort ?? 0), 0)
+  return furniture + sets + (home.master ? 0 : roomComfort(home)) + (state && !home.master ? staffComfort(state, home) + cohabitComfort(state, home) : 0)
 }
 
 /** 調教室：房子裡調教家具的加值合計（lewd.json 的 training.room_max 為上限） */
@@ -429,6 +466,14 @@ export function trainingRoomOf(home: Home): number {
     return n + (spec?.function === 'training' ? spec.training ?? 0 : 0)
   }, 0)
   return Math.min(lewdRules.training.room_max, sum)
+}
+
+/** 舒適度達到的分段（沒到第一段時 undefined）與下一段 */
+export function comfortTier(comfort: number): { tier?: { at: number; condition: string }; next?: { at: number; condition: string } } {
+  const tiers = [...homeRules.comfort_tiers].sort((a, b) => a.at - b.at)
+  const reached = tiers.filter((t) => comfort >= t.at)
+  const next = tiers.find((t) => comfort < t.at)
+  return { ...(reached.length ? { tier: reached.at(-1)! } : {}), ...(next ? { next } : {}) }
 }
 
 export function hasBed(home: Home): boolean {
@@ -454,6 +499,8 @@ export function placeFurniture(state: GameState, area: Area, x: number, y: numbe
   if (!place) throw new Error('這一格不能擺家具')
   if (!spec.places.includes(place)) throw new Error(`${name}只能放在${spec.places.map((p) => PLACE_NAME[p]).join('、')}`)
   if (!state.inventory.some((i) => i.name === name && i.qty > 0)) throw new Error(`行囊裡沒有${name}`)
+  // 傳送陣（teleport.ts）：一棟房子只能有一座
+  if (spec.function === 'teleport' && furnitureIn(ownHomeOfArea(state, area)!).some((f) => itemDef(f.name)?.furniture?.function === 'teleport')) throw new Error('一棟房子只能有一座傳送陣')
   removeItem(state.inventory, name, 1)
   cell.furniture = name
 }
@@ -464,6 +511,8 @@ export function takeFurniture(state: GameState, area: Area, x: number, y: number
   const cell = area.cells[y * area.width + x]
   if (!cell?.furniture) throw new Error('這一格沒有家具')
   if (cell.crop) throw new Error('苗圃上還種著東西，先收成或拔掉')
+  if (storageInUse(cell)) throw new Error('箱子裡還有東西，先拿出來')
+  if (cell.aging) throw new Error('桶子裡還在熟成，先取出或倒掉')
   if (itemDef(cell.furniture)?.furniture?.function === 'crib') {
     const refused = cribRefusal(state, ownHomeOfArea(state, area)!)
     if (refused) throw new Error(refused)
@@ -544,6 +593,8 @@ export function unparkMember(state: GameState, id: string, stowed: string[] = []
   delete rec.staying
   delete rec.stayingSince
   delete rec.at
+  // 分派的家務（staff.ts）：跟著出門就不做了
+  delete rec.chore
   state.party.push(m)
   stowed.push(...enforceClassWeapons(state, [m]), ...enforceExtraSlots(state, [m]))
   return m

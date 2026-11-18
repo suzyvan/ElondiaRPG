@@ -54,6 +54,7 @@ import MasterEventEditor from './content/MasterEventEditor.vue'
 import { allMasterEvents, builtinMasterEvent, masterEventById, newMasterEvent, POOL_IDS } from '@/engine/masterEventMods'
 import EventRulesEditor from './content/EventRulesEditor.vue'
 import FamilyRulesEditor from './content/FamilyRulesEditor.vue'
+import HomeRulesEditor from './content/HomeRulesEditor.vue'
 import BindRulesEditor from './content/BindRulesEditor.vue'
 import CategoryIconsEditor from './content/CategoryIconsEditor.vue'
 import ImportPickerDialog from './content/ImportPickerDialog.vue'
@@ -93,30 +94,33 @@ const SUBS: { id: Sub; label: string }[] = [
   { id: 'npcs', label: '🧑 固定 NPC' },
   { id: 'stories', label: '⭐ 特殊任務' },
 ]
-/** 頁籤分成幾組（上面一排是組，下面一排是組裡的頁籤）；icons 是物品組裡的「類別圖示」 */
-type Tab = Sub | 'icons'
+/** 頁籤分成幾組（上面一排是組，下面一排是組裡的頁籤）；icons 是物品組裡的「類別圖示」、homes 是地點組裡的「房屋設定」（只有一個設定畫面） */
+type PageTab = 'icons' | 'homes'
+type Tab = Sub | PageTab
 const GROUPS: { id: string; label: string; tabs: Tab[] }[] = [
   { id: 'combat', label: '⚔️ 戰鬥', tabs: ['enemies', 'classes', 'abilities', 'statuses'] },
   { id: 'people', label: '🧬 角色', tabs: ['npcs', 'perks', 'npcTags', 'tattoos', 'parasites'] },
   { id: 'items', label: '🎒 物品', tabs: ['items', 'bases', 'materials', 'icons'] },
-  { id: 'places', label: '🗺️ 地點', tabs: ['landmarks', 'specialMaps', 'dungeons', 'shops'] },
+  { id: 'places', label: '🗺️ 地點', tabs: ['landmarks', 'specialMaps', 'dungeons', 'shops', 'homes'] },
   { id: 'story', label: '⭐ 劇情', tabs: ['stories', 'events', 'masterEvents'] },
 ]
-const tabLabel = (t: Tab) => (t === 'icons' ? '🖼️ 類別圖示' : SUBS.find((x) => x.id === t)!.label)
+const PAGE_LABEL: Record<PageTab, string> = { icons: '🖼️ 類別圖示', homes: '🏠 房屋設定' }
+const tabLabel = (t: Tab) => (t === 'icons' || t === 'homes' ? PAGE_LABEL[t] : SUBS.find((x) => x.id === t)!.label)
 const content = useContent()
 const game = useGame()
 const sub = ref<Sub>('enemies')
-/** 「類別圖示」分頁：只有一個設定畫面，沒有左邊的列表 */
-const iconsTab = ref(false)
-const tab = computed<Tab>(() => (iconsTab.value ? 'icons' : sub.value))
+/** 「類別圖示」「房屋設定」分頁：只有一個設定畫面，沒有左邊的列表 */
+const pageTab = ref<PageTab | null>(null)
+const iconsTab = computed(() => pageTab.value !== null)
+const tab = computed<Tab>(() => pageTab.value ?? sub.value)
 const group = computed(() => GROUPS.find((g) => g.tabs.includes(tab.value))!)
 /** 每一組上次看的頁籤（切回這一組時回到那裡） */
 const lastTab: Record<string, Tab> = {}
 async function openTab(t: Tab) {
   if (t === tab.value || !(await confirmDiscard())) return
-  if (t === 'icons') iconsTab.value = true
+  if (t === 'icons' || t === 'homes') pageTab.value = t
   else {
-    iconsTab.value = false
+    pageTab.value = null
     sub.value = t
   }
   lastTab[group.value.id] = t
@@ -407,6 +411,11 @@ const BIND_RULES_KEY = '|bind_rules'
 const STORYLINES_KEY = '|storylines'
 /** 懷孕與泌乳設定（寄生物頁籤的固定按鈕；docs/FAMILY.md 第 12 節） */
 const FAMILY_RULES_KEY = '|family'
+/** 從房屋設定跳到事件頁籤、篩選家裡的事 */
+async function openHomeEvents() {
+  await openTab('events')
+  if (tab.value === 'events') eventScope.value = 'home'
+}
 /** 每一頁只有一筆的設定：放在清單上方的固定按鈕（不跟著篩選消失） */
 const SETTINGS = computed<{ key: string; label: string; edited: boolean }[]>(() => {
   void content.version
@@ -1000,7 +1009,7 @@ function resetAll() {
     <nav class="groups row" aria-label="內容的分類">
       <button v-for="g in GROUPS" :key="g.id" :class="{ active: group.id === g.id }" @click="openGroup(g.id)">{{ g.label }}</button>
       <span class="spacer" />
-      <span class="small muted">{{ iconsTab ? `已自訂 ${Object.keys(content.mods.categoryIcons ?? {}).length} 種類別` : counts[sub] }}</span>
+      <span class="small muted">{{ pageTab === 'icons' ? `已自訂 ${Object.keys(content.mods.categoryIcons ?? {}).length} 種類別` : pageTab === 'homes' ? (content.mods.homes?.rules ? '已修改' : '內建') : counts[sub] }}</span>
     </nav>
     <nav class="subs row" aria-label="頁籤">
       <button v-for="t in group.tabs" :key="t" class="small" :class="{ active: tab === t }" @click="openTab(t)">{{ tabLabel(t) }}</button>
@@ -1017,8 +1026,12 @@ function resetAll() {
     </div>
     <p v-if="content.problems.length" class="small warn-text">有些自訂內容沒辦法套用：{{ content.problems.join('；') }}</p>
 
-    <section v-if="iconsTab" class="panel">
+    <section v-if="pageTab === 'icons'" class="panel">
       <CategoryIconsEditor />
+    </section>
+    <section v-else-if="pageTab === 'homes'" class="panel">
+      <p class="small muted">家具在「🎒 物品」（物品的「家具」欄位）。和家僕有關的事件在「⭐ 劇情 → 🎲 事件」的「🏠 家裡的事」，機率在那裡的「⚙️ 事件設定」。<button class="small ghost" @click="openHomeEvents">看家裡的事 →</button></p>
+      <HomeRulesEditor key="home-rules" />
     </section>
     <div v-else class="layout">
       <section class="panel list-panel">

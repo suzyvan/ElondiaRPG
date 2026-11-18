@@ -77,7 +77,10 @@ export const STORY_EFFECTS: Partial<Record<RewardEffect['type'], string>> = {
   start_story: '開始特殊任務', enslave_player: '主角淪為奴隸', perk: '特質（取得的機會）', lose_perk: '失去特質', tattoo: '刺青', remove_tattoo: '洗掉刺青',
   condition: '非戰鬥狀態', parasite: '寄生物', corruption: '寄生物的侵蝕度', lewd: '慾望指標', ability_pool: '學會事件庫的技能',
   restrain: '陷阱鎖（鎖上拘束具）', pregnancy: '懷孕（受孕、察覺）', lactation: '泌乳',
+  staff_pause: '家僕請假（家裡的事）', staff_wage: '家僕的工錢（家裡的事）', stow_decor: '收起一件裝飾家具（家裡的事）',
 }
+/** 只有家裡的事（scope: home）用得到的效果：其他地方的編輯器不列 */
+export const HOME_EVENT_EFFECTS: RewardEffect['type'][] = ['staff_pause', 'staff_wage', 'stow_decor']
 /** 主人事件格式（主人事件、調教、娼館；docs/CONTENT_EDITOR.md）的效果可以用的種類 */
 export const MASTER_EVENT_EFFECTS: Partial<Record<RewardEffect['type'], string>> = {
   money: '金錢', item: '物品', xp: '經驗值', affinity: '親密度', memory: '記憶', condition: '非戰鬥狀態', hp: '生命值', tattoo: '刺青',
@@ -248,6 +251,19 @@ export function sanitizeEffects(v: unknown): RewardEffect[] {
         if (delta) out.push({ type: 'strict', delta })
         break
       }
+      case 'staff_pause': {
+        const days = int(x.days, 1, 30, 0)
+        if (days && typeof x.npc === 'string' && x.npc) out.push({ type: 'staff_pause', npc: x.npc.slice(0, 60), days })
+        break
+      }
+      case 'staff_wage': {
+        const days = int(x.days, -7, 7, 0)
+        if (days && typeof x.npc === 'string' && x.npc) out.push({ type: 'staff_wage', npc: x.npc.slice(0, 60), days })
+        break
+      }
+      case 'stow_decor':
+        out.push({ type: 'stow_decor' })
+        break
       case 'home_extend': {
         const hours = int(x.hours, -240, 240, 0)
         if (hours) out.push({ type: 'home_extend', hours })

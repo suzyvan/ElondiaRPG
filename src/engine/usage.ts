@@ -66,6 +66,7 @@ export function itemUsage(name: string, state?: GameState | null): string[] {
     if (it.tool?.fuel === name) out.push(`「${it.name}」的燃料`)
     if (it.recipe?.inputs.some((x) => x.name === name)) out.push(`「${it.name}」的配方材料`)
     if (it.seed?.yields.includes(name)) out.push(`「${it.name}」長出的作物`)
+    if (it.aging?.inputs.some((x) => x.name === name)) out.push(`「${it.name}」的熟成材料`)
   }
   if (state) {
     const have = state.inventory.find((i) => i.name === name && i.qty > 0)
@@ -77,6 +78,9 @@ export function itemUsage(name: string, state?: GameState | null): string[] {
     for (const h of Object.values(state.homes ?? {})) {
       if (furnitureIn(h).some((f) => f.name === name)) out.push(`目前存檔的房子「${h.name}」裡的家具`)
       if (Object.values(h.areas).some((a) => a.cells.some((c) => c.crop?.seed === name))) out.push(`目前存檔的房子「${h.name}」苗圃上種著`)
+      if (Object.values(h.areas).some((a) => a.cells.some((c) => c.aging?.item === name))) out.push(`目前存檔的房子「${h.name}」熟成桶裡`)
+      const stored = Object.values(h.areas).reduce((n, a) => n + a.cells.reduce((m, c) => m + (c.storage?.items.find((i) => i.name === name)?.qty ?? 0), 0), 0)
+      if (stored) out.push(`目前存檔的房子「${h.name}」箱子裡（×${stored}）`)
     }
   }
   return out
@@ -174,7 +178,7 @@ export function perkUsage(id: string, state?: GameState | null): string[] {
   return out
 }
 
-/** 自建物品改名：目前存檔裡的行囊、身上的裝備與進行中的委託一起改 */
+/** 自建物品改名：目前存檔裡的行囊、身上的裝備、進行中的委託與房子（家具、苗圃、箱子）一起改 */
 export function renameItemInState(state: GameState, from: string, to: string) {
   const have = state.inventory.find((i) => i.name === from)
   if (have) {
@@ -189,5 +193,16 @@ export function renameItemInState(state: GameState, from: string, to: string) {
   for (const h of Object.values(state.homes ?? {})) for (const a of Object.values(h.areas)) for (const c of a.cells) {
     if (c.furniture === from) c.furniture = to
     if (c.crop?.seed === from) c.crop.seed = to
+    if (c.aging?.item === from) c.aging.item = to
+    // 箱子裡的同名物品：改名後和箱子裡已經有的新名字合併
+    const box = c.storage?.items
+    const old = box?.find((i) => i.name === from)
+    if (box && old) {
+      const other = box.find((i) => i.name === to)
+      if (other) {
+        other.qty += old.qty
+        c.storage!.items = box.filter((i) => i !== old)
+      } else old.name = to
+    }
   }
 }

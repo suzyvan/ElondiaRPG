@@ -66,7 +66,7 @@ import * as story from '@/engine/story'
 import * as npcLife from '@/engine/npcLife'
 import * as sexRecord from '@/engine/sexRecord'
 import { editProfile, spendAttrPoint, type ProfilePatch } from '@/engine/character'
-import type { Attrs, AttrId, BondStyle } from '@/engine/data'
+import type { Attrs, AttrId, BondStyle, StaffJob } from '@/engine/data'
 import type { NewGameOptions } from '@/engine/state'
 import * as town from '@/engine/town'
 import * as tattooShop from '@/engine/tattooShop'
@@ -76,6 +76,13 @@ import * as homes from '@/engine/homes'
 import * as away from '@/engine/away'
 import * as partyEngine from '@/engine/party'
 import * as garden from '@/engine/garden'
+import * as storage from '@/engine/storage'
+import * as teleport from '@/engine/teleport'
+import * as cohabit from '@/engine/cohabit'
+import * as staff from '@/engine/staff'
+import * as aging from '@/engine/aging'
+import * as homeExpand from '@/engine/homeExpand'
+import * as rooms from '@/engine/rooms'
 import * as invention from '@/engine/invention'
 import * as fieldCast from '@/engine/fieldCast'
 import type { CustomDifficulty, DefeatLoot, Difficulty, GameState, GearSlot, LewdStat, NpcNews, Report, TattooPlace } from '@/engine/types'
@@ -1776,6 +1783,56 @@ export const useGame = defineStore('game', () => {
     uproot: () => run((s) => {
       const p = grid.position(s)
       garden.uproot(s, grid.currentArea(s), p.x, p.y)
+    }),
+    // 家僕（staff.ts）：在自己的房子裡雇用、付工錢、解雇，看主角不在時家裡發生的事
+    hireStaff: (id: string) => run((s) => staff.hireStaff(s, id), { narrate: false }),
+    fireStaff: (id: string) => run((s) => staff.fireStaff(s, id), { narrate: false }),
+    payWages: () => run((s) => staff.payWages(s), { narrate: false }),
+    ackStaffNotes: () => run((s) => staff.ackStaffNotes(s), { narrate: false }),
+    // 傳送陣（teleport.ts）：站在傳送陣上傳送到另一棟房子
+    teleport: (homeId: string) => run((s) => teleport.teleport(s, homeId)),
+    // 同居（cohabit.ts）：請他搬出去、帶上同居的冒險者、隊上的同居者回家住下
+    askCohabitantToLeave: (id: string) => run((s) => cohabit.askToLeave(s, id)),
+    takeCohabitant: (id: string) => run((s) => cohabit.takeCohabitant(s, id), { narrate: false }),
+    settleCohabitant: (id: string) => run((s) => cohabit.settleCohabitant(s, id), { narrate: false }),
+    assignChore: (id: string, job: StaffJob | null) => run((s) => staff.assignChore(s, id, job)),
+    // 房間用途（rooms.ts）：替站的這間房間標上用途（null 拿掉）
+    setRoomUse: (use: rooms.RoomUse | null) => run((s) => rooms.setRoomUse(s, use)),
+    // 擴建（homeExpand.ts）：加蓋一層、挖地下室、擴院子
+    startExpansion: (kind: homeExpand.ExpandKind) => run((s) => homeExpand.startExpansion(s, kind), { narrate: false }),
+    // 熟成桶（aging.ts）：放進去、取出、倒掉
+    startAging: (product: string) => run((s) => {
+      const p = grid.position(s)
+      aging.startAging(s, grid.currentArea(s), p.x, p.y, product)
+    }),
+    takeAged: () => run((s) => {
+      const p = grid.position(s)
+      return aging.takeAged(s, grid.currentArea(s), p.x, p.y)
+    }, { narrate: false }),
+    dumpAging: () => run((s) => {
+      const p = grid.position(s)
+      aging.dumpAging(s, grid.currentArea(s), p.x, p.y)
+    }),
+    // 儲物箱（storage.ts）：站在箱子上存取，不花時間
+    deposit: (name: string, qty?: number) => run((s) => {
+      const p = grid.position(s)
+      storage.depositItem(s, grid.currentArea(s), p.x, p.y, name, qty)
+    }),
+    withdraw: (name: string, qty?: number) => run((s) => {
+      const p = grid.position(s)
+      storage.withdrawItem(s, grid.currentArea(s), p.x, p.y, name, qty)
+    }),
+    depositMany: (by: { same: true } | { category: string }) => run((s) => {
+      const p = grid.position(s)
+      storage.depositMany(s, grid.currentArea(s), p.x, p.y, by)
+    }),
+    depositMoney: (amount: number) => run((s) => {
+      const p = grid.position(s)
+      storage.depositMoney(s, grid.currentArea(s), p.x, p.y, amount)
+    }),
+    withdrawMoney: (amount: number) => run((s) => {
+      const p = grid.position(s)
+      storage.withdrawMoney(s, grid.currentArea(s), p.x, p.y, amount)
     }),
     /** 地下城的緊急撤退（失敗會被追上打一場） */
     retreat: () => run(grid.retreat),

@@ -19,6 +19,7 @@ import { gameRule } from './gameRules'
 import { moneyPartsShown } from './money'
 import { hasItemKey, itemKey, sameShape } from './itemKey'
 import { backfillLewdSkills, lewdDaily, noteAdultScene } from './lewd'
+import { staffDaily } from './staff'
 import { familyTick } from './pregnancy'
 import { pcTagStartItems, sanitizePcTags } from './pcTags'
 import { startCrafts } from './crafting'
@@ -557,7 +558,8 @@ export function migrate(state: GameState): GameState {
  */
 export function pruneStatuses(state: GameState) {
   for (const x of state.combat?.combatants ?? []) if (x.statuses.some((s) => !statuses[s.id])) x.statuses = x.statuses.filter((s) => !!statuses[s.id])
-  const gone = (id: string) => id.startsWith('mod_cond_') && !companionRules.conditions[id]
+  // 自建的非戰鬥狀態、自建成套家具的狀態（set_mod_set_，房屋設定拿掉套組時）
+  const gone = (id: string) => (id.startsWith('mod_cond_') || id.startsWith('set_mod_set_')) && !companionRules.conditions[id]
   for (const c of [...state.party, ...Object.values(state.npcs ?? {}).map((r) => r.character).filter((x): x is Character => !!x)]) {
     if (c.status?.some(gone)) c.status = c.status.filter((id) => !gone(id))
   }
@@ -624,6 +626,7 @@ export function advanceTime(state: GameState, hours: number) {
   const prevDay = state.time.day
   state.time = addHours(state.time, hours)
   lewdDaily(state, prevDay, state.time.day)
+  staffDaily(state, prevDay, state.time.day)
   familyTick(state)
 }
 
@@ -693,6 +696,7 @@ export function commitReport(state: GameState, report: Report): Report {
   state.time = { day: report.time.end.day, hour: report.time.end.hour ?? 0, minute: report.time.end.minute ?? 0 }
   // 慾望指標：跨過的每一天（曝露名聲、服裝……）與親密場景
   lewdDaily(state, prevDay, state.time.day)
+  staffDaily(state, prevDay, state.time.day)
   noteAdultScene(state, report)
   if (report.kind === 'travel' && report.outcome.result === 'arrived' && report.location.to) {
     locationById(report.location.to)

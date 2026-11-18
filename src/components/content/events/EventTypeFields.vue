@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { attributeRules, geography, type LocationType, type RouteMode } from '@/engine/data'
+import { attributeRules, geography, STAFF_JOBS, type LocationType, type RouteMode } from '@/engine/data'
+import { jobName } from '@/engine/staff'
 import { cellName, type CellKind } from '@/engine/grid'
 import { travelEvents, type DungeonTrigger } from '@/engine/road'
 import { MODE_NAME } from '@/engine/travel'
@@ -20,7 +21,7 @@ const d = computed(() => props.draft)
 const has = (f: EventField) => props.type.fields.includes(f)
 const id = computed(() => props.type.id)
 
-type ListField = 'modes' | 'cells' | 'location_types' | 'locations' | 'triggers' | 'dungeons' | 'regions' | 'moments'
+type ListField = 'modes' | 'cells' | 'location_types' | 'locations' | 'triggers' | 'dungeons' | 'regions' | 'moments' | 'staff'
 function toggle(field: ListField, v: string, on: boolean) {
   const set = new Set<string>((d.value[field] as string[] | undefined) ?? [])
   if (on) set.add(v)
@@ -74,7 +75,19 @@ const cellLabel = (c: string) => cellName(c as CellKind)
 // 苗床長到支配時就產下了：階段只到共生
 const stageList = computed(() => (id.value === 'brood' ? parasiteRules.stages.slice(0, -1) : parasiteRules.stages))
 const subjectLabel = computed(() => (id.value === 'pregnancy' ? '隊上懷孕的夥伴（{a}）' : '隊上泌乳的夥伴（{a}）'))
-const cooldownDefault = computed(() => String(id.value === 'town' ? travelEvents.town?.repeat_days ?? 7 : travelEvents.dungeon?.repeat_days ?? 3))
+const cooldownDefault = computed(() => String(id.value === 'town' ? travelEvents.town?.repeat_days ?? 7 : id.value === 'home' ? travelEvents.home?.repeat_days ?? 6 : travelEvents.dungeon?.repeat_days ?? 3))
+// 家裡的事：時機只有走動與長休醒來；家僕的親密度範圍
+const momentList = computed(() => (id.value === 'home' ? { step: '在家裡走動', rest: '在家長休醒來' } : PARASITE_MOMENTS) as Partial<Record<'step' | 'travel' | 'rest', string>>)
+function setStaffAffinity(i: 0 | 1, v: string) {
+  const cur: [number, number] = d.value.staff_affinity ? [...d.value.staff_affinity] : [-100, 100]
+  cur[i] = v === '' ? (i === 0 ? -100 : 100) : Number(v)
+  if (cur[0] <= -100 && cur[1] >= 100) delete d.value.staff_affinity
+  else d.value.staff_affinity = cur
+}
+function setStaffBond(v: string) {
+  if (v === 'hired' || v === 'slave') d.value.staff_bond = v
+  else delete d.value.staff_bond
+}
 const regionHint = computed(() => (id.value === 'road'
   ? '這一段路要去的地區（海路是兩端的地區，去程回程都算）；沒勾時任何地區。旅途事件在規劃路線時就決定，所以魅氣濃度、地點這類條件看的是出發的地方，要限定地區請用這裡。'
   : '沒勾時不限。'))
@@ -205,9 +218,27 @@ const hasGrid = computed(() => (['kind', 'tier', 'cooldown', 'hours', 'cast', 'p
       </label>
     </div>
     <div v-if="has('moments')" class="row small"><b>時機</b> <Hint :text="id === 'pregnancy' ? '沒勾時不限。察覺事件只在長休之後、旅途擲（走動不擲）；孕期事件三種時機都擲。' : '沒勾時不限。'" />
-      <label v-for="(n, k) in PARASITE_MOMENTS" :key="k" class="check">
+      <label v-for="(n, k) in momentList" :key="k" class="check">
         <input type="checkbox" :checked="d.moments?.includes(k)" @change="toggle('moments', k, ($event.target as HTMLInputElement).checked)" /> {{ n }}
       </label>
+    </div>
+    <div v-if="has('staff')" class="row small"><b>職位</b> <Hint text="沒勾時任何家僕都可以；做家務的奴隸也照他的家務算。" />
+      <label v-for="j in STAFF_JOBS" :key="j" class="check">
+        <input type="checkbox" :checked="d.staff?.includes(j)" @change="toggle('staff', j, ($event.target as HTMLInputElement).checked)" /> {{ jobName(j) }}
+      </label>
+    </div>
+    <div v-if="has('staffBond') || has('staffAffinity')" class="row small">
+      <template v-if="has('staffBond')"><b>誰</b>
+        <select :value="d.staff_bond ?? ''" @change="setStaffBond(($event.target as HTMLSelectElement).value)">
+          <option value="">雇來的家僕與做家務的奴隸</option>
+          <option value="hired">只有雇來的家僕</option>
+          <option value="slave">只有做家務的奴隸</option>
+        </select>
+      </template>
+      <template v-if="has('staffAffinity')"><b>親密度</b>
+        <input type="number" min="-100" max="100" class="num" :value="d.staff_affinity?.[0] ?? ''" placeholder="-100" @change="setStaffAffinity(0, ($event.target as HTMLInputElement).value)" />～
+        <input type="number" min="-100" max="100" class="num" :value="d.staff_affinity?.[1] ?? ''" placeholder="100" @change="setStaffAffinity(1, ($event.target as HTMLInputElement).value)" />
+      </template>
     </div>
     <div v-if="has('fatherRaces')" class="row small"><b>父親的種族</b> <Hint text="沒勾時不限。父親不明時，有寫種族或混血的條件都不成立；非自願看懷上的那次經歷。" />
       <label v-for="r in raceIds" :key="r" class="check">

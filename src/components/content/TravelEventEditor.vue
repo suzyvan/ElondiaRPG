@@ -50,7 +50,10 @@ provide('eventCast', computed(() => (type.value.id === 'lead' ? draft.value.cast
 provide('eventParasite', computed(() => (type.value.id === 'parasite' ? draft.value.parasite : undefined)))
 // 懷孕的事件：效果的親密度可以指定懷孕的夥伴（$a）與孩子的父親（$f）
 provide('eventPregnancy', computed(() => (pregnancy.value ? { companion: draft.value.subject === 'companion' }
-  : type.value.id === 'lactation' ? { companion: draft.value.subject === 'companion', label: '泌乳的夥伴', father: false } : undefined)))
+  : type.value.id === 'lactation' ? { companion: draft.value.subject === 'companion', label: '泌乳的夥伴', father: false }
+  : type.value.id === 'home' ? { companion: true, label: '這件事的家僕', father: false } : undefined)))
+// 家裡的事：效果多了家僕請假、工錢、收起裝飾家具（EffectsEditor）
+provide('eventHome', computed(() => type.value.id === 'home'))
 const warnings = computed(() => travelEventWarnings(draft.value))
 const requires = computed(() => draft.value.requires!)
 const categories = computed(() => travelEvents.town?.categories ?? {})

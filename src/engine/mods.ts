@@ -9,6 +9,7 @@
 
 import { isAbilityCategory } from './abilityCategory'
 import { applyFamilyRules, restoreFamilyRules, sanitizeFamilyRules, type FamilyRulesMod } from './familyMods'
+import { applyHomeRules, isCustomSetId, restoreHomeRules, sanitizeHomeRules, type HomeRulesMod } from './homeMods'
 import { familyRules, STAGE_ORDER } from './pregMarks'
 import type { PregnancyCond } from './data'
 import type { PregnancyStage } from './types'
@@ -19,7 +20,7 @@ import mapsJson from '@data/world/maps.json'
 import { COSTUME_SHOPS,
   abilities, attributeRules, ATTR_IDS, bumpContentRevision, MASTER_EVENT_POOLS, masterEventPool, type MasterEventPool, classes, NONCOMBAT_CLASS, companionRules, CRAFT_IDS, craftRules, damageTypes, dungeonEncounters, enemies, equipment, GENDER_IDS, geography, itemDef, itemRules, monsterTraits,
   npcs as namedNpcs, npcTags, isChoosablePerk, perkDef, perkRules, reindexItems, statuses, storyCounters, wildEncounterTables, type ArmorDef, type AttrId, type NpcTagDef, type DungeonEncounters, type EncounterGroup,
-  type EnemyDef, type FurniturePlace, type FurnitureSpec, type ItemCategory, type ItemDef, type ItemUse, type Mods, type NpcDef, type WeaponDef, wildEncounters,
+  type EnemyDef, AGING_VESSELS, type AgingSpec, type AgingVessel, FURNITURE_FUNCTIONS, furnitureSetIds, type FurniturePlace, type FurnitureSpec, type ItemCategory, type ItemDef, type ItemUse, type Mods, type NpcDef, type WeaponDef, wildEncounters,
   stories, type RecipeSpec, type SeedSpec, type StoryCond, type AbilityDef, type AbilityTarget, type AbilityType, type ApplyDef, type DamagePart, type PerkDef,
   type Control, type LuckRoll, type StatusDef, type ConditionDef, slaveryRules, lewdRules, type ContractDef, isKeeperShop, isCustomShopId, isLandmarkId, landmarks, specialMaps, shopRules, DUNGEON_LAYER_IDS, DUNGEON_LAYER_NAME, BOSS_LAYER_IDS, type DungeonLayerId, BIND_KINDS, type BindKind, LOCK_GRADES,
 } from './data'
@@ -147,6 +148,8 @@ export interface ContentMods {
   bindRules?: Record<string, BindRulesMod>
   /** 懷孕與泌乳的設定（只有 rules 一筆；docs/FAMILY.md 第 12 節；舊的自訂內容沒有這一欄） */
   family?: Record<string, FamilyRulesMod>
+  /** 房屋設定：家僕與舒適度的數值（只有 rules 一筆；docs/HOMES.md 第 8 節；舊的自訂內容沒有這一欄） */
+  homes?: Record<string, HomeRulesMod>
   /** 主人事件格式的事件（主人的突發事件、調教、娼館；舊的自訂內容沒有這一欄） */
   masterEvents?: Record<string, MasterEventMod>
   /** 類別的圖示（依類別 id；舊的自訂內容沒有這一欄） */
@@ -297,6 +300,7 @@ function restore() {
   restoreTravelEvents()
   restoreBindRules()
   restoreFamilyRules()
+  restoreHomeRules()
   restoreMasterEvents()
   restoreCounters()
   setCategoryIcons({})
@@ -641,6 +645,7 @@ export function applyContent(mods: ContentMods): string[] {
   tryEach('事件設定', mods.eventRules ?? {}, (_id, m) => applyEventRules(sanitizeEventRules(m)))
   tryEach('雙面效應設定', mods.bindRules ?? {}, (_id, m) => applyBindRules(sanitizeBindRules(m)))
   tryEach('懷孕與泌乳設定', mods.family ?? {}, (_id, m) => applyFamilyRules(sanitizeFamilyRules(m)))
+  tryEach('房屋設定', mods.homes ?? {}, (_id, m) => applyHomeRules(sanitizeHomeRules(m)))
   tryEach('主奴與娼館的事件', mods.masterEvents ?? {}, (id, m) => applyMasterEvent(id, sanitizeMasterEvent(id, m, !!m.custom)))
   setCategoryIcons(Object.fromEntries(Object.entries(mods.categoryIcons ?? {}).map(([k, v]) => [k, v.icon])))
   // 自建的底材與裝備：建角時也能選
@@ -998,10 +1003,16 @@ export function sanitizeItem(name: string, raw: Partial<ItemMod>, custom: boolea
     const places = (Array.isArray(f.places) ? f.places : []).filter((p): p is FurniturePlace => p === 'indoor' || p === 'yard' || p === 'basement')
     out.furniture = {
       places: places.length ? [...new Set(places)] : ['indoor'],
-      ...(f.function === 'bed' || f.function === 'workbench' || f.function === 'garden' || f.function === 'training' || f.function === 'crib' ? { function: f.function } : {}),
+      ...(FURNITURE_FUNCTIONS.includes(f.function as never) ? { function: f.function } : {}),
       ...(f.function === 'workbench' ? { craft: CRAFT_IDS.includes(f.craft as never) ? f.craft : 'smithing' } : {}),
       ...(f.function === 'training' ? { training: int(f.training, 1, 3, 1) } : {}),
+      // 儲物箱：能放幾種（1～99）、能不能存錢
+      ...(f.function === 'storage' ? { slots: int(f.slots, 1, 99, 12), ...(f.money === true ? { money: true } : {}) } : {}),
       ...(int(f.comfort, 0, 10, 0) ? { comfort: int(f.comfort, 0, 10, 0) } : {}),
+      // 成套家具：存在的套組才留（homes.json 的 furniture_sets）；自建的套組（mod_set_）先留著，同一包的房屋設定可能還沒套用
+      ...(typeof f.set === 'string' && (furnitureSetIds().includes(f.set) || isCustomSetId(f.set)) ? { set: f.set } : {}),
+      // 熟成桶：哪一種桶
+      ...(f.function === 'aging' ? { vessel: AGING_VESSELS.includes(f.vessel as never) ? f.vessel : 'cask' } : {}),
       ...(typeof f.icon === 'string' && f.icon.trim() ? { icon: [...f.icon.trim()].slice(0, 2).join('') } : {}),
     }
   }
@@ -1035,6 +1046,18 @@ export function sanitizeItem(name: string, raw: Partial<ItemMod>, custom: boolea
       const hi = int(sd.qty?.[1], 1, 20, lo)
       const place: FurniturePlace = sd.place === 'basement' || sd.place === 'indoor' ? sd.place : 'yard'
       out.seed = { yields, qty: [Math.min(lo, hi), Math.max(lo, hi)], days: int(sd.days, 1, 30, 3), place }
+    }
+  }
+  // 熟成：用哪一種熟成桶、放進哪些材料（最多 4 種、不能是自己）、幾天、做出幾份（裝備以外）
+  if (category !== 'equipment' && raw.aging && typeof raw.aging === 'object') {
+    const ag: Partial<AgingSpec> = raw.aging
+    const inputs = new Map<string, number>()
+    for (const x of Array.isArray(ag.inputs) ? ag.inputs : []) {
+      const n = cleanItemName(x?.name)
+      if (n && n !== out.name) inputs.set(n, Math.min(99, (inputs.get(n) ?? 0) + int(x?.qty, 1, 99, 1)))
+    }
+    if (inputs.size && AGING_VESSELS.includes(ag.vessel as never)) {
+      out.aging = { vessel: ag.vessel as AgingVessel, inputs: [...inputs].slice(0, 4).map(([name, qty]) => ({ name, qty })), days: int(ag.days, 1, 60, 3), qty: int(ag.qty, 1, 20, 1) }
     }
   }
   // 光源與燃料：每一份能照亮幾格
@@ -1298,6 +1321,7 @@ export function normalizeMods(raw: unknown): ContentMods {
   if (r.eventRules?.rules) out.eventRules.rules = sanitizeEventRules(r.eventRules.rules)
   if (r.bindRules?.rules) (out.bindRules ??= {}).rules = sanitizeBindRules(r.bindRules.rules)
   if (r.family?.rules) (out.family ??= {}).rules = sanitizeFamilyRules(r.family.rules)
+  if (r.homes?.rules) (out.homes ??= {}).rules = sanitizeHomeRules(r.homes.rules)
   for (const [id, v] of Object.entries(r.masterEvents ?? {})) {
     if (typeof id === 'string' && id.length <= 60 && v && typeof v === 'object') (out.masterEvents ??= {})[id] = sanitizeMasterEvent(id, v, !!v.custom || !builtinMasterEvent(id))
   }
@@ -1847,6 +1871,8 @@ export function sanitizeCondition(id: string, raw: Partial<ConditionMod>, custom
   if (typeof src.stacks_to === 'string' && others.includes(src.stacks_to)) out.stacks_to = src.stacks_to
   const rep = Array.isArray(src.replaces) ? others.filter((k) => src.replaces!.includes(k)) : []
   if (rep.length) out.replaces = rep
+  // 長休解除時換成另一個狀態（育嬰室的「家人的笑容」多持續一次）
+  if (out.clears === 'long_rest' && typeof src.then === 'string' && others.includes(src.then)) out.then = src.then
   if (custom) out.custom = true
   return out
 }

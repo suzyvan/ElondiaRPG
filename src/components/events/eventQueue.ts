@@ -89,7 +89,12 @@ export function pendingEvents(state: GameState | null): GameEvent[] {
       const name = state.npcs?.[j.npcs[0]!]?.name ?? state.relationships?.[j.npcs[0]!]?.name ?? '有人'
       out.push({ id: `join:${j.id}`, kind: 'join', icon: '🤝', title: j.kind === 'follow' ? `${name}邀請你同行` : `${name}${j.npcs.length > 1 ? `等 ${j.npcs.length} 人` : ''}想加入隊伍`, blocking: true, ref: j.id })
     }
-    if (state.townEvent) out.push({ id: `town:${state.townEvent.template}:${state.townEvents?.last ?? 0}`, kind: 'town', icon: '🏘️', title: pendingTownEvent(state)?.title ?? '城裡的事', blocking: true })
+    if (state.townEvent) {
+      // 家裡的事（homeEvents.ts）也走城鎮事件的視窗
+      const ev = pendingTownEvent(state)
+      const home = ev?.scope === 'home'
+      out.push({ id: `town:${state.townEvent.template}:${(home ? state.homeEvents?.last : state.townEvents?.last) ?? 0}`, kind: 'town', icon: home ? '🏠' : '🏘️', title: ev?.title ?? (home ? '家裡的事' : '城裡的事'), blocking: true })
+    }
   }
   // 新職業（武夫、仙術師）之前的存檔：要不要把炎華之地的一批冒險者改成新職業（只問一次，可以稍後）
   if (state.classRebalance?.offer && !state.classRebalance.done) out.push({ id: 'classes:rebalance', kind: 'classes', icon: '🎓', title: '炎華之地的新職業', blocking: false })

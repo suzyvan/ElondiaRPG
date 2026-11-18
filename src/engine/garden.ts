@@ -6,6 +6,7 @@ import { itemDef, type FurniturePlace, type SeedSpec } from './data'
 import type { Area, Cell } from './grid'
 import { homeOfArea, homeReport, ownHomeOfArea, PLACE_NAME, placeOf } from './homes'
 import { commitReport, removeItem, withRng } from './state'
+import { inventoryHere, pullFromHome, stockHere } from './storage'
 import type { GameState, GameTime, Report } from './types'
 
 const minutesOf = (t: GameTime) => ((t.day - 1) * 24 + (t.hour ?? 0)) * 60 + (t.minute ?? 0)
@@ -27,10 +28,10 @@ export function seedSummary(s: SeedSpec | undefined): string {
   return `種在${PLACE_NAME[s.place]}的苗圃，${s.days} 天後長出${s.yields.join('或')} ×${n}`
 }
 
-/** 行囊裡能種在這個苗圃的種子 */
+/** 能種在這個苗圃的種子：行囊加上家裡的箱子（storage.ts） */
 export function seedsFor(state: GameState, area: Area, cell: Cell): { name: string; qty: number }[] {
   const place = plotPlace(area, cell)
-  return place ? state.inventory.filter((i) => i.qty > 0 && seedOf(i.name)?.place === place) : []
+  return place ? inventoryHere(state).filter((i) => seedOf(i.name)?.place === place) : []
 }
 
 export interface CropStatus {
@@ -64,7 +65,8 @@ export function plant(state: GameState, area: Area, x: number, y: number, seed: 
   if (!spec) throw new Error(`${seed}不是種子`)
   const place = plotPlace(area, cell)!
   if (spec.place !== place) throw new Error(`${seed}要種在${spec.place === 'yard' ? '院子的菜圃' : '地下室的菇床'}`)
-  if (!state.inventory.some((i) => i.name === seed && i.qty > 0)) throw new Error(`行囊裡沒有${seed}`)
+  if (stockHere(state, seed) <= 0) throw new Error(`行囊和家裡的箱子都沒有${seed}`)
+  pullFromHome(state, seed, 1)
   removeItem(state.inventory, seed, 1)
   cell.crop = { seed, planted: { ...state.time } }
 }

@@ -8,7 +8,7 @@
 
 import { attrOf, snapshot } from './character'
 import { startCombat } from './combat'
-import { enemies, locationById, regionById, slaveryRules, specialMaps, stories, wildEncounters, type AttrId, type CheckContext, type SkillId, type LocationType, type RouteMode, type StoryCheck, type StoryCond, type StoryOutcome } from './data'
+import { enemies, locationById, regionById, slaveryRules, specialMaps, stories, wildEncounters, type AttrId, type CheckContext, type SkillId, type LocationType, type RouteMode, type StaffJob, type StoryCheck, type StoryCond, type StoryOutcome } from './data'
 import { affordable, applyEffects } from './effects'
 import {
   assertNoStandoff, clearAreas, currentArea, ensureQuestTargets, findKind, generateSide, layerEncounters, placeAt, position, reveal, storeArea, substituteGroup,
@@ -53,7 +53,7 @@ export interface RoadOption {
   requires?: StoryCond
 }
 /** 事件發生的地方：旅途上（預設）、城鎮的設施上（townEvents.ts）、地下城與近郊（dungeonEvents.ts）、寄生物的發作（parasiteEvents.ts），或線索池的事件點（leadEvents.ts） */
-export type EventScope = 'road' | 'town' | 'dungeon' | 'parasite' | 'lead' | 'pregnancy' | 'lactation' | 'brood'
+export type EventScope = 'road' | 'town' | 'dungeon' | 'parasite' | 'lead' | 'pregnancy' | 'lactation' | 'brood' | 'home'
 /** 地下城事件的觸發點：觸發陷阱、打開寶箱、採集、在安全房長休之後 */
 export type DungeonTrigger = 'trap' | 'chest' | 'gather' | 'rest'
 export interface RoadTemplate {
@@ -111,6 +111,12 @@ export interface RoadTemplate {
   brood_kinds?: ('egg' | 'live' | 'parasite')[]
   /** 懷孕：只在聚落裡 */
   in_settlement?: boolean
+  /** 家裡的事（scope: home，docs/HOMES.md 第 8.1 節）：要有哪些職位的家僕（沒有時任何家僕）；文字 {a}、效果 $a 是挑到的那位家僕 */
+  staff?: StaffJob[]
+  /** 家裡的事：那位家僕的親密度範圍 [最低, 最高]（沒有時不限） */
+  staff_affinity?: [number, number]
+  /** 家裡的事：hired 只有雇來的家僕、slave 只有做家務的奴隸（沒有時都可以） */
+  staff_bond?: 'hired' | 'slave'
   /** 內容標籤（成人向、主角非自願……）：設定裡關掉的不出現 */
   tags?: ContentTag[]
   /** 只給這些體型的主角 */
@@ -138,6 +144,13 @@ export const travelEvents = travelEventsJson as unknown as {
   town: TownEventRules
   /** 地下城與近郊的事件：各觸發點的機率、兩次事件之間的冷卻 */
   dungeon?: DungeonEventRules
+  /** 家裡的事（scope: home）：在自己家裡走動、長休醒來時的機率、冷卻、同一事件多久不重複 */
+  home?: HomeEventRules
+}
+export interface HomeEventRules {
+  chance: { step: number; rest: number }
+  cooldown_hours: number
+  repeat_days: number
 }
 export interface DungeonEventRules {
   chance: Record<DungeonTrigger, number>

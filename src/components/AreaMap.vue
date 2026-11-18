@@ -4,6 +4,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { cellAt, CELL_ICON, CELL_NAME, cellName, isRevealed, linkTargetName, position, sight, type Cell } from '@/engine/grid'
 import { forCostumeShops, isCustomShopId, itemDef, landmarkDef, locationById } from '@/engine/data'
 import { cropStatus } from '@/engine/garden'
+import { storedItems, storedMoney } from '@/engine/storage'
+import { agingStatus } from '@/engine/aging'
+import { formatMoney } from '@/engine/money'
 import { homeById } from '@/engine/homes'
 import { isHostile, type PresentNpc } from '@/engine/population'
 import { useGame } from '@/stores/game'
@@ -36,6 +39,8 @@ function icon(cell: Cell): string {
   // 房子：家具、樓梯、門；城裡買下的房子
   // 苗圃上的作物：成熟 🌾、還在長 🌿
   if (cell.crop && game.state) return cropStatus(game.state, cell)?.ready ? '🌾' : '🌿'
+  // 熟成桶：熟成好了 🍶、還在熟成 ⏳
+  if (cell.aging && game.state) return agingStatus(game.state, cell)?.ready ? '🍶' : '⏳'
   if (cell.furniture) return itemDef(cell.furniture)?.furniture?.icon ?? '🪑'
   if (cell.dir) return { up: '⬆️', down: '⬇️', out: '🚪' }[cell.dir]
   if (cell.home) return game.state && homeById(game.state, cell.home)?.master ? '🏚️' : '🏠'
@@ -97,6 +102,14 @@ function baseLabel(cell: Cell): string {
   if (cell.crop && game.state) {
     const c = cropStatus(game.state, cell)
     return `${cell.furniture}：種著${cell.crop.seed}${c?.ready ? '，可以收成了' : `，還要 ${c?.hoursLeft ?? 0} 小時`}`
+  }
+  if (cell.aging && game.state) {
+    const a = agingStatus(game.state, cell)
+    return `${cell.furniture}：${cell.aging.item}${a?.ready ? '熟成好了' : `，還要 ${a?.hoursLeft ?? 0} 小時`}`
+  }
+  if (cell.furniture && cell.storage) {
+    const n = storedItems(cell).length
+    return `${cell.furniture}：${n ? `放了 ${n} 種東西` : ''}${n && storedMoney(cell) ? '、' : ''}${storedMoney(cell) ? `存了 ${formatMoney(storedMoney(cell))}` : ''}`
   }
   if (cell.furniture) return `家具：${cell.furniture}`
   if (cell.dir) return { up: '往樓上', down: '往樓下', out: '出門' }[cell.dir]

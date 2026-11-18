@@ -72,14 +72,14 @@ export function daysToHours(days: number): number {
   return Math.floor(days) * 24 + (days % 1) * 12
 }
 
-/** 抵達 state.location：建立地圖與名單，進城盤查，逃開的同伴歸隊 */
-export function arrive(state: GameState) {
+/** 抵達 state.location：建立地圖與名單，進城盤查，逃開的同伴歸隊；gate 為 false 時不經過城門（傳送陣直接到家裡） */
+export function arrive(state: GameState, opts: { gate?: boolean } = {}) {
   enterLocation(state)
   ensureRoster(state, state.location)
   refreshRosters(state)
   pruneNpcs(state)
   // 進城的盤查：付不出罰金就被擋在城外
-  if (!arrivalCheck(state)) placeOutside(state)
+  if (opts.gate !== false && !arrivalCheck(state)) placeOutside(state)
   // 戰敗時逃開的同伴在聚落等著
   rejoinAway(state)
   // 主人的家（主角有主人時；舊存檔第一次抵達時建立）

@@ -2,11 +2,11 @@
 // 內建的事件可以改、不能刪；自建的事件沒有被用到的地方，隨時可以刪（等待中的事件會作廢）。
 // 另外一筆「事件設定」（key 是 rules）：旅途各種路段的機率、事件種類的權重，城鎮事件與地下城事件的機率與冷卻。
 
-import { ATTR_IDS, SKILL_IDS, attributeRules, geography, shopRules, type AttrId, type LocationType, type RouteMode, type StoryCheck, type StoryOutcome } from './data'
+import { ATTR_IDS, SKILL_IDS, STAFF_JOBS, attributeRules, geography, shopRules, type AttrId, type LocationType, type RouteMode, type StoryCheck, type StoryOutcome } from './data'
 import { sanitizeCond } from './mods'
 import { parasiteDef, parasiteRules } from './parasites'
 import { DEFAULT_LAYER_DC } from './dungeonEvents'
-import { travelEvents, type DungeonEventRules, type DungeonTrigger, type EventScope, type RoadOption, type RoadTemplate, type TownEventRules } from './road'
+import { travelEvents, type DungeonEventRules, type DungeonTrigger, type EventScope, type HomeEventRules, type RoadOption, type RoadTemplate, type TownEventRules } from './road'
 import { CONTENT_TAG_IDS } from './content'
 import { BODIES } from './traits'
 import { sanitizeOutcome } from './storyMods'
@@ -24,7 +24,10 @@ export interface EventRulesMod {
   weights: { auto: number; choice: number; combat: number; advanced: number }
   town: TownEventRules
   dungeon: DungeonEventRules
+  /** 家裡的事（家僕，docs/HOMES.md 第 8.1 節）；舊的自訂內容沒有這一欄，整理時補上內建的 */
+  home: HomeEventRules
 }
+const DEFAULT_HOME: HomeEventRules = { chance: { step: 0.04, rest: 0.25 }, cooldown_hours: 20, repeat_days: 6 }
 
 export const EVENT_LIMITS = { title_chars: 20, text_chars: 400, label_chars: 30, options: 5, cooldown_days: [0, 60], scene_chars: 200, offscreen_chars: 120 } as const
 export const DUNGEON_TRIGGERS: Record<DungeonTrigger, string> = { trap: '觸發陷阱', chest: '打開寶箱', gather: '採集', rest: '安全房長休' }
@@ -56,7 +59,7 @@ const num = (v: unknown, lo: number, hi: number, d: number, digits = 2) => {
 const snapshot = { templates: clone(travelEvents.templates), rules: rulesOf() }
 
 function rulesOf(): EventRulesMod {
-  return clone({ chance: travelEvents.chance, weights: travelEvents.weights, town: travelEvents.town, dungeon: travelEvents.dungeon ?? DEFAULT_DUNGEON })
+  return clone({ chance: travelEvents.chance, weights: travelEvents.weights, town: travelEvents.town, dungeon: travelEvents.dungeon ?? DEFAULT_DUNGEON, home: travelEvents.home ?? DEFAULT_HOME })
 }
 
 export function builtinTravelEvent(id: string): RoadTemplate | undefined {
@@ -106,7 +109,7 @@ function pick<T extends string>(v: unknown, allowed: readonly T[]): T[] {
 }
 
 /** 事件的種類（scope；road 是預設，不寫） */
-export const EVENT_SCOPES: EventScope[] = ['road', 'town', 'dungeon', 'parasite', 'lead', 'pregnancy', 'lactation', 'brood']
+export const EVENT_SCOPES: EventScope[] = ['road', 'town', 'dungeon', 'parasite', 'lead', 'pregnancy', 'lactation', 'brood', 'home']
 const BROOD_KINDS = ['egg', 'live', 'parasite'] as const
 
 /** 整理一個事件。城鎮事件沒有高階（不會進臨時地圖的「發現」），選擇的事件至少要有一個選項 */
@@ -179,6 +182,19 @@ export function sanitizeTravelEvent(id: string, raw: Partial<TravelEventMod>, cu
     const moments = pick(raw.moments, Object.keys(PARASITE_MOMENTS) as NonNullable<RoadTemplate['moments']>)
     if (moments.length && moments.length < Object.keys(PARASITE_MOMENTS).length) out.moments = moments
     if (raw.in_settlement) out.in_settlement = true
+  } else if (scope === 'home') {
+    // 家裡的事（docs/HOMES.md 第 8.1 節）：家僕的職位、親密度範圍、雇來的或奴隸、時機（走動、長休醒來）
+    const jobs = pick(raw.staff, STAFF_JOBS)
+    if (jobs.length && jobs.length < STAFF_JOBS.length) out.staff = jobs
+    if (Array.isArray(raw.staff_affinity) && raw.staff_affinity.length === 2) {
+      const lo = Math.round(num(raw.staff_affinity[0], -100, 100, -100))
+      const hi = Math.round(num(raw.staff_affinity[1], -100, 100, 100))
+      if (lo > -100 || hi < 100) out.staff_affinity = [Math.min(lo, hi), Math.max(lo, hi)]
+    }
+    if (raw.staff_bond === 'hired' || raw.staff_bond === 'slave') out.staff_bond = raw.staff_bond
+    const moments = pick(raw.moments, ['step', 'rest'] as const)
+    if (moments.length === 1) out.moments = moments
+    if (raw.cooldown_days !== undefined && raw.cooldown_days !== null && String(raw.cooldown_days) !== '') out.cooldown_days = Math.round(num(raw.cooldown_days, ...L.cooldown_days, 6))
   } else if (scope === 'brood') {
     // 苗床的事件（docs/FAMILY.md 第 13.3 節）：主角身上的苗床，種類、階段（支配時就產下了，不列）、時機
     const kinds = pick(raw.brood_kinds, BROOD_KINDS)
@@ -259,7 +275,7 @@ export function sanitizeTravelEvent(id: string, raw: Partial<TravelEventMod>, cu
 
 export function newTravelEvent(id: string, scope: EventScope = 'road'): TravelEventMod {
   return sanitizeTravelEvent(id, {
-    scope, kind: 'choice', title: scope === 'town' ? '新的城鎮事件' : scope === 'dungeon' ? '新的地下城事件' : scope === 'parasite' ? '新的發作' : scope === 'lead' ? '新的線索事件' : scope === 'pregnancy' ? '新的懷孕事件' : scope === 'lactation' ? '新的泌乳事件' : scope === 'brood' ? '新的苗床事件' : '新的旅途事件', text: '',
+    scope, kind: 'choice', title: scope === 'town' ? '新的城鎮事件' : scope === 'dungeon' ? '新的地下城事件' : scope === 'parasite' ? '新的發作' : scope === 'lead' ? '新的線索事件' : scope === 'pregnancy' ? '新的懷孕事件' : scope === 'lactation' ? '新的泌乳事件' : scope === 'brood' ? '新的苗床事件' : scope === 'home' ? '新的家裡的事' : '新的旅途事件', text: '',
     ...(scope === 'dungeon' ? { triggers: ['trap'] as DungeonTrigger[] } : {}),
     ...(scope === 'parasite' ? { tags: ['adult' as const] } : {}),
     ...(scope === 'pregnancy' ? { tags: ['adult' as const, 'pregnancy' as const], subject: 'pc' as const, known: true } : {}),
@@ -293,7 +309,13 @@ export function sanitizeEventRules(raw: Partial<EventRulesMod>): EventRulesMod {
     repeat_days: Math.round(num(d.repeat_days, 0, 60, base.dungeon.repeat_days)),
     dc: EVENT_LAYERS.map((_, i) => Math.round(num(d.dc?.[i], 5, 30, base.dungeon.dc?.[i] ?? DEFAULT_LAYER_DC[i]!))),
   }
-  return { chance, weights, town, dungeon }
+  const h = raw.home ?? base.home
+  const home: HomeEventRules = {
+    chance: { step: num(h.chance?.step, 0, 1, base.home.chance.step), rest: num(h.chance?.rest, 0, 1, base.home.chance.rest) },
+    cooldown_hours: num(h.cooldown_hours, 0, 168, base.home.cooldown_hours, 1),
+    repeat_days: Math.round(num(h.repeat_days, 0, 60, base.home.repeat_days)),
+  }
+  return { chance, weights, town, dungeon, home }
 }
 
 /** 把事件與設定還原成內建的樣子（自建的拿掉） */
@@ -304,6 +326,7 @@ export function restoreTravelEvents() {
   travelEvents.weights = r.weights
   travelEvents.town = r.town
   travelEvents.dungeon = r.dungeon
+  travelEvents.home = r.home
 }
 
 export function applyTravelEvent(id: string, m: TravelEventMod) {
@@ -318,6 +341,7 @@ export function applyEventRules(r: EventRulesMod) {
   travelEvents.weights = clone(r.weights)
   travelEvents.town = clone(r.town)
   travelEvents.dungeon = clone(r.dungeon)
+  travelEvents.home = clone(r.home ?? builtinEventRules().home)
 }
 
 export function currentEventRules(): EventRulesMod {

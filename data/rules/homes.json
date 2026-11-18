@@ -1,5 +1,5 @@
 {
-  "$comment": "房屋（見 docs/HOMES.md）。每座聚落有幾塊待售的空地（lots 依聚落規模；從地圖上挑臨街的建築格，不夠時用臨街的街道格（街屋）補，同一座城一直一樣）。房屋的規格依地段：聚落規模對應 by_location，貴族區的空地是 noble。floors：地上幾層（1 = 平房）；basement：有沒有地下室；size：每層的寬高（含外牆）；yard：院子的深度（格，地面層下方，0 = 沒有院子）；rooms：每層隔成幾間。買下時生成地圖，存進存檔。家具：items.json 的 furniture 類別，furniture.places 是能放的地方（indoor 室內、yard 院子、basement 地下室）；comfort 加總達到 comfort_rested 時，在家長休後睡得香甜（well_rested）。床讓你在家免費長休。",
+  "$comment": "房屋（見 docs/HOMES.md）。每座聚落有幾塊待售的空地（lots 依聚落規模；從地圖上挑臨街的建築格，不夠時用臨街的街道格（街屋）補，同一座城一直一樣）。房屋的規格依地段：聚落規模對應 by_location，貴族區的空地是 noble。floors：地上幾層（1 = 平房）；basement：有沒有地下室；size：每層的寬高（含外牆）；yard：院子的深度（格，地面層下方，0 = 沒有院子）；rooms：每層隔成幾間。買下時生成地圖，存進存檔。家具：items.json 的 furniture 類別，furniture.places 是能放的地方（indoor 室內、yard 院子、basement 地下室）；comfort 加總（加上女僕與成套家具）依 comfort_tiers 分三段，在家長休後全隊得到達到的最高一段的狀態（睡得香甜、精神飽滿、神采奕奕）。床讓你在家免費長休。",
   "districts": {
     "cottage": { "name": "小屋", "price_cc": 2500, "floors": 1, "basement": false, "size": [9, 7], "yard": 2, "rooms": [2, 3] },
     "townhouse": { "name": "連棟房屋", "price_cc": 6000, "floors": 2, "basement": false, "size": [9, 7], "yard": 1, "rooms": [2, 3] },
@@ -9,5 +9,62 @@
   "by_location": { "village": "cottage", "outpost": "cottage", "fortress": "cottage", "town": "townhouse", "port": "townhouse", "city": "house", "capital": "house" },
   "noble": "manor",
   "lots": { "village": 1, "outpost": 1, "fortress": 1, "town": 2, "port": 2, "city": 3, "capital": 4 },
-  "comfort_rested": 6
+  "comfort_tiers": [
+    { "at": 6, "condition": "well_rested" },
+    { "at": 12, "condition": "refreshed" },
+    { "at": 20, "condition": "invigorated" }
+  ],
+  "teleport": {
+    "$comment": "傳送陣（docs/HOMES.md 第 4.2 節）：兩棟自己的房子都有傳送陣（家具 function: teleport，一棟一座）時，站在上面可以傳送到另一棟。全隊每人用掉 per_member 顆 stone，花 hours 小時，沒有旅途事件。不設限制（跟著別人的隊伍、主角是奴隸、跨大陸都可以）。",
+    "stone": "傳送石", "per_member": 1, "hours": 1
+  },
+  "cohabit": {
+    "$comment": "同居（docs/HOMES.md 第 8.2 節）：人際關係裡親密度 min_affinity 以上的人（普通人、冒險者都可以）可以請他搬進來。主動行動（魅力），參考 DC = invite_dc − ⌊（親密度 − min_affinity）／ affinity_step⌋，加上標籤的邀請修正（好人 −2）；部分成功下次長休後再問，失敗這週不能再問。房子要有沒人用的床；每棟最多 caps 人。住在家裡：每天親密度 + daily_affinity（一週最多 week_cap），房子舒適度 + comfort，在家長休後得到 condition。親密度掉到 leave_affinity 以下就搬走；請他搬出去時親密度 + kick_affinity。冒險者可以帶出門，回家再住回來。",
+    "min_affinity": 80, "leave_affinity": 40,
+    "caps": { "cottage": 2, "townhouse": 2, "house": 2, "manor": 3 },
+    "invite_dc": 18, "affinity_step": 5,
+    "daily_affinity": 1, "week_cap": 3, "comfort": 1, "condition": "home_warmth", "kick_affinity": -15
+  },
+  "rooms": {
+    "$comment": "房間用途（docs/HOMES.md 第 3.2 節）：玩家替隔出來的房間標上用途，家具擺對了有加成。臥室：有床時舒適度 + bedroom_comfort；書房：study_items 的家具至少 study_need 件時舒適度 + study_comfort，在書房長休後得到 study_condition（湊齊 study_set 這一套時改成 study_set_condition）；工坊：在這間做有工作台的那種工藝，工時 × workshop_mult；酒窖：地下室、有熟成桶，這間的熟成時間 × cellar_mult；客房：有床，留在家裡的夥伴住這間時每天親密度 + guest_affinity（一週最多 guest_week_cap）；育嬰室：有搖籃，抱抱的「家人的笑容」多持續一次長休（nursery_condition）。",
+    "bedroom_comfort": 1,
+    "study_items": ["書架"], "study_need": 2, "study_comfort": 1, "study_condition": "study_focus", "study_set": "scholar", "study_set_condition": "set_scholar",
+    "workshop_mult": 0.75,
+    "cellar_mult": 0.75,
+    "guest_affinity": 1, "guest_week_cap": 3,
+    "nursery_condition": "family_smile_lasting"
+  },
+  "expand": {
+    "$comment": "擴建（docs/HOMES.md 第 3.1 節）：付錢後開工，days 天後完工；一次只能做一項。加蓋一層：地上層數未滿 max_floors，價格是地段價格 × price_ratio；挖地下室：還沒有地下室；擴院子：每格 price_cc，深度最多 max。價格都乘這座城的物價。原本的樓層不重新生成。",
+    "floor": { "price_ratio": 0.4, "days": 7, "max_floors": { "cottage": 2, "townhouse": 3, "house": 3, "manor": 4 } },
+    "basement": { "price_ratio": 0.5, "days": 10 },
+    "yard": { "price_cc": 600, "days": 3, "max": 4 }
+  },
+  "aging": { "$comment": "熟成桶（docs/HOMES.md 第 6.1 節）：放在地下室時熟成的時間乘上 basement_mult（地窖陰涼）。", "basement_mult": 0.75 },
+  "furniture_sets": {
+    "$comment": "成套家具（docs/HOMES.md 第 4.1 節）：家具的 furniture.set 寫套組 id；同一棟房子擺了 need 件不同的同套家具就算湊齊（不必同一間），舒適度 + comfort，在家長休後全隊得到 condition（學者的書齋沒有自己的狀態，改成在書房長休時加強書房的效果，見 rooms）。",
+    "noble": { "name": "貴族的居所", "need": 4, "comfort": 3, "condition": "set_noble" },
+    "hunter": { "name": "獵人的小屋", "need": 4, "comfort": 2, "condition": "set_hunter" },
+    "east": { "name": "東方的庭院", "need": 3, "comfort": 3, "condition": "set_east" },
+    "scholar": { "name": "學者的書齋", "need": 3, "comfort": 2 }
+  },
+  "staff": {
+    "$comment": "家僕（docs/HOMES.md 第 8 節）：在自己的房子雇普通人做家務，不入隊。jobs：職位（name 名稱、occupation 職業描述（照性別換稱謂）、wage_cc 日薪（乘這座城的物價）、效果：maid 的 comfort 加舒適度、cook 的 condition 在家長休後的早餐（有烹飪的高階工作台時是 fine_condition）、gardener 每天收成並重新播種、steward 上限 +steward_bonus 並從保險箱付工錢）；同一個職位雇好幾個人時效果不疊加。caps：各地段能雇幾個（留守的夥伴、做家務的奴隸不佔）。工錢欠著，回家時結清；欠超過 quit_days 天的人辭職（親密度 + quit_affinity）。應徵者每座城每 refresh_days 天換一批，每個職位 candidates_per_job 人。invite_*：請認識的普通人來家裡做事（親密度至少 invite_affinity；參考 DC = invite_dc − 親密度 / 10，加上標籤的邀請修正，例如好人 −2）。slave_chore_*：自己的奴隸留在家裡時可以分派家務（女僕、廚師、園丁），順從至少 slave_chore_submission，每天順從 + slave_chore_daily。",
+    "jobs": {
+      "maid": { "name": "女僕", "occupation": "女僕", "wage_cc": 8, "comfort": 2, "desc": "打掃、整理：房子的舒適度 +2" },
+      "cook": { "name": "廚師", "occupation": "廚娘", "wage_cc": 12, "condition": "fed_well", "fine_condition": "fed_fine", "desc": "在家長休後全隊吃早餐（飽足；有石砌大灶時是美食）" },
+      "gardener": { "name": "園丁", "occupation": "園丁", "wage_cc": 6, "desc": "每天把成熟的作物收進箱子，有同樣的種子時重新播種" },
+      "steward": { "name": "管家", "occupation": "管家", "wage_cc": 20, "desc": "家僕上限 +1；每天從保險箱付家僕的工錢，家裡有事時提醒你" }
+    },
+    "caps": { "cottage": 1, "townhouse": 2, "house": 3, "manor": 5 },
+    "steward_bonus": 1,
+    "quit_days": 7,
+    "candidates_per_job": [1, 2],
+    "refresh_days": 7,
+    "quit_affinity": -10,
+    "invite_affinity": 20,
+    "invite_dc": 14,
+    "slave_chore_submission": 30,
+    "slave_chore_daily": 1
+  }
 }

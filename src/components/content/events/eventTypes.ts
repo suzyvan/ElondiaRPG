@@ -6,6 +6,7 @@ import { parasiteRules } from '@/engine/parasites'
 import { BROOD_KIND_NAME } from '@/engine/brood'
 import { MODE_NAME } from '@/engine/travel'
 import { DUNGEON_TRIGGERS, EVENT_LAYERS, PREG_STAGE_NAME, type TravelEventMod } from '@/engine/travelEventMods'
+import { jobName } from '@/engine/staff'
 
 /** 類型專屬的欄位（顯示順序照 EventTypeFields.vue 的排法） */
 export type EventField =
@@ -15,6 +16,7 @@ export type EventField =
   | 'parasite' | 'stages' | 'broodKinds'
   | 'pregKind' | 'subject' | 'father' | 'mixed' | 'forced' | 'pregStages' | 'fatherRaces'
   | 'moments' | 'inSettlement'
+  | 'staff' | 'staffBond' | 'staffAffinity'
 
 export interface EventTypeDef {
   id: EventScope
@@ -100,6 +102,12 @@ export const EVENT_TYPES: EventTypeDef[] = [
     note: (t) => `苗床${t.brood_kinds?.length ? `・${t.brood_kinds.map((k) => BROOD_KIND_NAME[k]).join('、')}` : ''}${stageNames(t)}`,
     fields: ['hours', 'broodKinds', 'stages', 'moments', 'inSettlement'],
     init: (d) => addTags(d, ['adult', 'monster_brood']),
+  },
+  {
+    id: 'home', icon: '🏠', name: '家裡的事（家僕）', legend: '家裡的事', onPc: true,
+    intro: () => '家裡的事：有家僕（或做家務的奴隸）時，在自己的房子裡走動、在家長休醒來時依「⚙️ 事件設定」的機率與冷卻出現。事件裡的他是符合職位、親密度條件的一位家僕：文字寫 {a}，效果的親密度、慾望指標選「這件事的家僕」；另外有家僕請假、工錢、收起裝飾家具的效果（docs/HOMES.md 第 8.1 節）。',
+    note: (t) => `家裡・${t.staff?.length ? t.staff.map((j) => jobName(j)).join('、') : '任何家僕'}${t.staff_bond === 'slave' ? '（奴隸）' : t.staff_bond === 'hired' ? '（雇來的）' : ''}${adultNote(t)}`,
+    fields: ['cooldown', 'hours', 'staff', 'staffBond', 'staffAffinity', 'moments'],
   },
 ]
 

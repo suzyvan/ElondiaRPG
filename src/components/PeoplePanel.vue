@@ -9,7 +9,7 @@ import { npcPerksOf, perksOf } from '@/engine/perks'
 import { computed, reactive, ref, watch } from 'vue'
 import { affinityStage } from '@/engine/character'
 import { askingFor, proposeDc, squadOptions } from '@/engine/companions'
-import { actionRules, genderName, raceName, tagDef } from '@/engine/data'
+import { actionRules, genderName, homeRules, raceName, tagDef } from '@/engine/data'
 import { isBound, partyMax, partyRoom } from '@/engine/party'
 import { cellAt, CELL_NAME, cellName, position } from '@/engine/grid'
 import { affinityTable, itemValue, type InteractionKind } from '@/engine/interactions'
@@ -18,6 +18,9 @@ import { npcRecord, npcTitle } from '@/engine/npcs'
 import { isGuarded, isHostile, type PresentNpc } from '@/engine/population'
 import { npcActivity } from '@/engine/activities'
 import { inActiveSquad } from '@/engine/squads'
+import { jobName, staffInviteDc, staffInviteRefusal } from '@/engine/staff'
+import { cohabitDc, cohabitRefusal } from '@/engine/cohabit'
+import { STAFF_JOBS, type StaffJob } from '@/engine/data'
 import type { NpcRecord } from '@/engine/types'
 import { parseUse, useGame } from '@/stores/game'
 import { useSettings } from '@/stores/settings'
@@ -175,6 +178,19 @@ const hiring = ref<string | null>(null)
 const partyFull = computed(() => partyRoom(s.value) < 1)
 // 被主人帶著：雇用改成向主人提議（主人出錢，入隊後是主人的隊員）
 const bound = computed(() => isBound(s.value))
+// 請認識的普通人來自己的房子當家僕（staff.ts）：這座城有自己的房子才列
+const hasHomeHere = computed(() => Object.values(s.value.homes ?? {}).some((h) => h.location === s.value.location && !h.master))
+const staffJob = reactive<Record<string, StaffJob>>({})
+function inviteStaff(p: PresentNpc) {
+  void game.perform({ kind: 'staff_invite', target: `${p.rec.id}:${staffJob[p.rec.id] ?? 'maid'}`, text: text[p.rec.id] ?? '' })
+  text[p.rec.id] = ''
+}
+// 請親密度很高的人搬進來同居（cohabit.ts）：親密度到門檻、這座城有自己的房子才列
+const canAskCohabit = (rec: NpcRecord) => hasHomeHere.value && !bound.value && !rec.cohabit && !rec.staff && (s.value.relationships?.[rec.id]?.affinity ?? 0) >= homeRules.cohabit.min_affinity
+function inviteCohabit(p: PresentNpc) {
+  void game.perform({ kind: 'cohabit_invite', target: p.rec.id, text: text[p.rec.id] ?? '' })
+  text[p.rec.id] = ''
+}
 const proposedToday = (id: string) => s.value.flags[`propose_no:${id}`] === s.value.time.day
 function proposeDcOf(id: string): number | null {
   try {
@@ -280,6 +296,13 @@ function squadAct(kind: 'invite' | 'squad_join', p: PresentNpc) {
                 <button v-else-if="p.kind === 'adventurer' && !p.staff && !squadOf(p.rec.id)" class="small" :disabled="busy || (bound && partyFull)" @click="startHire(p.rec.id)">
                   <GameIcon name="hand" :size="13" />{{ hiring === p.rec.id ? '收起' : bound ? '向主人提議雇用' : '雇用' }}
                 </button>
+                <template v-if="hasHomeHere && p.kind === 'commoner' && !p.staff && !p.rec.staff && !bound">
+                  <select v-model="staffJob[p.rec.id]" class="small" aria-label="請他做什麼">
+                    <option v-for="j in STAFF_JOBS" :key="j" :value="j">{{ jobName(j) }}</option>
+                  </select>
+                  <button class="small" :disabled="busy || !!staffInviteRefusal(s, p.rec.id)" :title="staffInviteRefusal(s, p.rec.id) ?? `請他來你家當${jobName(staffJob[p.rec.id] ?? 'maid')}・魅力檢定，參考 DC ${staffInviteDc(s, p.rec.id)}`" @click="inviteStaff(p)"><GameIcon name="home" :size="13" />請他來家裡做事</button>
+                </template>
+                <button v-if="canAskCohabit(p.rec)" class="small" :disabled="busy || !!cohabitRefusal(s, p.rec.id)" :title="cohabitRefusal(s, p.rec.id) ?? `請他搬進你的房子一起住・魅力檢定，參考 DC ${cohabitDc(s, p.rec.id)}`" @click="inviteCohabit(p)"><GameIcon name="heart" :size="13" />邀請他搬進來</button>
                 <details class="more">
                   <summary class="small" title="獻媚、誘惑、偷竊、偷襲" aria-label="更多互動"><GameIcon name="more" :size="16" /></summary>
                   <div class="more-list">

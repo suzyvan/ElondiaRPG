@@ -1,6 +1,7 @@
 import type { ActionPending } from './actions'
 import type { CombatState } from './combat'
-import type { CheckFilter, AffinityMap, AttrId, Attrs, Bond, BondStyle, CraftId, DealCost, Degree, DungeonLayerId, HomeDistrict, ItemDef, LockGrade, MasterEventPool, Mods, NpcDef, PerkDef } from './data'
+import type { RoomUse } from './rooms'
+import type { CheckFilter, AffinityMap, AttrId, Attrs, Bond, BondStyle, CraftId, DealCost, Degree, DungeonLayerId, HomeDistrict, ItemDef, LockGrade, MasterEventPool, Mods, NpcDef, PerkDef, StaffJob } from './data'
 import type { RewardEffect } from './effects'
 import type { Area, Position } from './grid'
 import type { BestiaryEntry } from './bestiary'
@@ -619,6 +620,24 @@ export interface NpcRecord extends NpcDef {
   staying?: string
   /** 開始留守或寄放的時間 */
   stayingSince?: GameTime
+  /** 在主角的房子當家僕（staff.ts）：哪棟房子、職位、日薪、工錢付到第幾天、開始的時間 */
+  staff?: { home: string; job: StaffJob; wage_cc: number; paidUntil: number; since: GameTime }
+  /** 自己的奴隸留在家裡時分派的家務（staff.ts；不用工錢、不佔家僕上限） */
+  chore?: StaffJob
+  /** 家僕（或做家務的奴隸）的效果停到第幾天（家裡的事的 staff_pause：請假） */
+  staffPause?: number
+  /** 和主角同居（cohabit.ts）：哪棟房子、從什麼時候；bond 是這週加了幾點親密度 */
+  cohabit?: {
+    home: string
+    since: GameTime
+    /** 搬進來之前的活躍地點（搬走時回去） */
+    from?: string
+    /** 他睡的那張床（area 與格子） */
+    bed?: { area: string; x: number; y: number }
+    bond?: { week: number; n: number }
+  }
+  /** 住客房的親密度：第幾週、這週加了幾點（rooms.ts） */
+  guestBond?: { week: number; n: number }
 }
 
 /** 等主角決定的入隊：kind join＝加入主角的隊伍（npcs 第一位是本人，其餘是一起來的小隊隊員）；follow＝主角跟著 npcs[0] 的隊伍 */
@@ -911,6 +930,12 @@ export interface Home {
   master?: string
   /** 主人的家裡的人（伴侶、子女、僕人、奴隸）的 NPC id */
   household?: string[]
+  /** 房間用途（rooms.ts）：key 是「樓層 key:房間裡最左上角那一格的索引」 */
+  rooms?: Record<string, RoomUse>
+  /** 擴建中（homeExpand.ts）：哪一種、到第幾天完工、新蓋的那一層（施工期間樓梯走不過去） */
+  construction?: { kind: 'floor' | 'basement' | 'yard'; until: number; area?: string; rows?: number }
+  /** 主角不在時家裡發生的事（家僕辭職、園丁收成、管家付工錢……）：回家時在房屋區塊列出來，看過後寫進日誌（tag 是日誌的標籤） */
+  staffNotes?: { text: string; tag: string; day: number }[]
 }
 
 /** 一種工藝的等級與累積的經驗 */
@@ -1179,10 +1204,12 @@ export interface GameState {
   road?: RoadState
   /** 旅途上等待回應的事件（選擇、高階事件） */
   roadEvent?: { x: number; template: string }
-  /** 城鎮裡等待回應的事件（townEvents.ts） */
-  townEvent?: { template: string }
+  /** 城鎮裡等待回應的事件（townEvents.ts）；家裡的事（homeEvents.ts）也放這裡，staff 是挑到的家僕 */
+  townEvent?: { template: string; staff?: string }
   /** 城鎮事件的紀錄：上一次的時間（絕對小時）、每個事件上次出現的日子、最近的種類 */
   townEvents?: { last?: number; seen: Record<string, number>; recent: string[] }
+  /** 家裡的事的紀錄（homeEvents.ts）：上一次的時間、每個事件上次出現的日子、最近的分類 */
+  homeEvents?: { last?: number; seen: Record<string, number>; recent: string[] }
   /** 地下城與近郊等待回應的事件（dungeonEvents.ts）：模板與觸發點 */
   dungeonEvent?: { template: string; trigger: string; /** 用引子引來的：文字照模板的 lure */ lure?: boolean }
   /** 走到線索事件的格子、等主角回應（leadEvents.ts）：哪一則線索、在哪一格 */

@@ -15,7 +15,7 @@ import { formatMoney } from '@/engine/money'
 import { inferTradeCategory, marketRules, tradeCategoryName } from '@/engine/market'
 import { inferMaterialTier, maxMaterialTier } from '@/engine/materialInfo'
 import { TOOL_KINDS, toolSummary } from '@/engine/tools'
-import { choosablePerks, CRAFT_IDS, craftRules, homeRules, type FurniturePlace } from '@/engine/data'
+import { AGING_VESSELS, choosablePerks, CRAFT_IDS, craftRules, FURNITURE_FUNCTIONS, furnitureSetIds, homeRules, VESSEL_NAME, type FurnitureFunction, type FurniturePlace } from '@/engine/data'
 import { PLACE_NAME } from '@/engine/homes'
 import { CONTENT_TAGS, FILTER_TAGS } from '@/engine/content'
 import { categoryIconSource, gearIconSource, type IconSource } from '@/engine/itemIcons'
@@ -164,12 +164,19 @@ const toolText = computed(() => toolSummary(draft.value.tool))
 // 家具
 const furn = computed(() => (draft.value.furniture ??= { places: ['indoor'] }))
 function setFurnFunction(v: string) {
-  if (v === 'bed' || v === 'workbench' || v === 'garden' || v === 'training' || v === 'crib') furn.value.function = v
+  if ((FURNITURE_FUNCTIONS as readonly string[]).includes(v)) furn.value.function = v as FurnitureFunction
   else delete furn.value.function
   if (v === 'workbench') furn.value.craft ??= 'smithing'
   else delete furn.value.craft
   if (v === 'training') furn.value.training ??= 1
   else delete furn.value.training
+  if (v === 'aging') furn.value.vessel ??= 'cask'
+  else delete furn.value.vessel
+  if (v === 'storage') furn.value.slots ??= 12
+  else {
+    delete furn.value.slots
+    delete furn.value.money
+  }
 }
 function toggleFurnPlace(p: FurniturePlace) {
   const list = furn.value.places
@@ -184,6 +191,10 @@ const itemNames = computed(() => {
 function toggleRecipe(on: boolean) {
   if (on) draft.value.recipe = { craft: 'alchemy', level: 1, inputs: [{ name: '', qty: 1 }], hours: 2 }
   else delete draft.value.recipe
+}
+function toggleAging(on: boolean) {
+  if (on) draft.value.aging = { vessel: 'cask', inputs: [{ name: '', qty: 1 }], days: 3, qty: 1 }
+  else delete draft.value.aging
 }
 function toggleSeed(on: boolean) {
   if (on) draft.value.seed = { yields: [''], qty: [1, 2], days: 3, place: 'yard' }
@@ -647,8 +658,16 @@ function setFuel(v: string) {
             <option value="garden">苗圃（可以播種）</option>
             <option value="training">調教室（成人向：在家調教加值、奴隸每天順從 +1）</option>
             <option value="crib">搖籃（家裡的嬰兒睡在這裡；可有可無）</option>
+            <option value="storage">儲物箱（收東西；保險箱還能存錢）</option>
+            <option value="aging">熟成桶（放進材料，過幾天熟成）</option>
+            <option value="teleport">傳送陣（站上去傳送到另一棟有傳送陣的房子；一棟一座）</option>
           </select>
         </label>
+        <label v-if="furn.function === 'aging'">哪一種桶
+          <select v-model="furn.vessel"><option v-for="v in AGING_VESSELS" :key="v" :value="v">{{ VESSEL_NAME[v] }}</option></select>
+        </label>
+        <label v-if="furn.function === 'storage'">能放幾種 <input v-model.number="furn.slots" type="number" min="1" max="99" title="不同的東西各算一種，同一種的數量不限" /></label>
+        <label v-if="furn.function === 'storage'" class="check"><input type="checkbox" :checked="!!furn.money" @change="($event.target as HTMLInputElement).checked ? (furn.money = true) : delete furn.money" /> 可以存錢（保險箱）</label>
         <label v-if="furn.function === 'training'">調教加值 <input v-model.number="furn.training" type="number" min="1" max="3" /></label>
         <label v-if="furn.function === 'workbench'">工藝
           <select v-model="furn.craft">
@@ -656,6 +675,12 @@ function setFuel(v: string) {
           </select>
         </label>
         <label>舒適度 <input v-model.number="furn.comfort" type="number" min="0" max="10" /></label>
+        <label><span>成套家具 <Hint text="同一棟房子擺了這一套裡規定件數的不同家具，就算湊齊：舒適度再加、在家長休後多一個狀態（⚙️ 房屋設定可以改）。" /></span>
+          <select :value="furn.set ?? ''" @change="(($event.target as HTMLSelectElement).value ? (furn.set = ($event.target as HTMLSelectElement).value) : delete furn.set)">
+            <option value="">（不屬於任何一套）</option>
+            <option v-for="id in furnitureSetIds()" :key="id" :value="id">{{ homeRules.furniture_sets[id]!.name }}（湊齊 {{ homeRules.furniture_sets[id]!.need }} 件）</option>
+          </select>
+        </label>
         <label>地圖符號 <input v-model="furn.icon" title="擺在家裡時，地圖格上顯示的 emoji" maxlength="4" placeholder="🪑" /></label>
       </div>
       <div class="row small">
@@ -664,7 +689,7 @@ function setFuel(v: string) {
           <input type="checkbox" :checked="furn.places.includes(p)" @change="toggleFurnPlace(p)" /> {{ PLACE_NAME[p] }}
         </label>
       </div>
-      <p class="small muted">家具擺在自己房子的格子上。床讓你在家長休；舒適度加總達到 {{ homeRules.comfort_rested }} 時，在家長休後睡得香甜；高階工作台讓這種工藝能處理第四、五級的材料；苗圃可以種下種子（種子的「能種在」要和苗圃擺的地方一樣）。</p>
+      <p class="small muted">家具擺在自己房子的格子上。床讓你在家長休；舒適度加總達到 {{ homeRules.comfort_tiers.map((t) => t.at).join('／') }} 時，在家長休後分別是睡得香甜、精神飽滿、神采奕奕；高階工作台讓這種工藝能處理第四、五級的材料；苗圃可以種下種子（種子的「能種在」要和苗圃擺的地方一樣）；儲物箱收行囊裡的東西（容量算種類，在這棟房子做工藝、播種時箱子裡的也算），保險箱還能存錢。</p>
     </FoldSet>
 
     <FoldSet v-if="draft.category !== 'equipment'">
@@ -710,6 +735,25 @@ function setFuel(v: string) {
         </div>
         <button v-if="draft.seed.yields.length < 5" class="small" @click="draft.seed.yields.push('')">＋ 作物</button>
         <p class="small muted">有好幾種作物時，收成時隨機長出其中一種。</p>
+      </template>
+    </FoldSet>
+    <FoldSet v-if="draft.category !== 'equipment'">
+      <template #legend><label class="check"><input type="checkbox" :checked="!!draft.aging" @change="toggleAging(($event.target as HTMLInputElement).checked)" /> 熟成：可以用熟成桶做出來</label></template>
+      <template v-if="draft.aging">
+        <div class="grid">
+          <label>哪一種桶
+            <select v-model="draft.aging.vessel"><option v-for="v in AGING_VESSELS" :key="v" :value="v">{{ VESSEL_NAME[v] }}</option></select>
+          </label>
+          <label>幾天 <input v-model.number="draft.aging.days" type="number" min="1" max="60" /></label>
+          <label>做出幾份 <input v-model.number="draft.aging.qty" type="number" min="1" max="20" /></label>
+        </div>
+        <div v-for="(x, i) in draft.aging.inputs" :key="i" class="row">
+          <input v-model="x.name" list="recipe-items" placeholder="放進去的材料" />
+          <input v-model.number="x.qty" type="number" min="1" max="99" class="num" />
+          <button class="small" :disabled="draft.aging.inputs.length <= 1" title="刪除這一項" @click="draft.aging.inputs.splice(i, 1)">✕</button>
+        </div>
+        <button v-if="draft.aging.inputs.length < 4" class="small" @click="draft.aging.inputs.push({ name: '', qty: 1 })">＋ 材料</button>
+        <p class="small muted">站在這種熟成桶上可以選這件物品，放進材料，過了天數取出（放在地下室比較快，docs/HOMES.md 第 6.1 節）。</p>
       </template>
     </FoldSet>
     <datalist id="recipe-items"><option v-for="n in itemNames" :key="n" :value="n" /></datalist>

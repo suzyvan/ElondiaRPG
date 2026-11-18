@@ -90,7 +90,9 @@
     "blessed": { "name": "祝福", "desc": "神殿的祝福，下次長休前所有檢定 +1。", "check_penalty": -1, "clears": "long_rest" },
     "morning_sickness": { "name": "孕吐", "desc": "懷孕初期，一早起來就想吐，渾身沒力：下次長休前力量檢定 -1。", "check_penalty": 1, "check_attrs": ["str"], "clears": "long_rest" },
     "contraceptive": { "name": "避孕", "desc": "喝了避子湯：下次長休前不會受孕。", "clears": "long_rest" },
-    "family_smile": { "name": "家人的笑容", "desc": "看過孩子，心裡踏實：下次長休前所有檢定 +1。", "check_penalty": -1, "clears": "long_rest" },
+    "family_smile_lasting": { "name": "家人的笑容", "desc": "在育嬰室看過孩子，心裡踏實得很：接下來兩次長休前所有檢定 +1。", "group": "family", "rank": 2, "check_penalty": -1, "clears": "long_rest", "then": "family_smile", "replaces": ["family_smile"] },
+    "home_warmth": { "name": "家的溫暖", "desc": "和同住的人一起醒來，心裡踏實：下次長休前所有檢定 +1。", "group": "family", "rank": 1, "check_penalty": -1, "clears": "long_rest" },
+    "family_smile": { "name": "家人的笑容", "desc": "看過孩子，心裡踏實：下次長休前所有檢定 +1。", "group": "family", "rank": 1, "check_penalty": -1, "clears": "long_rest" },
     "fetal_joy": { "name": "胎動的喜悅", "desc": "感覺到肚子裡的小傢伙在動，整個人都亮了起來：下次長休前魅力檢定 +1。", "check_penalty": -1, "check_attrs": ["cha"], "clears": "long_rest" },
     "backache": { "name": "腰痠背痛", "desc": "肚子太沉，腰痠得直不起來：下次長休前力量檢定 -1。", "check_penalty": 1, "check_attrs": ["str"], "clears": "long_rest" },
     "cramp": { "name": "抽筋", "desc": "夜裡腿抽筋，到現在還在痛：下次長休前靈巧檢定 -1。", "check_penalty": 1, "check_attrs": ["dex"], "clears": "long_rest" },
@@ -105,7 +107,24 @@
   "well_rested": {
    "name": "睡得香甜",
    "desc": "在舒適的家裡好好睡了一覺。下次長休前，每場戰鬥開始時獲得 5 點暫時生命，主動行動檢定 +1。",
-   "combat_temp_hp": 5, "check_penalty": -1,
+   "group": "home_rest", "rank": 1, "combat_temp_hp": 5, "check_penalty": -1,
+   "clears": "long_rest"
+  },
+  "set_noble": { "name": "貴族的品味", "desc": "在湊齊了貴族擺設的家裡醒來，舉手投足都多了幾分氣派：下次長休前魅力檢定 +1。", "check_penalty": -1, "check_attrs": ["cha"], "clears": "long_rest" },
+  "set_hunter": { "name": "獵人的晨起", "desc": "在獵人小屋般的家裡醒來，手腳格外俐落：下次長休前力量與靈巧檢定 +1。", "check_penalty": -1, "check_attrs": ["str", "dex"], "clears": "long_rest" },
+  "set_east": { "name": "庭院的靜心", "desc": "在東方庭院般的家裡醒來，心神澄明：下次長休前豁免 +1。", "combat_mods": { "save": 1 }, "clears": "long_rest" },
+  "study_focus": { "name": "書房的專注", "desc": "在書房裡睡了一覺，醒來時思路清楚：下次長休前智力檢定 +1。", "group": "study", "rank": 1, "check_penalty": -1, "check_attrs": ["int"], "clears": "long_rest" },
+  "set_scholar": { "name": "書齋的沉思", "desc": "在湊齊了學者擺設的書房裡醒來，腦子轉得特別快：下次長休前智力檢定 +2。", "group": "study", "rank": 2, "check_penalty": -2, "check_attrs": ["int"], "clears": "long_rest" },
+  "refreshed": {
+   "name": "精神飽滿",
+   "desc": "在佈置得很講究的家裡睡了一覺，整個人神清氣爽。下次長休前，每場戰鬥開始時獲得 8 點暫時生命，主動行動檢定 +1，豁免 +1。",
+   "group": "home_rest", "rank": 2, "combat_temp_hp": 8, "check_penalty": -1, "combat_mods": { "save": 1 },
+   "clears": "long_rest"
+  },
+  "invigorated": {
+   "name": "神采奕奕",
+   "desc": "在華美得像宮殿的家裡睡了一覺，精力充沛。下次長休前，每場戰鬥開始時獲得 12 點暫時生命，主動行動檢定 +1，豁免 +1，迴避 +1。",
+   "group": "home_rest", "rank": 3, "combat_temp_hp": 12, "check_penalty": -1, "combat_mods": { "save": 1, "evade": 1 },
    "clears": "long_rest"
   },
   "fed_well": {

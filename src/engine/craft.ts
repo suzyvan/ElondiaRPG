@@ -17,6 +17,8 @@ import { memberOrResident } from './homes'
 import { formatMoney } from './money'
 import { withRng } from './state'
 import { baseLewd } from './lewd'
+import { inventoryHere, pullFromHome, stockHere } from './storage'
+import { workshopMult } from './rooms'
 import type { Character, GameState, GearSpec, LewdStat, Report } from './types'
 
 export interface CraftPlan {
@@ -221,7 +223,8 @@ export function craftPlan(state: GameState, base: string, material: string, aux:
   // 選定的那種優先，其餘從便宜的開始
   const price = (n: string) => itemDef(n)?.price_cc ?? 0
   const first = (a: string, b: string) => (a === opts.use ? -1 : b === opts.use ? 1 : 0) || price(a) - price(b)
-  const owned = state.inventory.filter((i) => forgeOf(i.name).includes(material)).sort((a, b) => first(a.name, b.name))
+  // 持有：行囊加上家裡的箱子（站在自己的房子裡時，storage.ts）
+  const owned = inventoryHere(state).filter((i) => forgeOf(i.name).includes(material)).sort((a, b) => first(a.name, b.name))
   const have = owned.reduce((s, i) => s + i.qty, 0)
   // 委託時工匠代備得了的等級：可以選全部由工匠代備，不用行囊裡的（想留著自己用、或代備比較便宜時）
   const canSupply = !crafter && tier <= supplyMaxTier()
@@ -274,7 +277,7 @@ export function craftPlan(state: GameState, base: string, material: string, aux:
   const auxBlocked: string[] = []
   if (aux.length > a.max_kinds) auxBlocked.push(`輔料最多 ${a.max_kinds} 種`)
   for (const x of aux) {
-    const owned = (state.inventory.find((i) => i.name === x.name)?.qty ?? 0) - (uses.find((u) => u.name === x.name)?.qty ?? 0)
+    const owned = stockHere(state, x.name) - (uses.find((u) => u.name === x.name)?.qty ?? 0)
     if (itemDef(x.name)?.category !== 'material') auxBlocked.push(`${x.name}不是材料，不能當輔料`)
     else if (x.qty > a.max_qty) auxBlocked.push(`每種輔料最多 ${a.max_qty} 個`)
     else if (owned < x.qty) auxBlocked.push(`${x.name}不夠（還有 ${Math.max(0, owned)} 個）`)
@@ -426,14 +429,21 @@ function finishCraft(state: GameState, report: Report, plan: CraftPlan, degree: 
   const lost = rarity ? own : degree === 'fail' ? Math.ceil(own * craftRules().lost_on_fail) : own
   const effects: RewardEffect[] = plan.fee + plan.supplyCost ? [{ type: 'money', amount: -(plan.fee + plan.supplyCost) }] : []
   let left = lost
+  // 同一種東西同時是打造材料與輔料時合計：行囊不夠的先從家裡的箱子補進行囊
+  const take = new Map<string, number>()
   for (const u of plan.uses) {
     if (left <= 0) break
     const q = Math.min(u.qty, left)
     effects.push({ type: 'item', name: u.name, qty: -q })
+    take.set(u.name, (take.get(u.name) ?? 0) + q)
     left -= q
   }
   // 輔料不論結果都會用掉
-  for (const x of aux) effects.push({ type: 'item', name: x.name, qty: -x.qty })
+  for (const x of aux) {
+    effects.push({ type: 'item', name: x.name, qty: -x.qty })
+    take.set(x.name, (take.get(x.name) ?? 0) + x.qty)
+  }
+  for (const [name, q] of take) pullFromHome(state, name, q)
   applyEffects(state, report, effects)
   if (!rarity) return `${plan.fee || plan.supplyCost ? `${paid}，但` : ''}${degree === 'fail' ? '沒做成' : '搞砸了'}${lost ? `，損失了 ${lost} 份材料` : ''}。`
   const plainPiece = degree === 'partial' && !boosted
@@ -508,7 +518,7 @@ export function setupMake(state: GameState, target?: string) {
   const auxText = aux.map((x) => `${x.name}×${x.qty}`).join('、')
   return {
     actor: crafter.id,
-    attr: skill.attr, dc: plan.dc, hours: craftSkillRules.self.hours * plan.count, craftCheck: 'self' as const,
+    attr: skill.attr, dc: plan.dc, hours: Math.max(1, Math.round(craftSkillRules.self.hours * plan.count * workshopMult(state, plan.craft))), craftCheck: 'self' as const,
     situational: [{ label: `${crafter.name}的${skill.name}（Lv.${plan.level}）`, value: plan.level * craftSkillRules.level_bonus }],
     scene: `${locationById(state.location).name}・${crafter.isPlayer ? '親手' : `由${crafter.name}`}打造${name}${countText(plan)}（${plan.tool!.source}${plan.fee ? `，${selfFeeName(plan)} ${formatMoney(plan.fee)}` : ''}${used ? `，材料 ${used}` : ''}${boughtText(plan)}${auxText ? `，輔料 ${auxText}（${Math.round(plan.auxChance * 100)}% 機率品質再高一級）` : ''}）`,
     targetName: name,
