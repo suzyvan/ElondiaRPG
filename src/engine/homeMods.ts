@@ -64,6 +64,20 @@ export const HOME_GROUPS: HomeGroup[] = [
     f('staff.slave_chore_submission', '奴隸做家務：順從至少', 0, 100, 1),
     f('staff.slave_chore_daily', '奴隸做家務：每天順從 +', 0, 5, 1),
   ] },
+  { name: '同居', fields: [
+    f('cohabit.min_affinity', '能請他搬進來的親密度', 0, 100, 1),
+    f('cohabit.leave_affinity', '親密度低於這裡就搬走', -100, 100, 1),
+    f('cohabit.caps.cottage', '小屋最多幾人', 0, 6, 1),
+    f('cohabit.caps.townhouse', '連棟房屋最多幾人', 0, 6, 1),
+    f('cohabit.caps.house', '宅邸最多幾人', 0, 6, 1),
+    f('cohabit.caps.manor', '豪宅最多幾人', 0, 8, 1),
+    f('cohabit.invite_dc', '邀請的參考 DC', 5, 30, 1, '親密度每超過門檻 affinity_step 點，DC −1'),
+    f('cohabit.affinity_step', '親密度每多幾點 DC −1', 1, 20, 1),
+    f('cohabit.daily_affinity', '每天親密度 +', 0, 5, 1),
+    f('cohabit.week_cap', '一週最多 +', 0, 20, 1),
+    f('cohabit.comfort', '有人在家時舒適度 +', 0, 5, 1),
+    f('cohabit.kick_affinity', '請他搬出去時親密度', -50, 0, 1),
+  ] },
 ]
 
 export const HOME_FIELDS = HOME_GROUPS.flatMap((g) => g.fields)

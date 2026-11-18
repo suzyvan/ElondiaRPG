@@ -626,6 +626,16 @@ export interface NpcRecord extends NpcDef {
   chore?: StaffJob
   /** 家僕（或做家務的奴隸）的效果停到第幾天（家裡的事的 staff_pause：請假） */
   staffPause?: number
+  /** 和主角同居（cohabit.ts）：哪棟房子、從什麼時候；bond 是這週加了幾點親密度 */
+  cohabit?: {
+    home: string
+    since: GameTime
+    /** 搬進來之前的活躍地點（搬走時回去） */
+    from?: string
+    /** 他睡的那張床（area 與格子） */
+    bed?: { area: string; x: number; y: number }
+    bond?: { week: number; n: number }
+  }
   /** 住客房的親密度：第幾週、這週加了幾點（rooms.ts） */
   guestBond?: { week: number; n: number }
 }

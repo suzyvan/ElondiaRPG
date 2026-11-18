@@ -20,6 +20,7 @@ import { currentArea, currentCell, DUNGEON_LAYERS } from './grid'
 import { comfortOf, comfortTier, completeSets, hasBed, homeOfArea } from './homes'
 import { serveBreakfast } from './staff'
 import { studyCondition } from './rooms'
+import { cohabitRest } from './cohabit'
 import { maybeHomeEvent } from './homeEvents'
 import { morningSickness } from './pregnancy'
 import { maybePregnancyEvent } from './pregnancyEvents'
@@ -337,6 +338,8 @@ export function longRest(state: GameState, place: RestPlace): Report {
   if (study) for (const m of state.party) gainCondition(m, study, report)
   // 家裡的廚師：醒來有早餐（staff.ts）
   const breakfast = home && !home.master ? serveBreakfast(state, home, report) : ''
+  // 同居的人在家：家的溫暖（cohabit.ts）
+  const warmth = home && !home.master ? cohabitRest(state, home, report) : ''
   // 懷孕初期：一早起來可能孕吐（docs/FAMILY.md）
   morningSickness(state, report)
   clearInviteCooldowns(state)
@@ -345,7 +348,7 @@ export function longRest(state: GameState, place: RestPlace): Report {
   state.lastLongRest = { ...report.time.end }
   report.outcome = {
     result: 'success',
-    summary: [place === 'slave_room' ? `大家在${scene}過了一夜${costText}。` : `在${scene}好好睡了一覺${costText}。`, ...(rested ? [`家裡佈置得很舒服，大家都${conditionName(tier!.condition)}。`] : []), ...(sets.length ? [`湊齊的成套家具：${sets.map((d) => `${d.name}（${conditionName(d.condition!)}）`).join('、')}。`] : []), ...(study ? [`在書房裡睡了一覺：${conditionName(study)}。`] : []), ...(breakfast ? [breakfast] : []), ...room, ...checks].join(''),
+    summary: [place === 'slave_room' ? `大家在${scene}過了一夜${costText}。` : `在${scene}好好睡了一覺${costText}。`, ...(rested ? [`家裡佈置得很舒服，大家都${conditionName(tier!.condition)}。`] : []), ...(sets.length ? [`湊齊的成套家具：${sets.map((d) => `${d.name}（${conditionName(d.condition!)}）`).join('、')}。`] : []), ...(study ? [`在書房裡睡了一覺：${conditionName(study)}。`] : []), ...(breakfast ? [breakfast] : []), ...(warmth ? [warmth] : []), ...room, ...checks].join(''),
     tags: ['長休', ...(place === 'safe' ? ['安全房'] : place === 'home' ? ['在家'] : place === 'slave_room' ? ['奴房'] : place === 'camp' ? ['紮營'] : [])],
   }
   const committed = commitReport(state, report)

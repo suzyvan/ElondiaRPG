@@ -19,6 +19,7 @@ import { cribRefusal } from './children'
 import { resolveMasterHome } from './homeResolver'
 import { storageInUse, storedItems } from './storage'
 import { staffComfort } from './staff'
+import { cohabitComfort } from './cohabit'
 import { roomComfort } from './rooms'
 import type { Character, GameState, Home, Report } from './types'
 
@@ -450,11 +451,11 @@ export function completeSets(home: Home): string[] {
   return setProgress(home).filter((x) => x.done).map((x) => x.id)
 }
 
-/** 舒適度：所有家具的 comfort 加總，加上湊齊的成套家具；給了 state 時加上家僕（女僕，staff.ts） */
+/** 舒適度：所有家具的 comfort 加總，加上湊齊的成套家具、房間用途；給了 state 時加上家僕（女僕，staff.ts）與同居的人（cohabit.ts） */
 export function comfortOf(home: Home, state?: GameState): number {
   const furniture = furnitureIn(home).reduce((n, f) => n + (itemDef(f.name)?.furniture?.comfort ?? 0), 0)
   const sets = completeSets(home).reduce((n, id) => n + (homeRules.furniture_sets[id]?.comfort ?? 0), 0)
-  return furniture + sets + (home.master ? 0 : roomComfort(home)) + (state && !home.master ? staffComfort(state, home) : 0)
+  return furniture + sets + (home.master ? 0 : roomComfort(home)) + (state && !home.master ? staffComfort(state, home) + cohabitComfort(state, home) : 0)
 }
 
 /** 調教室：房子裡調教家具的加值合計（lewd.json 的 training.room_max 為上限） */

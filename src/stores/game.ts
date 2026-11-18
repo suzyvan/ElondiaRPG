@@ -77,6 +77,7 @@ import * as away from '@/engine/away'
 import * as partyEngine from '@/engine/party'
 import * as garden from '@/engine/garden'
 import * as storage from '@/engine/storage'
+import * as cohabit from '@/engine/cohabit'
 import * as staff from '@/engine/staff'
 import * as aging from '@/engine/aging'
 import * as homeExpand from '@/engine/homeExpand'
@@ -1787,6 +1788,10 @@ export const useGame = defineStore('game', () => {
     fireStaff: (id: string) => run((s) => staff.fireStaff(s, id), { narrate: false }),
     payWages: () => run((s) => staff.payWages(s), { narrate: false }),
     ackStaffNotes: () => run((s) => staff.ackStaffNotes(s), { narrate: false }),
+    // 同居（cohabit.ts）：請他搬出去、帶上同居的冒險者、隊上的同居者回家住下
+    askCohabitantToLeave: (id: string) => run((s) => cohabit.askToLeave(s, id)),
+    takeCohabitant: (id: string) => run((s) => cohabit.takeCohabitant(s, id), { narrate: false }),
+    settleCohabitant: (id: string) => run((s) => cohabit.settleCohabitant(s, id), { narrate: false }),
     assignChore: (id: string, job: StaffJob | null) => run((s) => staff.assignChore(s, id, job)),
     // 房間用途（rooms.ts）：替站的這間房間標上用途（null 拿掉）
     setRoomUse: (use: rooms.RoomUse | null) => run((s) => rooms.setRoomUse(s, use)),

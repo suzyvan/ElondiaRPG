@@ -1756,7 +1756,7 @@ export function contractDef(id: string): ContractDef {
   return c
 }
 
-export type ActionKind = 'free' | 'hire' | 'haggle' | 'invite' | 'squad_join' | 'staff_invite' | 'black_market' | 'negotiate' | 'escape' | 'bargain' | 'negotiation' | 'rest_talk'
+export type ActionKind = 'free' | 'hire' | 'haggle' | 'invite' | 'squad_join' | 'staff_invite' | 'cohabit_invite' | 'black_market' | 'negotiate' | 'escape' | 'bargain' | 'negotiation' | 'rest_talk'
   | 'chat' | 'gift' | 'flatter' | 'seduce' | 'bluff' | 'intimidate' | 'steal' | 'attack' | 'master_permit' | 'master_leave' | 'master_extend' | 'marking' | 'master_event'
   | 'master_return' | 'seek_master' | 'unmark' | 'unbind' | 'work' | 'patron' | 'craft' | 'make' | 'produce' | 'invent' | 'defeat_event' | 'story' | 'propose'
   | 'train' | 'perk_pitch' | 'explore' | 'palace_gate' | 'resign'
@@ -2475,6 +2475,19 @@ export const homeRules = homesJson as unknown as {
   furniture_sets: Record<string, FurnitureSetDef>
   /** 熟成桶：放在地下室時時間的倍率 */
   aging: { basement_mult: number }
+  /** 同居（cohabit.ts） */
+  cohabit: {
+    min_affinity: number
+    leave_affinity: number
+    caps: Record<HomeDistrict, number>
+    invite_dc: number
+    affinity_step: number
+    daily_affinity: number
+    week_cap: number
+    comfort: number
+    condition: string
+    kick_affinity: number
+  }
   /** 房間用途（rooms.ts） */
   rooms: {
     bedroom_comfort: number

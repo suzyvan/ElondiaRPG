@@ -12,6 +12,7 @@ import type { StaffJob } from '@/engine/data'
 import { isBound } from '@/engine/party'
 import { agingHours, agingRecipes, agingShort, agingStatus, vesselSpec } from '@/engine/aging'
 import { constructionDaysLeft, expandOptions, type ExpandKind } from '@/engine/homeExpand'
+import { canGoOut, cohabitantsOf, takeRefusal } from '@/engine/cohabit'
 import { activeRooms, ROOM_NAME, ROOM_USES, roomAt, roomStatus, type RoomUse } from '@/engine/rooms'
 import { tagsAllowed } from '@/engine/content'
 import { VESSEL_NAME } from '@/engine/data'
@@ -157,6 +158,12 @@ const notes = computed(() => home.value?.staffNotes ?? [])
 const steward = computed(() => staffList.value.some((r) => r.staff!.job === 'steward'))
 /** 同一個職位的第二個人起：效果不疊加 */
 const duplicate = (i: number) => staffList.value.slice(0, i).some((r) => r.staff!.job === staffList.value[i]!.staff!.job)
+// 同居（docs/HOMES.md 第 8.2 節）：住在這裡的人（在家的、跟著出門的）
+const mates = computed(() => (home.value ? cohabitantsOf(s.value, home.value.id) : []))
+const mateOut = (id: string) => s.value.party.some((m) => m.id === id)
+function askLeave(id: string, name: string) {
+  if (confirm(`請${name}搬出去？親密度 ${homeRules.cohabit.kick_affinity}，他會記得這件事。`)) game.askCohabitantToLeave(id)
+}
 function fire(id: string, name: string) {
   if (confirm(`請${name}不用再來了？欠的工錢會先結清。`)) game.fireStaff(id)
 }
@@ -330,6 +337,21 @@ function rename() {
           <NameTag :id="m.id" />
           <button class="small" :disabled="!!stayRefusal(m)" :title="stayRefusal(m)" @click="game.stayHome(m.id)">留在家裡</button>
         </li>
+      </ul>
+    </FoldMenu>
+
+    <FoldMenu id="home.cohabit" icon="heart" label="同居的人" :detail="`親密度 ${homeRules.cohabit.min_affinity} 以上的人可以請他搬進來（在「這裡的人」邀請）；最多 ${homeRules.cohabit.caps[home.district] ?? 2} 人`" :badge="mates.length" :open="mates.length > 0">
+      <p class="small muted">家人，不是隊員 <Hint :text="`同居的人每天親密度 +${homeRules.cohabit.daily_affinity}（一週最多 +${homeRules.cohabit.week_cap}），有人在家時舒適度 +${homeRules.cohabit.comfort}，你在家長休後得到「${conditionName(homeRules.cohabit.condition)}」。每個人要一張沒人用的床。親密度掉到 ${homeRules.cohabit.leave_affinity} 以下會搬走。冒險者可以帶出門，回家時讓他住下。`" /></p>
+      <ul class="plain">
+        <li v-for="r in mates" :key="r.id" class="row">
+          <span><NameTag :id="r.id" /> <span class="muted small">{{ mateOut(r.id) ? '跟著你出門' : '在家' }}</span></span>
+          <span class="row">
+            <button v-if="mateOut(r.id)" class="small" @click="game.settleCohabitant(r.id)">回家住下</button>
+            <button v-else-if="canGoOut(r)" class="small" :disabled="!!takeRefusal(s, r)" :title="takeRefusal(s, r)" @click="game.takeCohabitant(r.id)">帶上</button>
+            <button class="small" @click="askLeave(r.id, r.name)">請他搬出去</button>
+          </span>
+        </li>
+        <li v-if="!mates.length" class="muted">還沒有人和你住在一起。</li>
       </ul>
     </FoldMenu>
 

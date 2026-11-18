@@ -10,6 +10,9 @@ import { candidates, staffOf } from '@/engine/staff'
 import { storedItems } from '@/engine/storage'
 import { addItem, newGame } from '@/engine/state'
 import { useGame } from '@/stores/game'
+import { generateNpc } from '@/engine/npcs'
+import { Rng } from '@/engine/rng'
+import { ensureRelationship, setAffinity } from '@/engine/social'
 
 describe('房屋區塊', () => {
   beforeEach(() => {
@@ -123,6 +126,40 @@ describe('房屋區塊', () => {
     await flushPromises()
     expect(Object.values(game.state!.homes![home.id]!.rooms ?? {})).toEqual(['bedroom'])
     expect(document.body.textContent).toContain('還沒生效：要擺一張床')
+    c.unmount()
+  })
+
+  it('同居的人：列出在家的人，帶上冒險者、請他搬出去', async () => {
+    const state = newGame({ name: '艾倫', race: 'human', classId: 'fighter', seed: 6, birthplace: 'soriel' })
+    enterLocation(state)
+    state.money_cc = 100000
+    buyHome(state, lotsOf(state.location).find((l) => l.district === 'house')!.id)
+    const home = Object.values(state.homes!)[0]!
+    const ground = Object.values(home.areas).find((a) => a.homeFloor === 'ground')!
+    const i = ground.cells.findIndex((c) => c.kind === 'floor' && !c.furniture)
+    addItem(state.inventory, '木板床', 1)
+    placeFurniture(state, ground, i % ground.width, Math.floor(i / ground.width), '木板床')
+    placeAt(state, ground, (i + 1) % ground.width, Math.floor((i + 1) / ground.width))
+    const rec = generateNpc(state, new Rng(3), { kind: 'adventurer', location: state.location, tags: ['warrior'] }, 'adv')
+    ;(state.npcs ??= {})[rec.id] = rec
+    ensureRelationship(state, rec)
+    setAffinity(state, rec.id, 90)
+    rec.cohabit = { home: home.id, since: { ...state.time } }
+    rec.at = { area: ground.key, x: 1, y: 1, until: 1e9 }
+    const game = useGame()
+    game.state = state
+    const c = mount(HomePanel, { attachTo: document.body })
+    await flushPromises()
+    expect(document.body.textContent).toContain('同居的人')
+    const row = c.findAll('li').find((li) => li.text().includes(rec.name) && li.text().includes('在家'))!
+    await row.findAll('button').find((b) => b.text() === '帶上')!.trigger('click')
+    await flushPromises()
+    expect(game.state!.party.some((m) => m.id === rec.id)).toBe(true)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const row2 = c.findAll('li').find((li) => li.text().includes('跟著你出門'))!
+    await row2.findAll('button').find((b) => b.text() === '請他搬出去')!.trigger('click')
+    await flushPromises()
+    expect(game.state!.npcs![rec.id]!.cohabit).toBeUndefined()
     c.unmount()
   })
 })

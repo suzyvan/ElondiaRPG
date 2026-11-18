@@ -14,6 +14,13 @@
     { "at": 12, "condition": "refreshed" },
     { "at": 20, "condition": "invigorated" }
   ],
+  "cohabit": {
+    "$comment": "同居（docs/HOMES.md 第 8.2 節）：人際關係裡親密度 min_affinity 以上的人（普通人、冒險者都可以）可以請他搬進來。主動行動（魅力），參考 DC = invite_dc − ⌊（親密度 − min_affinity）／ affinity_step⌋，加上標籤的邀請修正（好人 −2）；部分成功下次長休後再問，失敗這週不能再問。房子要有沒人用的床；每棟最多 caps 人。住在家裡：每天親密度 + daily_affinity（一週最多 week_cap），房子舒適度 + comfort，在家長休後得到 condition。親密度掉到 leave_affinity 以下就搬走；請他搬出去時親密度 + kick_affinity。冒險者可以帶出門，回家再住回來。",
+    "min_affinity": 80, "leave_affinity": 40,
+    "caps": { "cottage": 2, "townhouse": 2, "house": 2, "manor": 3 },
+    "invite_dc": 18, "affinity_step": 5,
+    "daily_affinity": 1, "week_cap": 3, "comfort": 1, "condition": "home_warmth", "kick_affinity": -15
+  },
   "rooms": {
     "$comment": "房間用途（docs/HOMES.md 第 3.2 節）：玩家替隔出來的房間標上用途，家具擺對了有加成。臥室：有床時舒適度 + bedroom_comfort；書房：study_items 的家具至少 study_need 件時舒適度 + study_comfort，在書房長休後得到 study_condition（湊齊 study_set 這一套時改成 study_set_condition）；工坊：在這間做有工作台的那種工藝，工時 × workshop_mult；酒窖：地下室、有熟成桶，這間的熟成時間 × cellar_mult；客房：有床，留在家裡的夥伴住這間時每天親密度 + guest_affinity（一週最多 guest_week_cap）；育嬰室：有搖籃，抱抱的「家人的笑容」多持續一次長休（nursery_condition）。",
     "bedroom_comfort": 1,

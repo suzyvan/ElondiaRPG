@@ -60,6 +60,7 @@ import { lureTemplate } from './dungeonEvents'
 import { blackMarketHere, underworldAskBlocked, underworldEscorted, underworldEscortFlag, underworldFlag, underworldLandmarks, underworldOf } from './underworld'
 import { inActiveSquad, squadActive, squadIds, squadJoinDc, squadMissing, squads, squadWithLeader, type Squad } from './squads'
 import { setupStaffInvite } from './staff'
+import { setupCohabitInvite } from './cohabit'
 
 function socialReport(state: GameState, hours: number, scene: string, kind: Report['kind'] = 'social'): Report {
   const start = { ...state.time }
@@ -991,6 +992,7 @@ export function setupFor(state: GameState, kind: ActionKind, target?: string, of
       }
     }
     case 'staff_invite': return setupStaffInvite(state, target)
+    case 'cohabit_invite': return setupCohabitInvite(state, target)
     case 'squad_join': {
       const sq = validateSquadJoin(state, target ?? '')
       const leader = npcRecord(state, sq.leader)!

@@ -81,7 +81,7 @@
 
 | 分類 | 說明 | 行動 | 情境 |
 |---|---|---|---|
-| 說服 `persuade` | 講道理、拉關係、談條件：聊天、送禮、雇傭與邀請、談判 | 雇傭談判 `hire`、邀請入隊 `invite`、請小隊帶你同行 `squad_join`、請他來家裡做事 `staff_invite`、談判解除契約 `negotiate`、談判 `negotiation`、長休時的互動 `rest_talk`、聊天 `chat`、送禮 `gift`、向主人提議 `propose`、投靠新主人 `seek_master`、說服王城的衛兵 `palace_gate`、爭取特質 `perk_pitch` | 談判（委託報酬、交易條件） `negotiation` |
+| 說服 `persuade` | 講道理、拉關係、談條件：聊天、送禮、雇傭與邀請、談判 | 雇傭談判 `hire`、邀請入隊 `invite`、請小隊帶你同行 `squad_join`、請他來家裡做事 `staff_invite`、邀請他搬進來 `cohabit_invite`、談判解除契約 `negotiate`、談判 `negotiation`、長休時的互動 `rest_talk`、聊天 `chat`、送禮 `gift`、向主人提議 `propose`、投靠新主人 `seek_master`、說服王城的衛兵 `palace_gate`、爭取特質 `perk_pitch` | 談判（委託報酬、交易條件） `negotiation` |
 | 欺瞞 `deceive` | 說謊、裝傻、蒙混過關 | 蒙混過關 `bluff` | — |
 | 威嚇 `intimidate` | 用氣勢、武力或身分壓人 | 威嚇 `intimidate` | — |
 | 交易 `trade` | 殺價、談價錢、打聽地下街 | 殺價 `haggle`、打聽地下街 `black_market`、交涉價格 `bargain` | — |

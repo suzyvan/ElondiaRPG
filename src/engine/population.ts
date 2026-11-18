@@ -465,8 +465,8 @@ export function adventurersInTown(state: GameState): NpcRecord[] {
   const inParty = new Set(state.party.map((m) => m.id))
   ensureRoster(state, state.location)
   return allNpcs(state).filter((rec) => {
-    // 留在你家看家的夥伴不算
-    if (inParty.has(rec.id) || npcKind(rec) !== 'adventurer' || rec.hostile || rec.staying) return false
+    // 留在你家看家的夥伴、和你同居的人（cohabit.ts）不算
+    if (inParty.has(rec.id) || npcKind(rec) !== 'adventurer' || rec.hostile || rec.staying || rec.cohabit) return false
     if (rec.dead || !visibleNpc(state, rec) || inLeadEvent(state, rec.id)) return false
     // 暫時待在城裡某一格的人（例如剛離隊、在酒館待幾天）
     if (rec.at && state.time.day <= rec.at.until && inTownArea(rec.at.area)) return rec.at.area.split('/')[0] === state.location
@@ -483,7 +483,7 @@ export function adventurersInTown(state: GameState): NpcRecord[] {
 export function hireable(state: GameState): NpcRecord[] {
   const list = adventurersInTown(state)
   for (const p of nearbyPeople(state)) {
-    if (p.kind === 'adventurer' && !p.staff && !p.rec.hostile && !p.rec.staying && !isHostile(state, p.rec) && !list.includes(p.rec)) list.push(p.rec)
+    if (p.kind === 'adventurer' && !p.staff && !p.rec.hostile && !p.rec.staying && !p.rec.cohabit && !isHostile(state, p.rec) && !list.includes(p.rec)) list.push(p.rec)
   }
   // 不受雇用的固定 NPC（統治者……）不列入；小隊不拆開雇用（只能整隊邀請）
   return list.filter((r) => !isUnhireable(r.id) && !inActiveSquad(state, r.id))

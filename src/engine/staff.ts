@@ -21,6 +21,7 @@ import { plotPlace, seedOf } from './garden'
 import { homeMoney, removeFromHome, storeInHome, takeHomeMoney } from './storage'
 import { settleConstruction } from './homeExpand'
 import { guestDaily } from './rooms'
+import { cohabitDaily, cohabitScene } from './cohabit'
 import { locationMult } from './trade'
 import type { GameState, GameTime, Home, NpcRecord, Report } from './types'
 
@@ -269,7 +270,8 @@ export function fireStaff(state: GameState, id: string): Report {
 
 // ---- 每天 ----
 
-function note(home: Home, day: number, text: string, tag: string) {
+/** 記一筆「你不在的時候」（同一句不重複，最多 40 筆） */
+export function note(home: Home, day: number, text: string, tag: string) {
   if (home.staffNotes?.some((n) => n.text === text)) return
   ;(home.staffNotes ??= []).push({ text, tag, day })
   if (home.staffNotes.length > 40) home.staffNotes.splice(0, home.staffNotes.length - 40)
@@ -378,6 +380,8 @@ export function staffDaily(state: GameState, fromDay: number, toDay: number) {
       // 客房：留守的夥伴住在生效的客房裡，親密度上升（rooms.ts）
       guestDaily(state, home, day, (id, d) => { const rel = state.relationships?.[id]; if (rel) setAffinity(state, id, rel.affinity + d) })
     }
+    // 同居的人（cohabit.ts）：親密度上升、處不來就搬走
+    cohabitDaily(state, day)
   }
   for (const [id, p] of pay) {
     if (p.paid || p.short) note(state.homes[id]!, toDay, `${p.paid ? `管家從保險箱付了 ${formatMoney(p.paid)} 工錢。` : ''}${p.short ? '保險箱的錢不夠付工錢。' : ''}`, '付工錢')
@@ -517,7 +521,7 @@ function choreDaily(state: GameState, home: Home) {
   for (const r of choreSlaves(state, home.id)) addLewd(state, r.character!, 'submission', rules().slave_chore_daily)
 }
 
-/** 在自己的房子裡行動時，場景帶上家裡的僕人（交給 AI）：雇來的家僕與做家務的奴隸 */
+/** 在自己的房子裡行動時，場景帶上家裡的僕人（交給 AI）：雇來的家僕與做家務的奴隸；還有同居的人（cohabit.ts） */
 export function withHomeStaff(state: GameState, scene: string): string {
   const home = ownHomeOfArea(state, currentArea(state))
   if (!home) return scene
@@ -525,5 +529,6 @@ export function withHomeStaff(state: GameState, scene: string): string {
     ...staffOf(state, home.id).map((r) => `${r.name}（${jobName(r.staff!.job)}）`),
     ...choreSlaves(state, home.id).map((r) => `${r.name}（奴隸，做${jobName(r.chore!)}的家務）`),
   ]
-  return list.length ? `${scene}・家裡的僕人：${list.join('、')}` : scene
+  const mates = cohabitScene(state, home)
+  return [scene, ...(list.length ? [`家裡的僕人：${list.join('、')}`] : []), ...(mates ? [mates] : [])].join('・')
 }
