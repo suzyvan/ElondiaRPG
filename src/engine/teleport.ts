@@ -95,9 +95,11 @@ export function teleport(state: GameState, homeId: string): Report {
   }
   report.narration = { ...report.narration, tone: '一陣光之後換了地方' }
   report.lore_keys = [...new Set([fromLoc.name, toLoc.name])]
+  const fromLocation = state.location
   const committed = commitReport(state, report)
-  // 換地點：和走到那座城一樣建立地圖與名單，只是不經過城門
-  if (to.location !== state.location) {
+  // 換地點：和走到那座城一樣建立地圖與名單（記成到過、城裡的人、留在那城的夥伴……），只是不經過城門。
+  // commitReport 已經把 location 換成目的地，所以要和出發前比
+  if (to.location !== fromLocation) {
     state.location = to.location
     arrive(state, { gate: false })
   }

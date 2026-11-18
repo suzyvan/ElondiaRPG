@@ -20,7 +20,7 @@ import { resolveMasterHome } from './homeResolver'
 import { storageInUse, storedItems } from './storage'
 import { staffComfort } from './staff'
 import { cohabitComfort } from './cohabit'
-import { roomComfort } from './rooms'
+import { guestSpot, roomComfort } from './rooms'
 import type { Character, GameState, Home, Report } from './types'
 
 // ---- 空地 ----
@@ -534,9 +534,10 @@ export function residentsHere(state: GameState, area: Pick<Area, 'key' | 'kind'>
   return home ? residents(state, home.id) : []
 }
 
-/** 誰可以留在家裡：主角以外、不是任務同行、不是跟著別人的隊伍 */
-export function stayRefusal(m: Character): string | undefined {
+/** 誰可以留在家裡：主角以外、不是任務同行、不是跟著別人的隊伍；同居的人是回家住下（cohabit.ts），不算留守 */
+export function stayRefusal(m: Character, state?: GameState): string | undefined {
   if (m.isPlayer) return '主角'
+  if (state?.npcs?.[m.id]?.cohabit) return `${m.name}和你住在一起（回到那棟房子時按「回家住下」）`
   if (m.bond === 'guest') return '任務同行的夥伴'
   if (m.bond === 'leader' || m.bond === 'ally' || m.group) return '這是你跟著的隊伍'
   return undefined
@@ -553,13 +554,14 @@ export function stayHome(state: GameState, area: Area, memberId: string): Report
 export function stayAt(state: GameState, home: Home, memberId: string, summary?: string): Report {
   const m = state.party.find((x) => x.id === memberId)
   if (!m) throw new Error('隊伍中沒有這位角色')
-  const refusal = stayRefusal(m)
+  const refusal = stayRefusal(m, state)
   if (refusal) throw new Error(`${m.name}不能留守：${refusal}`)
   const ground = home.areas[home.floors.find((k) => home.areas[k]?.homeFloor === 'ground')!]!
-  // 站在一樓室內的某一格（不擋門）
+  // 客房有空床就住客房（rooms.ts）；否則站在一樓室內的某一格（不擋門）
+  const guest = guestSpot(state, home, m.id)
   const spots = ground.cells.map((c, i) => i).filter((i) => ground.cells[i]!.kind === 'floor' && !ground.cells[i]!.furniture)
   const spot = spots[hash(m.id) % Math.max(1, spots.length)] ?? 0
-  parkMember(state, m, home.location, home.id, { area: ground.key, x: spot % ground.width, y: Math.floor(spot / ground.width) })
+  parkMember(state, m, home.location, home.id, guest ?? { area: ground.key, x: spot % ground.width, y: Math.floor(spot / ground.width) })
   const report = homeReport(state, 'social', 0.2, home.name)
   report.changes.companions = [{ npc: m.id, name: m.name, change: 'left', reason: '留在家裡' }]
   report.outcome = { result: 'neutral', summary: summary ?? `${m.name}留在「${home.name}」看家。`, tags: ['留守'] }

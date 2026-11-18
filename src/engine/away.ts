@@ -7,6 +7,7 @@
 
 import { locationById } from './data'
 import { settlementArea, tavernSpot } from './grid'
+import { settleAt } from './cohabit'
 import { homeById, homeReport, parkMember, stayAt, stayRefusal, unparkMember } from './homes'
 import { npcRecord } from './npcs'
 import { followRoom, joinParty, leaderOf, partyRoom, pcOf, isBound } from './party'
@@ -89,7 +90,7 @@ export function homeLabel(home: Home): string {
 
 /** 不能寄放在酒館的原因（主角、任務同行、跟著的隊伍、奴隸） */
 export function lodgeRefusal(state: GameState, m: Character): string | undefined {
-  const r = stayRefusal(m)
+  const r = stayRefusal(m, state)
   if (r) return r
   if (m.bond === 'slave') return '奴隸只能留在你的房子（酒館沒人看管）'
   if (!tavernSpot(state.location)) return '這裡沒有酒館'
@@ -98,7 +99,10 @@ export function lodgeRefusal(state: GameState, m: Character): string | undefined
 
 /** 不能送回房子的原因 */
 export function sendHomeRefusal(state: GameState, m: Character): string | undefined {
-  return stayRefusal(m) ?? (homesHere(state).length ? undefined : '這座城鎮沒有你的房子')
+  // 同居的人：只能送回他住的那一棟（回家住下）
+  const mate = state.npcs?.[m.id]?.cohabit
+  if (mate) return homesHere(state).some((h) => h.id === mate.home) ? undefined : `${m.name}住的房子不在這座城`
+  return stayRefusal(m, state) ?? (homesHere(state).length ? undefined : '這座城鎮沒有你的房子')
 }
 
 /** 在有房子的城鎮把隊員送回家留守（不必走進房子） */
@@ -106,6 +110,11 @@ export function sendHome(state: GameState, homeId: string, memberId: string): Re
   const home = homesHere(state).find((h) => h.id === homeId)
   if (!home) throw new Error('這座城鎮沒有這棟房子')
   const m = state.party.find((x) => x.id === memberId)
+  const mate = state.npcs?.[memberId]?.cohabit
+  if (mate) {
+    if (mate.home !== home.id) throw new Error(`${m?.name ?? '這個人'}住在別棟房子`)
+    return settleAt(state, home, memberId, m ? `${m.name}先回「${home.name}」住下。` : undefined)
+  }
   return stayAt(state, home, memberId, m ? `${m.name}先回「${home.name}」看家。` : undefined)
 }
 

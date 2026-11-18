@@ -65,6 +65,7 @@ function tidy(cell: Cell) {
 /** 把行囊裡的東西放進箱子（qty 沒填是全部），回傳放進去的數量 */
 export function depositItem(state: GameState, area: Area, x: number, y: number, name: string, qty?: number): number {
   const cell = chestAt(state, area, x, y)
+  if (qty !== undefined && !Number.isFinite(qty)) throw new Error('要放多少？')
   const have = state.inventory.find((i) => i.name === name && i.qty > 0)
   if (!have) throw new Error(`行囊裡沒有${name}`)
   const refused = depositRefusal(state, cell, name)
@@ -80,6 +81,7 @@ export function depositItem(state: GameState, area: Area, x: number, y: number, 
 /** 從箱子拿回行囊（qty 沒填是全部），回傳拿出來的數量 */
 export function withdrawItem(state: GameState, area: Area, x: number, y: number, name: string, qty?: number): number {
   const cell = chestAt(state, area, x, y)
+  if (qty !== undefined && !Number.isFinite(qty)) throw new Error('要拿多少？')
   const have = storedItems(cell).find((i) => i.name === name)
   if (!have) throw new Error(`箱子裡沒有${name}`)
   const n = Math.min(have.qty, Math.max(1, Math.floor(qty ?? have.qty)))
@@ -113,7 +115,7 @@ export function depositMoney(state: GameState, area: Area, x: number, y: number,
   const cell = chestAt(state, area, x, y)
   if (!storageSpec(cell)?.money) throw new Error('只有保險箱能存錢')
   const n = Math.floor(amount)
-  if (n <= 0) throw new Error('要存多少？')
+  if (!Number.isFinite(n) || n <= 0) throw new Error('要存多少？')
   if (n > state.money_cc) throw new Error(`身上只有 ${formatMoney(state.money_cc)}`)
   state.money_cc -= n
   cell.storage ??= { items: [] }
@@ -124,7 +126,7 @@ export function depositMoney(state: GameState, area: Area, x: number, y: number,
 export function withdrawMoney(state: GameState, area: Area, x: number, y: number, amount: number) {
   const cell = chestAt(state, area, x, y)
   const n = Math.floor(amount)
-  if (n <= 0) throw new Error('要領多少？')
+  if (!Number.isFinite(n) || n <= 0) throw new Error('要領多少？')
   if (n > storedMoney(cell)) throw new Error(`箱子裡只有 ${formatMoney(storedMoney(cell))}`)
   cell.storage!.money_cc = storedMoney(cell) - n
   state.money_cc += n
@@ -160,7 +162,7 @@ export function homeMoney(home: Home | undefined): number {
  * 在家做工藝時，行囊不夠的材料先用這個補進行囊，之後照原本的流程從行囊扣。
  */
 export function takeFromHome(state: GameState, home: Home, name: string, qty: number): number {
-  let left = Math.max(0, Math.floor(qty))
+  let left = (Number.isFinite(qty) ? Math.max(0, Math.floor(qty)) : 0)
   for (const { cell } of chestsIn(home)) {
     if (left <= 0) break
     const have = storedItems(cell).find((i) => i.name === name)
@@ -172,7 +174,7 @@ export function takeFromHome(state: GameState, home: Home, name: string, qty: nu
     tidy(cell)
     left -= n
   }
-  return Math.max(0, Math.floor(qty)) - left
+  return (Number.isFinite(qty) ? Math.max(0, Math.floor(qty)) : 0) - left
 }
 
 // ---- 在自己家裡用（工藝、播種） ----
@@ -225,7 +227,7 @@ export function withHomeStorage(state: GameState, scene: string): string {
 
 /** 把東西直接放進這棟房子的箱子（先找已經有這種東西的，再找還有空位的；不經過行囊）。放不下時回傳 false */
 export function storeInHome(state: GameState, home: Home, name: string, qty: number, quality?: string): boolean {
-  if (qty <= 0) return true
+  if (!Number.isFinite(qty) || qty <= 0) return true
   const chests = chestsIn(home).filter((c) => storageSpec(c.cell))
   const target = chests.find((c) => storedItems(c.cell).some((i) => i.name === name))
     ?? chests.find((c) => !depositRefusal(state, c.cell, name))
@@ -237,7 +239,7 @@ export function storeInHome(state: GameState, home: Home, name: string, qty: num
 
 /** 從這棟房子的箱子直接拿掉（不經過行囊），回傳拿掉的數量 */
 export function removeFromHome(home: Home, name: string, qty: number): number {
-  let left = Math.max(0, Math.floor(qty))
+  let left = (Number.isFinite(qty) ? Math.max(0, Math.floor(qty)) : 0)
   for (const { cell } of chestsIn(home)) {
     if (left <= 0) break
     const have = storedItems(cell).find((i) => i.name === name)
@@ -245,7 +247,7 @@ export function removeFromHome(home: Home, name: string, qty: number): number {
     left -= removeItem(cell.storage!.items, name, Math.min(have.qty, left))
     tidy(cell)
   }
-  return Math.max(0, Math.floor(qty)) - left
+  return (Number.isFinite(qty) ? Math.max(0, Math.floor(qty)) : 0) - left
 }
 
 /** 從這棟房子的保險箱直接拿錢（管家付工錢），回傳拿到多少 */

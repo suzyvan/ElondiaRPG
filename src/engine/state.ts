@@ -19,7 +19,7 @@ import { gameRule } from './gameRules'
 import { moneyPartsShown } from './money'
 import { hasItemKey, itemKey, sameShape } from './itemKey'
 import { backfillLewdSkills, lewdDaily, noteAdultScene } from './lewd'
-import { staffDaily } from './staff'
+import { dropStaleHomeEvent, staffDaily } from './staff'
 import { familyTick } from './pregnancy'
 import { pcTagStartItems, sanitizePcTags } from './pcTags'
 import { startCrafts } from './crafting'
@@ -750,5 +750,7 @@ export function commitReport(state: GameState, report: Report): Report {
   recordMemory(state, report)
   // 懷孕：察覺、陣痛、生產（docs/FAMILY.md）
   familyTick(state)
+  // 等著回答的家裡的事：那個人已經不是家裡的人（死了、被解雇、被帶走……）就作廢，免得卡住
+  dropStaleHomeEvent(state)
   return report
 }

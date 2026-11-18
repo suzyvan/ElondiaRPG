@@ -531,10 +531,16 @@ export function applyEffects(state: GameState, report: Report, effects: RewardEf
           rec.staff.paidUntil += -e.days
           notes.push(`扣了${rec.name} ${-e.days} 天工錢`)
         } else {
-          const amount = rec.staff.wage_cc * e.days
+          // 和其他付錢的效果一樣扣到 0 為止（affordable）
+          const left = Math.max(0, state.money_cc + (c.money_cc ?? 0))
+          const amount = Math.min(rec.staff.wage_cc * e.days, left)
+          if (amount <= 0) {
+            notes.push(`身上沒錢，沒能多給${rec.name}工錢`)
+            break
+          }
           c.money_cc = (c.money_cc ?? 0) - amount
           ;(c.money_parts ??= []).push({ amount: -amount, label: `給${rec.name}的工錢` })
-          notes.push(`多給了${rec.name} ${e.days} 天工錢`)
+          notes.push(amount < rec.staff.wage_cc * e.days ? `把身上僅剩的 ${formatMoney(amount)} 給了${rec.name}當工錢` : `多給了${rec.name} ${e.days} 天工錢`)
         }
         break
       }

@@ -244,7 +244,7 @@ describe('園丁（H2）', () => {
     hire(state, home, 'gardener')
     advanceTime(state, 24 * 4)
     expect(plot.crop?.seed).toBe('莓果苗')
-    expect(home.staffNotes?.some((n) => n.text.includes('箱子滿了'))).toBe(true)
+    expect(home.staffNotes?.some((n) => n.text.includes('家裡沒有儲物箱'))).toBe(true)
   })
 })
 
