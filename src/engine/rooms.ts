@@ -173,15 +173,52 @@ export function setRoomUse(state: GameState, use: RoomUse | null) {
   ;(home.rooms ??= {})[room.key] = use
 }
 
-/** 客房：每天（staff.ts 的 staffDaily）住在生效客房的留守夥伴親密度上升，一週最多 guest_week_cap */
+type Spot = { area: string; x: number; y: number }
+const inside = (room: Room, at: Spot | undefined) => !!at && at.area === room.area.key && room.cells.includes(at.y * room.area.width + at.x)
+
+/** 這個人站在生效的客房裡 */
+function guestRoomOf(home: Home, at: Spot | undefined): Room | undefined {
+  return activeRooms(home).find((r) => r.use === 'guest' && inside(r.room, at))?.room
+}
+
+/**
+ * 留在家裡的夥伴住哪裡：生效的客房還有空床時，站在那間的床邊（一張床住一個人，
+ * 同居的人睡在這間的床也算）；沒有空位時 undefined（照舊站在一樓）。
+ */
+export function guestSpot(state: GameState, home: Home, id: string): Spot | undefined {
+  const npcs = Object.values(state.npcs ?? {}).filter((r) => r.id !== id)
+  const taken = new Set(npcs.filter((r) => r.at).map((r) => `${r.at!.area}:${r.at!.x},${r.at!.y}`))
+  for (const { use, room } of activeRooms(home)) {
+    if (use !== 'guest') continue
+    const w = room.area.width
+    const beds = room.cells.filter((i) => fn(room.area.cells[i]!.furniture ?? '')?.function === 'bed')
+    const used = npcs.filter((r) => (r.staying === home.id && inside(room, r.at)) || (r.cohabit?.home === home.id && inside(room, r.cohabit.bed))).length
+    if (used >= beds.length) continue
+    const floor = room.cells.filter((i) => {
+      const c = room.area.cells[i]!
+      return c.kind === 'floor' && !c.furniture && !taken.has(`${room.area.key}:${i % w},${Math.floor(i / w)}`)
+    })
+    if (!floor.length) continue
+    const near = floor.find((i) => beds.some((b) => Math.abs((b % w) - (i % w)) <= 1 && Math.abs(Math.floor(b / w) - Math.floor(i / w)) <= 1)) ?? floor[0]!
+    return { area: room.area.key, x: near % w, y: Math.floor(near / w) }
+  }
+  return undefined
+}
+
+/**
+ * 客房：每天（staff.ts 的 staffDaily）住在生效客房的留守夥伴親密度上升，一週最多 guest_week_cap。
+ * 還沒住進客房的留守夥伴（客房比他晚整理好）在客房有空床時搬進去。
+ */
 export function guestDaily(state: GameState, home: Home, day: number, addAffinity: (id: string, d: number) => void) {
-  const guest = activeRooms(home).filter((r) => r.use === 'guest')
-  if (!guest.length) return
+  if (!activeRooms(home).some((r) => r.use === 'guest')) return
   const week = Math.floor((day - 1) / 7)
   for (const rec of Object.values(state.npcs ?? {})) {
     if (rec.staying !== home.id || !rec.at) continue
-    const room = guest.find((g) => g.room.area.key === rec.at!.area && g.room.cells.includes(rec.at!.y * g.room.area.width + rec.at!.x))
-    if (!room) continue
+    if (!guestRoomOf(home, rec.at)) {
+      const spot = guestSpot(state, home, rec.id)
+      if (spot) rec.at = { ...spot, until: rec.at.until }
+    }
+    if (!guestRoomOf(home, rec.at)) continue
     const b = rec.guestBond?.week === week ? rec.guestBond : { week, n: 0 }
     if (b.n >= rules().guest_week_cap) continue
     const d = Math.min(rules().guest_affinity, rules().guest_week_cap - b.n)

@@ -10,6 +10,7 @@
 // 劫財、劫色、處決與收為奴隸有後果：依誰先動手（security.json 的 captives），有衛兵的聚落加警戒、所屬勢力扣聲望；
 // 主角偷襲時沒有人看到，就不加警戒。
 
+import { leaveHousehold } from './staff'
 import { snapshot } from './character'
 import { formatMoney } from './money'
 import { locationById, npcTags, regionById } from './data'
@@ -116,6 +117,8 @@ export function resolveCaptive(state: GameState, id: string, choice: CaptiveChoi
   if (choice === 'enslave' && partyRoom(state) < 1) throw new Error('隊伍已滿，帶不走更多人')
   if (choice === 'enslave' && isEnslaved(state)) throw new Error('身上還有奴隸印記，不能擁有奴隸')
   const stored = state.npcs?.[rec.id] ?? registerNpc(state, { ...rec })
+  // 家裡的人（家僕、幫忙做家務、同居）被制伏：不管怎麼處置，都不再是家裡的人
+  leaveHousehold(state, stored)
   const pc = pcOf(state)
   const firstHand = c.aggressor === 'npc' ? '對方先動的手' : '你先動的手'
   const r = report(state, rec, [...todo.map((d) => DEED_TAG[d]), CHOICE_TAG[choice]])

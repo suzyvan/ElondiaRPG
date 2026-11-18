@@ -413,11 +413,32 @@ describe('房間用途（X3）', () => {
     ensureRelationship(state, rec)
     setAffinity(state, rec.id, 10)
     sendHome(state, home.id, rec.id)
-    const free = freeIn(room)[0]!
-    state.npcs![rec.id]!.at = { area: room.area.key, x: free % room.area.width, y: Math.floor(free / room.area.width), until: 1e9 }
+    // 客房在樓上也會住進去（站在客房的床邊）
+    const at = state.npcs![rec.id]!.at!
+    expect(at.area).toBe(room.area.key)
+    expect(room.cells).toContain(at.y * room.area.width + at.x)
     advanceTime(state, 24 * 10)
     expect(state.relationships![rec.id]!.affinity).toBeGreaterThanOrEqual(13)
     expect(state.relationships![rec.id]!.affinity).toBeLessThanOrEqual(16)
+  })
+
+  it('客房一張床住一個人；客房比夥伴晚整理好時，隔天搬進去', () => {
+    const state = game()
+    const home = moveIn(state, 'house')
+    const people = [1, 2].map((n) => {
+      const rec = generateNpc(state, new Rng(n), { kind: 'adventurer', location: state.location }, 'adv')
+      joinParty(state, rec, 'voluntary')
+      ensureRelationship(state, rec)
+      return rec.id
+    })
+    for (const id of people) sendHome(state, home.id, id)
+    const room = biggest(home, 'upper')
+    const inRoom = (id: string) => { const at = state.npcs![id]!.at!; return at.area === room.area.key && room.cells.includes(at.y * room.area.width + at.x) }
+    expect(people.some(inRoom)).toBe(false)
+    into(state, room, ['木板床'])
+    setRoomUse(state, 'guest')
+    advanceTime(state, 24)
+    expect(people.filter(inRoom)).toHaveLength(1)
   })
 
   it('育嬰室的「家人的笑容」多持續一次長休', () => {

@@ -46,15 +46,14 @@ function bedsOf(home: Home): Spot[] {
   return out
 }
 
-/** 沒人用的床：同居的人、留守的夥伴各佔一張；客房裡的床優先 */
+/** 沒人用的床：同居的人、留守的夥伴各佔一張；客房以外的床優先（客房留給留守的夥伴） */
 export function freeBed(state: GameState, home: Home): Spot | undefined {
   const beds = bedsOf(home)
   const mates = cohabitantsOf(state, home.id)
   if (beds.length - mates.length - residents(state, home.id).length < 1) return undefined
   const taken = new Set(mates.map((r) => r.cohabit!.bed).filter(Boolean).map((b) => key(b!)))
   const free = beds.filter((b) => !taken.has(key(b)))
-  const guest = free.find((b) => activeRoomAt(home, home.areas[b.area]!, b.x, b.y) === 'guest')
-  return guest ?? free[0]
+  return free.find((b) => activeRoomAt(home, home.areas[b.area]!, b.x, b.y) !== 'guest') ?? free[0]
 }
 
 /** 站在床旁邊的一格（沒有家具、沒有別人站的地板；找不到就站在床上） */
@@ -171,6 +170,8 @@ export function applyCohabitInvite(state: GameState, report: Report, target: str
 function moveOut(state: GameState, rec: NpcRecord) {
   const from = rec.cohabit?.from
   delete rec.cohabit
+  // 幫忙做的家務（staff.ts）也不做了
+  delete rec.chore
   if (inParty(state, rec.id)) return
   delete rec.at
   if (from) rec.location = from
@@ -232,7 +233,11 @@ export function takeCohabitant(state: GameState, id: string): Report {
 
 /** 同居的隊員回到家裡住下（不算離隊、不扣親密度） */
 export function settleCohabitant(state: GameState, id: string): Report {
-  const home = homeHere(state)
+  return settleAt(state, homeHere(state), id)
+}
+
+/** 同居的隊員回到這棟房子住下（站在房子裡，或在同一座城送回家，見 away.ts） */
+export function settleAt(state: GameState, home: Home, id: string, summary?: string): Report {
   const rec = mateHere(state, home, id)
   const m = state.party.find((x) => x.id === id)
   if (!m) throw new Error(`${rec.name}不在隊伍裡`)
@@ -242,7 +247,7 @@ export function settleCohabitant(state: GameState, id: string): Report {
   placeHome(state, home, rec)
   const report = homeReport(state, 'social', 0.2, home.name)
   report.changes.companions = [{ npc: m.id, name: m.name, change: 'left', reason: '回家住下' }]
-  report.outcome = { result: 'neutral', summary: `${m.name}回到「${home.name}」住下。`, tags: ['同居'] }
+  report.outcome = { result: 'neutral', summary: summary ?? `${m.name}回到「${home.name}」住下。`, tags: ['同居'] }
   return commitReport(state, report)
 }
 

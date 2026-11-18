@@ -89,6 +89,20 @@ describe('傳送陣', () => {
     expect(teleportTargets(state).map((t) => t.home.location)).toEqual(['soriel'])
   })
 
+  it('傳送到別的城：和走進那座城一樣記成到過、建立城裡的人（不經過城門）', () => {
+    const { state, far } = twoHomes()
+    addItem(state.inventory, '傳送石', stonesNeeded(state))
+    state.visitedTowns = ['soriel']
+    delete state.rosters?.albena
+    teleport(state, far.id)
+    expect(state.location).toBe('albena')
+    expect(state.visitedTowns).toContain('albena')
+    expect(Object.keys(state.rosters ?? {})).toContain('albena')
+    // 站在傳送陣上，不是城門口
+    const c = circleOf(far)!
+    expect(currentArea(state).key).toBe(c.area.key)
+  })
+
   it('被制伏的人還沒處置、目的地那一層還在施工時不能傳', () => {
     const { state, far } = twoHomes()
     addItem(state.inventory, '傳送石', 5)

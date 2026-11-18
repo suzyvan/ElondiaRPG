@@ -354,7 +354,7 @@ function rename() {
       <ul v-if="companions.length" class="plain">
         <li v-for="m in companions" :key="m.id" class="row">
           <NameTag :id="m.id" />
-          <button class="small" :disabled="!!stayRefusal(m)" :title="stayRefusal(m)" @click="game.stayHome(m.id)">留在家裡</button>
+          <button class="small" :disabled="!!stayRefusal(m, s)" :title="stayRefusal(m, s)" @click="game.stayHome(m.id)">留在家裡</button>
         </li>
       </ul>
     </FoldMenu>
@@ -365,6 +365,10 @@ function rename() {
         <li v-for="r in mates" :key="r.id" class="row">
           <span><NameTag :id="r.id" /> <span class="muted small">{{ mateOut(r.id) ? '跟著你出門' : '在家' }}</span></span>
           <span class="row">
+            <select v-if="!mateOut(r.id)" :value="r.chore ?? ''" class="small" title="同居的人不當家僕，但可以幫忙做家務：不用工錢、不佔家僕上限" aria-label="幫忙做家務" @change="game.assignChore(r.id, (($event.target as HTMLSelectElement).value || null) as StaffJob | null)">
+              <option value="">不做家務</option>
+              <option v-for="j in CHORE_JOBS" :key="j" :value="j">幫忙：{{ jobName(j) }}</option>
+            </select>
             <button v-if="mateOut(r.id)" class="small" @click="game.settleCohabitant(r.id)">回家住下</button>
             <button v-else-if="canGoOut(r)" class="small" :disabled="!!takeRefusal(s, r)" :title="takeRefusal(s, r)" @click="game.takeCohabitant(r.id)">帶上</button>
             <button class="small" @click="askLeave(r.id, r.name)">請他搬出去</button>

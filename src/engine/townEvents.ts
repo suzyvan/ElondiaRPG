@@ -153,7 +153,7 @@ export function pendingTownEvent(state: GameState): RoadTemplate | undefined {
   const t = travelEvents.templates.find((x) => x.id === ev.template && (x.scope === 'town' || x.scope === 'home'))
   if (!t || t.scope === 'town') return t
   const rec = ev.staff ? state.npcs?.[ev.staff] : undefined
-  if (!rec || (!rec.staff && !rec.chore)) return undefined
+  if (!rec || rec.dead || (!rec.staff && !rec.chore)) return undefined
   return castStaff(t, rec)
 }
 

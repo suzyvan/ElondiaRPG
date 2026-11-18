@@ -14,7 +14,10 @@ const s = computed(() => game.state!)
 const members = computed(() => s.value.party.filter((m) => !m.isPlayer && m.bond !== 'guest'))
 const homes = computed(() => homesHere(s.value))
 const pick = reactive<Record<string, string>>({})
-const homeFor = (id: string) => pick[id] || homes.value[0]?.id || ''
+// 同居的人只回他住的那一棟
+const mateHome = (id: string) => s.value.npcs?.[id]?.cohabit?.home
+const homeFor = (id: string) => mateHome(id) || pick[id] || homes.value[0]?.id || ''
+const homeName = (id: string) => homes.value.find((h) => h.id === homeFor(id))?.name ?? ''
 // 主人帶著主角時：主人的隊員要向主人提議（masterRoster.ts）
 const master = computed(() => rosterMaster(s.value))
 const mastersMember = (m: Character) => !!master.value && m.group === master.value.id && m.id !== master.value.id
@@ -55,10 +58,10 @@ function dismiss(m: Character) {
       <MasterRosterPropose v-if="mastersMember(m)" :member="m" class="acts" />
       <div v-else-if="m.id !== master?.id" class="acts">
         <template v-if="!sendHomeRefusal(s, m)">
-          <select v-if="homes.length > 1" :id="`room-home-${m.id}`" :value="homeFor(m.id)" :aria-label="`${m.name}要回哪一棟房子`" @change="pick[m.id] = ($event.target as HTMLSelectElement).value">
+          <select v-if="homes.length > 1 && !mateHome(m.id)" :id="`room-home-${m.id}`" :value="homeFor(m.id)" :aria-label="`${m.name}要回哪一棟房子`" @change="pick[m.id] = ($event.target as HTMLSelectElement).value">
             <option v-for="h in homes" :key="h.id" :value="h.id">{{ homeLabel(h) }}</option>
           </select>
-          <button class="small" @click="game.sendHome(homeFor(m.id), m.id)">{{ homes.length > 1 ? '送回房子' : `送回「${homes[0]!.name}」` }}</button>
+          <button class="small" @click="game.sendHome(homeFor(m.id), m.id)">{{ mateHome(m.id) ? `回「${homeName(m.id)}」住下` : homes.length > 1 ? '送回房子' : `送回「${homes[0]!.name}」` }}</button>
         </template>
         <button v-if="!lodgeRefusal(s, m)" class="small" @click="game.lodgeAtTavern(m.id)">寄放在酒館</button>
         <button v-if="!dismissRefusal(m)" class="small danger" @click="dismiss(m)">請離隊伍</button>
