@@ -77,6 +77,7 @@ import * as away from '@/engine/away'
 import * as partyEngine from '@/engine/party'
 import * as garden from '@/engine/garden'
 import * as storage from '@/engine/storage'
+import * as teleport from '@/engine/teleport'
 import * as cohabit from '@/engine/cohabit'
 import * as staff from '@/engine/staff'
 import * as aging from '@/engine/aging'
@@ -1788,6 +1789,8 @@ export const useGame = defineStore('game', () => {
     fireStaff: (id: string) => run((s) => staff.fireStaff(s, id), { narrate: false }),
     payWages: () => run((s) => staff.payWages(s), { narrate: false }),
     ackStaffNotes: () => run((s) => staff.ackStaffNotes(s), { narrate: false }),
+    // 傳送陣（teleport.ts）：站在傳送陣上傳送到另一棟房子
+    teleport: (homeId: string) => run((s) => teleport.teleport(s, homeId)),
     // 同居（cohabit.ts）：請他搬出去、帶上同居的冒險者、隊上的同居者回家住下
     askCohabitantToLeave: (id: string) => run((s) => cohabit.askToLeave(s, id)),
     takeCohabitant: (id: string) => run((s) => cohabit.takeCohabitant(s, id), { narrate: false }),

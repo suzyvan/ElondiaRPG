@@ -2430,7 +2430,7 @@ export const CRAFT_IDS = Object.keys(craftRules.skills) as CraftId[]
 
 export type FurniturePlace = 'indoor' | 'yard' | 'basement'
 
-export const FURNITURE_FUNCTIONS = ['bed', 'workbench', 'garden', 'training', 'crib', 'storage', 'aging'] as const
+export const FURNITURE_FUNCTIONS = ['bed', 'workbench', 'garden', 'training', 'crib', 'storage', 'aging', 'teleport'] as const
 export type FurnitureFunction = (typeof FURNITURE_FUNCTIONS)[number]
 
 export interface FurnitureSpec {
@@ -2475,6 +2475,8 @@ export const homeRules = homesJson as unknown as {
   furniture_sets: Record<string, FurnitureSetDef>
   /** 熟成桶：放在地下室時時間的倍率 */
   aging: { basement_mult: number }
+  /** 傳送陣（teleport.ts） */
+  teleport: { stone: string; per_member: number; hours: number }
   /** 同居（cohabit.ts） */
   cohabit: {
     min_affinity: number

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { conditionName, craftRules, genderName, homeRules, itemDef, itemRules, raceName } from '@/engine/data'
+import { conditionName, craftRules, genderName, homeRules, itemDef, itemRules, locationById, raceName } from '@/engine/data'
 import {
   comfortOf, comfortTier, describeHome, setProgress, furnitureIn, hasBed, homeOfArea, lotHere, lotPrice, ownHomeOfArea, PLACE_NAME, placeOf, residents, stayRefusal,
 } from '@/engine/homes'
@@ -13,6 +13,7 @@ import { isBound } from '@/engine/party'
 import { agingHours, agingRecipes, agingShort, agingStatus, vesselSpec } from '@/engine/aging'
 import { constructionDaysLeft, expandOptions, type ExpandKind } from '@/engine/homeExpand'
 import { canGoOut, cohabitantsOf, takeRefusal } from '@/engine/cohabit'
+import { circleHere, stonesHave, stonesNeeded, teleportRefusal, teleportTargets } from '@/engine/teleport'
 import { activeRooms, ROOM_NAME, ROOM_USES, roomAt, roomStatus, type RoomUse } from '@/engine/rooms'
 import { tagsAllowed } from '@/engine/content'
 import { VESSEL_NAME } from '@/engine/data'
@@ -158,6 +159,11 @@ const notes = computed(() => home.value?.staffNotes ?? [])
 const steward = computed(() => staffList.value.some((r) => r.staff!.job === 'steward'))
 /** 同一個職位的第二個人起：效果不疊加 */
 const duplicate = (i: number) => staffList.value.slice(0, i).some((r) => r.staff!.job === staffList.value[i]!.staff!.job)
+// 傳送陣（docs/HOMES.md 第 4.2 節）：站在上面時列出能傳過去的房子
+const onCircle = computed(() => !!circleHere(s.value))
+const targets = computed(() => (onCircle.value ? teleportTargets(s.value) : []))
+const teleBlocked = computed(() => (onCircle.value ? teleportRefusal(s.value) : undefined))
+const placeName = (id: string) => locationById(id).name
 // 同居（docs/HOMES.md 第 8.2 節）：住在這裡的人（在家的、跟著出門的）
 const mates = computed(() => (home.value ? cohabitantsOf(s.value, home.value.id) : []))
 const mateOut = (id: string) => s.value.party.some((m) => m.id === id)
@@ -237,6 +243,19 @@ function rename() {
         <option v-for="u in roomChoices" :key="u" :value="u" :title="ROOM_HINT[u]">{{ ROOM_NAME[u] }}</option>
       </select>
       <span v-if="roomSt?.use" :class="roomSt.ok ? 'small' : 'small muted'">{{ roomSt.ok ? `生效：${ROOM_HINT[roomSt.use]}` : `還沒生效：${roomSt.why}` }}</span>
+    </div>
+
+    <div v-if="onCircle" class="spot">
+      <b>🔯 傳送陣</b>
+      <span class="muted small">全隊 {{ s.party.length }} 人要 {{ stonesNeeded(s) }} 顆{{ homeRules.teleport.stone }}（有 {{ stonesHave(s) }} 顆），花 {{ homeRules.teleport.hours }} 小時</span>
+      <ul class="plain">
+        <li v-for="t in targets" :key="t.home.id" class="row">
+          <span>{{ placeName(t.home.location) }}「{{ t.home.name }}」</span>
+          <button class="small primary" :disabled="!!t.blocked || !!teleBlocked" :title="t.blocked ?? teleBlocked" @click="game.teleport(t.home.id)">傳送過去</button>
+        </li>
+        <li v-if="!targets.length" class="muted">別的房子還沒有傳送陣：在另一棟房子也擺一座，才能傳送過去。</li>
+      </ul>
+      <p v-if="targets.length && (teleBlocked || targets.some((t) => t.blocked))" class="small muted">{{ teleBlocked ?? targets.find((t) => t.blocked)!.blocked }}</p>
     </div>
 
     <div v-if="vessel || cell.aging" class="spot">

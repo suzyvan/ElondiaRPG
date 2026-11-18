@@ -415,7 +415,8 @@ export function furnitureSummary(f: FurnitureSpec | undefined): string {
   const fn = f.function === 'bed' ? '床' : f.function === 'workbench' ? `${f.craft ? craftRules.skills[f.craft].name : ''}的高階工作台`
     : f.function === 'garden' ? '苗圃' : f.function === 'training' ? `調教室（在家調教 +${f.training ?? 0}）` : f.function === 'crib' ? '搖籃'
     : f.function === 'storage' ? `儲物箱（${f.slots ?? 0} 種${f.money ? '，可以存錢' : ''}）`
-    : f.function === 'aging' ? `熟成桶（${f.vessel ? VESSEL_NAME[f.vessel] : ''}）` : ''
+    : f.function === 'aging' ? `熟成桶（${f.vessel ? VESSEL_NAME[f.vessel] : ''}）`
+    : f.function === 'teleport' ? '傳送陣（傳送到另一棟有傳送陣的房子，一棟一座）' : ''
   const set = f.set ? homeRules.furniture_sets[f.set] : undefined
   return [fn, f.comfort ? `舒適 +${f.comfort}` : '', `放在${f.places.map((p) => PLACE_NAME[p]).join('、')}`, set ? `成套：${set.name}（湊齊 ${set.need} 件）` : ''].filter(Boolean).join('，')
 }
@@ -498,6 +499,8 @@ export function placeFurniture(state: GameState, area: Area, x: number, y: numbe
   if (!place) throw new Error('這一格不能擺家具')
   if (!spec.places.includes(place)) throw new Error(`${name}只能放在${spec.places.map((p) => PLACE_NAME[p]).join('、')}`)
   if (!state.inventory.some((i) => i.name === name && i.qty > 0)) throw new Error(`行囊裡沒有${name}`)
+  // 傳送陣（teleport.ts）：一棟房子只能有一座
+  if (spec.function === 'teleport' && furnitureIn(ownHomeOfArea(state, area)!).some((f) => itemDef(f.name)?.furniture?.function === 'teleport')) throw new Error('一棟房子只能有一座傳送陣')
   removeItem(state.inventory, name, 1)
   cell.furniture = name
 }

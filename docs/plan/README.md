@@ -16,7 +16,7 @@
 | [roadmap/](roadmap/) | ROADMAP 項目的細節計畫，以及[已完成](roadmap/COMPLETED.md)的紀錄 | 計畫內自己的編號（S、M、E……） | 一個 R 項目細節太多時另開一份，只寫還沒做的部分 |
 | [ideas/](ideas/README.md) | 點子庫（依來源分成不同文件） | I | **還沒決定要不要做**的構想 |
 
-`roadmap/` 目前有：[WORLD_EDITOR_PLAN](roadmap/WORLD_EDITOR_PLAN.md)（R11）、[EAST_CONTINENT_PLAN](roadmap/EAST_CONTINENT_PLAN.md)、[EAST_CONTENT_PLAN](roadmap/EAST_CONTENT_PLAN.md)（R15，已完成，留作設計紀錄）、[PREGNANCY_PLAN](roadmap/PREGNANCY_PLAN.md)（R28，已完成，留作設計紀錄）、[AGENT_MODE_PLAN](roadmap/AGENT_MODE_PLAN.md)（R29）、[STORAGE_PLAN](roadmap/STORAGE_PLAN.md)（R30，已完成，留作設計紀錄）、[HOUSEHOLD_STAFF_PLAN](roadmap/HOUSEHOLD_STAFF_PLAN.md)（R31，已完成，留作設計紀錄）、[HOME_EXPANSION_PLAN](roadmap/HOME_EXPANSION_PLAN.md)（R32）、[COMPLETED](roadmap/COMPLETED.md)（已完成）。
+`roadmap/` 目前有：[WORLD_EDITOR_PLAN](roadmap/WORLD_EDITOR_PLAN.md)（R11）、[EAST_CONTINENT_PLAN](roadmap/EAST_CONTINENT_PLAN.md)、[EAST_CONTENT_PLAN](roadmap/EAST_CONTENT_PLAN.md)（R15，已完成，留作設計紀錄）、[PREGNANCY_PLAN](roadmap/PREGNANCY_PLAN.md)（R28，已完成，留作設計紀錄）、[AGENT_MODE_PLAN](roadmap/AGENT_MODE_PLAN.md)（R29）、[STORAGE_PLAN](roadmap/STORAGE_PLAN.md)（R30，已完成，留作設計紀錄）、[HOUSEHOLD_STAFF_PLAN](roadmap/HOUSEHOLD_STAFF_PLAN.md)（R31，已完成，留作設計紀錄）、[HOME_EXPANSION_PLAN](roadmap/HOME_EXPANSION_PLAN.md)（R32，已完成，留作設計紀錄）、[COMPLETED](roadmap/COMPLETED.md)（已完成）。
 
 ## 2. 流程
 

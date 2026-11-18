@@ -162,4 +162,35 @@ describe('房屋區塊', () => {
     expect(game.state!.npcs![rec.id]!.cohabit).toBeUndefined()
     c.unmount()
   })
+
+  it('傳送陣：站在上面列出別棟房子，按下去傳送過去', async () => {
+    const state = newGame({ name: '艾倫', race: 'human', classId: 'fighter', seed: 6, birthplace: 'albena' })
+    enterLocation(state)
+    state.money_cc = 200000
+    const circle = () => {
+      const before = new Set(Object.keys(state.homes ?? {}))
+      buyHome(state, lotsOf(state.location).find((l) => l.district !== 'manor')!.id)
+      const home = Object.values(state.homes!).find((h) => !before.has(h.id))!
+      const ground = Object.values(home.areas).find((a) => a.homeFloor === 'ground')!
+      const i = ground.cells.findIndex((c) => c.kind === 'floor' && !c.furniture)
+      addItem(state.inventory, '傳送陣', 1)
+      placeFurniture(state, ground, i % ground.width, Math.floor(i / ground.width), '傳送陣')
+      placeAt(state, ground, i % ground.width, Math.floor(i / ground.width))
+      return home
+    }
+    const far = circle()
+    state.location = 'soriel'
+    enterLocation(state)
+    circle()
+    addItem(state.inventory, '傳送石', 2)
+    const game = useGame()
+    game.state = state
+    const c = mount(HomePanel, { attachTo: document.body })
+    await flushPromises()
+    const row = c.findAll('li').find((li) => li.text().includes(far.name))!
+    await row.find('button').trigger('click')
+    await flushPromises()
+    expect(game.state!.location).toBe('albena')
+    c.unmount()
+  })
 })

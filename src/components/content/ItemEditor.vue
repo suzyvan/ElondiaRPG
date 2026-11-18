@@ -660,6 +660,7 @@ function setFuel(v: string) {
             <option value="crib">搖籃（家裡的嬰兒睡在這裡；可有可無）</option>
             <option value="storage">儲物箱（收東西；保險箱還能存錢）</option>
             <option value="aging">熟成桶（放進材料，過幾天熟成）</option>
+            <option value="teleport">傳送陣（站上去傳送到另一棟有傳送陣的房子；一棟一座）</option>
           </select>
         </label>
         <label v-if="furn.function === 'aging'">哪一種桶

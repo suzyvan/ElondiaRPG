@@ -14,6 +14,10 @@
     { "at": 12, "condition": "refreshed" },
     { "at": 20, "condition": "invigorated" }
   ],
+  "teleport": {
+    "$comment": "傳送陣（docs/HOMES.md 第 4.2 節）：兩棟自己的房子都有傳送陣（家具 function: teleport，一棟一座）時，站在上面可以傳送到另一棟。全隊每人用掉 per_member 顆 stone，花 hours 小時，沒有旅途事件。不設限制（跟著別人的隊伍、主角是奴隸、跨大陸都可以）。",
+    "stone": "傳送石", "per_member": 1, "hours": 1
+  },
   "cohabit": {
     "$comment": "同居（docs/HOMES.md 第 8.2 節）：人際關係裡親密度 min_affinity 以上的人（普通人、冒險者都可以）可以請他搬進來。主動行動（魅力），參考 DC = invite_dc − ⌊（親密度 − min_affinity）／ affinity_step⌋，加上標籤的邀請修正（好人 −2）；部分成功下次長休後再問，失敗這週不能再問。房子要有沒人用的床；每棟最多 caps 人。住在家裡：每天親密度 + daily_affinity（一週最多 week_cap），房子舒適度 + comfort，在家長休後得到 condition。親密度掉到 leave_affinity 以下就搬走；請他搬出去時親密度 + kick_affinity。冒險者可以帶出門，回家再住回來。",
     "min_affinity": 80, "leave_affinity": 40,

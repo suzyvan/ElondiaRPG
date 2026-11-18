@@ -64,6 +64,10 @@ export const HOME_GROUPS: HomeGroup[] = [
     f('staff.slave_chore_submission', '奴隸做家務：順從至少', 0, 100, 1),
     f('staff.slave_chore_daily', '奴隸做家務：每天順從 +', 0, 5, 1),
   ] },
+  { name: '傳送陣', fields: [
+    f('teleport.per_member', '每人要幾顆傳送石', 0, 5, 1),
+    f('teleport.hours', '傳送花幾小時', 0, 24, 0.5),
+  ] },
   { name: '同居', fields: [
     f('cohabit.min_affinity', '能請他搬進來的親密度', 0, 100, 1),
     f('cohabit.leave_affinity', '親密度低於這裡就搬走', -100, 100, 1),
