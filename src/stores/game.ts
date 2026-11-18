@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { toggleStoryPin } from '@/engine/storyPins'
 import { toSimplifiedText } from '@/engine/script'
 import { consign, placeBid } from '@/engine/auction'
 import { fuseGear, splitGear } from '@/engine/fusion'
@@ -1711,6 +1712,8 @@ export const useGame = defineStore('game', () => {
       return perform({ kind: 'story', target, text, ...(use ? { use } : {}) })
     },
     abandonStory: (id: string) => run((s) => story.abandonStory(s, id)),
+    /** 冒險筆記收藏特殊任務（不推進時間、不產生日誌） */
+    toggleStoryPin: (id: string) => run((s) => toggleStoryPin(s, id)),
     // 走到不緊急的任務點：這次先略過（不記事件），離開這裡之後再來還會觸發
     waitStory: (ref: string) => run((s) => story.waitStory(s, ref)),
     // 只在白天或夜裡的任務點：在原地等到那個時段

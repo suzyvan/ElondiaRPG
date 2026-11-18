@@ -14,6 +14,7 @@ import { activeNodes, nodesWaitingForDays, placeText, storyHints, storyPauseReas
 import { questScene, questTemplate } from '@/engine/town'
 import type { Intel, Quest } from '@/engine/types'
 import { storyBoard } from '@/engine/storyBoard'
+import { STORY_CATEGORY_NAME, storyCategory, storyCategoryLabel, type StoryCategory } from '@/engine/storyPins'
 import { useGame } from '@/stores/game'
 import { useSettings } from '@/stores/settings'
 import BestiaryPanel from './BestiaryPanel.vue'
@@ -21,12 +22,14 @@ import FoldMenu from './ui/FoldMenu.vue'
 import GameIcon from './ui/GameIcon.vue'
 import FactionPanel from './FactionPanel.vue'
 
-// 冒險筆記：一般委託、特殊任務（目前的目標與經過）、情報（買到的與打聽到的傳聞）、勢力（聲望、警戒與通緝）、怪物圖鑑
+// 冒險筆記：收藏的特殊任務、一般委託、特殊任務（目前的目標與經過）、情報（買到的與打聽到的傳聞）、勢力（聲望、警戒與通緝）、怪物圖鑑
 const game = useGame()
 const settings = useSettings()
 const s = computed(() => game.state!)
-type Tab = 'quests' | 'stories' | 'intel' | 'factions' | 'bestiary'
-const tab = ref<Tab>('quests')
+type Tab = 'pinned' | 'quests' | 'stories' | 'intel' | 'factions' | 'bestiary'
+// 有收藏中、還在進行的特殊任務時，一打開就是收藏頁
+const pinnedActive = () => (game.state?.pinnedStories ?? []).filter((id) => game.state?.stories?.[id]?.status === 'active').length
+const tab = ref<Tab>(pinnedActive() ? 'pinned' : 'quests')
 
 // ---- 每一頁的篩選：上次選的狀態記在這個瀏覽器；搜尋不記 ----
 type QuestView = 'active' | 'completed'
@@ -107,7 +110,22 @@ const storyViews = computed(() => (['active', 'available', 'completed', 'failed'
   id, label: { active: '進行中', available: '可以接', completed: '完成', failed: '失敗' }[id],
   n: id === 'available' ? board.value.length : myStories.value.filter((x) => x.p.status === id).length,
 })))
-const shownStories = computed(() => myStories.value.filter((x) => x.p.status === views.stories && matches(search.stories, x.def!.title, x.def!.summary, x.def!.rank)))
+// 收藏（engine/storyPins.ts）：收藏頁只列進行中的；進行中的清單裡收藏的排在最前面
+const pinnedIds = computed(() => s.value.pinnedStories ?? [])
+const isPinned = (id: string) => pinnedIds.value.includes(id)
+const pinnedStories = computed(() => pinnedIds.value
+  .map((id) => myStories.value.find((x) => x.p.id === id))
+  .filter((x): x is NonNullable<typeof x> => !!x && x.p.status === 'active'))
+// 分類：角色線、公會的委託、情報商的消息、其他
+const storyCat = ref<StoryCategory | ''>('')
+const inView = computed(() => myStories.value.filter((x) => x.p.status === views.stories && matches(search.stories, x.def!.title, x.def!.summary, x.def!.rank, storyCategoryLabel(s.value, x.def!))))
+const catCount = (c: StoryCategory | '') => inView.value.filter((x) => !c || storyCategory(x.def!) === c).length
+const shownStories = computed(() => {
+  const list = inView.value.filter((x) => !storyCat.value || storyCategory(x.def!) === storyCat.value)
+  return [...list.filter((x) => isPinned(x.p.id)), ...list.filter((x) => !isPinned(x.p.id))]
+})
+/** 要列出的任務卡：收藏頁列收藏的，特殊任務頁列篩選後的 */
+const cardList = computed(() => (tab.value === 'pinned' ? pinnedStories.value : views.stories === 'available' ? [] : shownStories.value))
 function abandon(id: string, title: string) {
   if (confirm(`放棄特殊任務「${title}」？放棄後不能再接。`)) game.abandonStory(id)
 }
@@ -129,6 +147,7 @@ const EVENT: Record<string, string> = { combat: '💀 盤踞的強敵', chest: '
 const STATUS: Record<string, string> = { active: '有效', done: '已完成', expired: '已過期' }
 
 const counts = computed(() => ({
+  pinned: pinnedStories.value.length,
   quests: active.value.length,
   stories: myStories.value.filter((x) => x.p.status === 'active').length,
   intel: intel.value.filter((i) => i.status === 'active' && i.kind === 'point').length,
@@ -139,6 +158,7 @@ const counts = computed(() => ({
 <template>
   <div class="notebook">
     <nav class="row tabs">
+      <button :class="{ active: tab === 'pinned' }" title="收藏的特殊任務：在特殊任務的卡片上按 ☆ 收藏" @click="tab = 'pinned'"><span class="pin-mark">★</span>收藏 <span v-if="counts.pinned" class="tag">{{ counts.pinned }}</span></button>
       <button :class="{ active: tab === 'quests' }" @click="tab = 'quests'"><GameIcon name="scroll" :size="15" />一般委託 <span v-if="counts.quests" class="tag">{{ counts.quests }}</span></button>
       <button :class="{ active: tab === 'stories' }" @click="tab = 'stories'"><GameIcon name="star" :size="15" />特殊任務 <span v-if="counts.stories" class="tag">{{ counts.stories }}</span></button>
       <button :class="{ active: tab === 'intel' }" @click="tab = 'intel'"><GameIcon name="eye" :size="15" />情報 <span v-if="counts.intel" class="tag">{{ counts.intel }}</span></button>
@@ -177,12 +197,17 @@ const counts = computed(() => ({
       </template>
     </template>
 
-    <template v-else-if="tab === 'stories'">
-      <div class="row filters">
+    <template v-else-if="tab === 'stories' || tab === 'pinned'">
+      <div v-if="tab === 'stories'" class="row filters">
         <button v-for="o in storyViews" :key="o.id" class="small" :class="{ active: views.stories === o.id }" @click="views.stories = o.id">{{ o.label }} {{ o.n }}</button>
-        <input v-model="search.stories" class="grow" type="search" placeholder="搜尋任務名稱或簡介" />
+        <input v-model="search.stories" class="grow" type="search" placeholder="搜尋任務名稱、簡介或誰的線" />
+        <select v-if="views.stories !== 'available'" v-model="storyCat" class="small" aria-label="分類">
+          <option value="">所有分類 {{ catCount('') }}</option>
+          <option v-for="(n, k) in STORY_CATEGORY_NAME" :key="k" :value="k">{{ n }} {{ catCount(k) }}</option>
+        </select>
       </div>
-      <template v-if="views.stories === 'available'">
+      <p v-if="tab === 'pinned'" class="muted small">收藏中、還在進行的特殊任務。在「特殊任務」的卡片上按 ☆ 收藏，按 ★ 取消；完成或失敗之後就不列在這裡。</p>
+      <template v-if="tab === 'stories' && views.stories === 'available'">
         <div class="setting row small">
           <label for="story-board-mode">冒險筆記顯示還沒接的特殊任務</label>
           <select id="story-board-mode" v-model="settings.storyBoard">
@@ -225,12 +250,19 @@ const counts = computed(() => ({
           <p class="muted small note">只列見過的人、去過的城鎮。內容篩選關掉的、這個體型接不到的、委託人已經死了的不列。</p>
         </template>
       </template>
-      <p v-else-if="!myStories.length" class="muted">還沒有特殊任務。固定的人物、公會、旅途上的事件或情報商都可能帶來特別的委託。</p>
-      <p v-else-if="!shownStories.length" class="muted small">{{ search.stories.trim() ? '沒有符合的任務。' : `沒有${storyViews.find((o) => o.id === views.stories)!.label}的特殊任務。` }}</p>
-      <div v-for="{ p, def, goals, later } in views.stories === 'available' ? [] : shownStories" :key="p.id" class="card" :class="p.status">
+      <p v-else-if="tab === 'pinned' && !pinnedStories.length" class="muted">還沒有收藏的任務。到「特殊任務」的進行中，在正在追的任務卡上按 ☆ 收藏，之後打開冒險筆記就會先看到它們。</p>
+      <p v-else-if="tab === 'stories' && !myStories.length" class="muted">還沒有特殊任務。固定的人物、公會、旅途上的事件或情報商都可能帶來特別的委託。</p>
+      <p v-else-if="tab === 'stories' && !shownStories.length" class="muted small">{{ search.stories.trim() ? '沒有符合的任務。' : `沒有${storyViews.find((o) => o.id === views.stories)!.label}的特殊任務。` }}</p>
+      <div v-for="{ p, def, goals, later } in cardList" :key="`${tab}-${p.id}`" class="card" :class="[p.status, { pinned: isPinned(p.id) }]">
         <div class="row">
+          <button
+            v-if="p.status === 'active'" class="ghost small pin" :class="{ on: isPinned(p.id) }" :aria-pressed="isPinned(p.id)"
+            :aria-label="isPinned(p.id) ? '取消收藏' : '收藏'" :title="isPinned(p.id) ? '取消收藏' : '收藏：列在冒險筆記最前面的「★ 收藏」，進行中的清單也排在最前面'"
+            @click="game.toggleStoryPin(p.id)"
+          >{{ isPinned(p.id) ? '★' : '☆' }}</button>
           <span v-if="def!.rank" class="tag">{{ def!.rank }}</span>
           <b class="grow">{{ def!.title }} <ContentTagChips :tags="def!.tags" /></b>
+          <span class="tag cat">{{ storyCategoryLabel(s, def!) }}</span>
           <span v-if="p.status === 'active' && storyDeadline(s, p.id)" class="tag" :class="{ warn: hoursLeft(s, storyDeadline(s, p.id)!) < 24 }"><GameIcon name="hourglass" :size="12" />{{ deadlineText(s, storyDeadline(s, p.id)) }}</span>
           <span class="tag" :class="{ ok: p.status === 'completed' }">{{ p.status === 'active' ? '進行中' : p.status === 'completed' ? '完成' : '失敗' }}</span>
           <button v-if="p.status === 'active'" class="small" @click="abandon(p.id, def!.title)">放棄</button>
@@ -247,7 +279,7 @@ const counts = computed(() => ({
             <li v-else-if="!goals.length && !later.length && !storyHints(s, def!).length" class="muted">（現在沒有可以進行的目標）</li>
           </ul>
         </div>
-        <FoldMenu class="history" icon="notes" label="經過" :detail="p.log.length ? `最近：${p.log.at(-1)!.text.slice(0, 24)}${p.log.at(-1)!.text.length > 24 ? '…' : ''}` : ''" :badge="p.log.length" :open="p.status === 'active'">
+        <FoldMenu class="history" icon="notes" label="經過" :detail="p.log.length ? `最近：${p.log.at(-1)!.text.slice(0, 24)}${p.log.at(-1)!.text.length > 24 ? '…' : ''}` : ''" :badge="p.log.length" :open="tab === 'pinned'">
           <ul class="plain small log">
             <li v-for="(l, i) in [...p.log].reverse()" :key="i"><span class="muted">{{ formatTime(l.time) }}</span> {{ l.text }}</li>
           </ul>
@@ -309,6 +341,11 @@ const counts = computed(() => ({
 .note { border-top: 1px dashed var(--border); padding-top: 6px; }
 .card p { margin: 0; line-height: 1.6; }
 .card.completed, .card.failed, .card.done, .card.expired { opacity: 0.65; }
+.card.pinned { border-color: var(--gold, #c9a227); box-shadow: inset 3px 0 0 var(--gold, #c9a227); }
+.pin { padding: 0 4px; font-size: 1.1em; line-height: 1; color: var(--muted); }
+.pin.on, .pin-mark { color: var(--gold, #c9a227); }
+.pin-mark { margin-right: 2px; }
+.tag.cat { opacity: 0.85; }
 .tag.ok { border-color: var(--accent); color: var(--accent); }
 .tag.warn { border-color: var(--danger); color: var(--danger); }
 .goals :deep(.game-icon) { color: var(--accent); }

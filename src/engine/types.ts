@@ -1200,6 +1200,8 @@ export interface GameState {
   pendingDefeat?: PendingDefeat
   /** 特殊任務的進度（story.ts） */
   stories?: Record<string, StoryProgress>
+  /** 冒險筆記收藏的特殊任務（id，照收藏的順序；完成、失敗、放棄之後照樣留著，只是不列在收藏頁） */
+  pinnedStories?: string[]
   /** 旅途中（road.ts）：走在單行道的臨時地圖上，抵達時才產生旅行報告 */
   road?: RoadState
   /** 旅途上等待回應的事件（選擇、高階事件） */
