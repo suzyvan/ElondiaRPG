@@ -37,9 +37,10 @@ export const SCENE_MAX_MANUAL = 6
  * 分段插圖：正文的段落（narrationParagraphs），以及要畫幾張
  *   auto：交給 AI 挑最多 count 個時刻（每張插在它挑的段落之後）
  *   manual：玩家在對話框選好的位置（段落的索引，從 0 起算），每個位置一張
+ *     from：續寫之後自動畫時，續寫的段落從第幾段開始（只畫續寫的內容）
  */
 export type SceneSegments = { paragraphs: string[]; count: number; after?: undefined; kept?: undefined }
-  | { paragraphs: string[]; after: number[]; count?: undefined; kept?: number[] }
+  | { paragraphs: string[]; after: number[]; count?: undefined; kept?: number[]; from?: number }
 
 /** 一張分段插圖：插在第 after 段之後（從 0 起算） */
 export interface SegmentPlan {
@@ -106,7 +107,7 @@ export function scenePrompt(
     : [
         `你是遊戲插圖的分鏡師。使用者給的冒險日誌正文已經分段、標上編號；依正文設計插在段落之間的插圖，交給 AI 生圖。`,
         seg.after
-          ? `玩家指定了 ${seg.after.length} 個位置：${seg.after.map((a) => `第 ${a + 1} 段之後`).join('、')}。每個位置畫一張，after 照寫那個段落的編號；每張畫「上一張之後到這一段為止」的內容裡最有代表性的瞬間。${seg.kept?.length ? `${seg.kept.map((a) => `第 ${a + 1} 段之後`).join('、')}已經有插圖（不用畫），也算「上一張」：不要再畫那些插圖之前的內容。` : ''}`
+          ? `玩家指定了 ${seg.after.length} 個位置：${seg.after.map((a) => `第 ${a + 1} 段之後`).join('、')}。每個位置畫一張，after 照寫那個段落的編號；每張畫「上一張之後到這一段為止」的內容裡最有代表性的瞬間。${seg.kept?.length ? `${seg.kept.map((a) => `第 ${a + 1} 段之後`).join('、')}已經有插圖（不用畫），也算「上一張」：不要再畫那些插圖之前的內容。` : ''}${seg.from ? `第 ${seg.from + 1} 段起是這次續寫的段落：只畫續寫的內容，不要畫第 ${seg.from + 1} 段之前的內容。` : ''}`
           : seg.count === 1
             ? '挑出最能代表這段經過的一刻，畫一張，插在那一刻所在的段落之後（after 是那個段落的編號）。'
             : `挑出 1～${seg.count} 個畫面差別最大的時刻（例如進場、衝突的高潮、收尾），每個時刻一張，依時間順序，插在那一刻所在的段落之後（after 是那個段落的編號）。不要兩張畫同一件事；正文短、場面單純時少畫幾張。`,

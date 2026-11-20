@@ -118,6 +118,36 @@ describe('scene auto-generation', () => {
     expect(t.scenes.jobs[t.key]).toBeUndefined()
   })
 
+  it('draws only the continued paragraphs when the log has no image yet', async () => {
+    const providers = await import('@/narrator/providers')
+    const t = setup('all')
+    t.game.narrations[t.report.report_id] = { text: '你推開酒館的門。', status: 'done' }
+    useSettings().aiNarration = true
+    vi.mocked(providers.completeText).mockClear()
+    await t.game.continueNarration(t.report)
+    await flush()
+    expect(t.scenes.jobs[t.key]?.error).toContain('測試不送出')
+    // 手動分段：只畫最後一段之後，告訴 AI 從第 2 段（續寫）開始
+    const prompt = vi.mocked(providers.completeText).mock.calls.at(-1)![2] as { system: string }
+    expect(prompt.system).toContain('第 2 段之後')
+    expect(prompt.system).toContain('最有代表性的瞬間。第 2 段起是這次續寫的段落')
+  })
+
+  it('does not draw when the continuation is stopped (the OpenAI stream ends without an error)', async () => {
+    const providers = await import('@/narrator/providers')
+    const t = setup('all')
+    t.game.narrations[t.report.report_id] = { text: '你推開酒館的門。', status: 'done' }
+    useSettings().aiNarration = true
+    vi.mocked(providers.streamNarration).mockImplementationOnce(async function* () {
+      yield '溶洞裡的水聲'
+      useGame().cancelNarration(t.report.report_id)
+    })
+    await t.game.continueNarration(t.report)
+    await flush()
+    expect(t.game.narrations[t.report.report_id]!.text).toContain('溶洞裡的水聲')
+    expect(t.scenes.jobs[t.key]).toBeUndefined()
+  })
+
   it('does not draw after continuing when auto-generation is off', async () => {
     const t = setup('off')
     t.game.narrations[t.report.report_id] = { text: '你推開酒館的門。', status: 'done' }
