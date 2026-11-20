@@ -6,6 +6,7 @@ import ReportCard from '@/components/ReportCard.vue'
 import { useGame } from '@/stores/game'
 import { useImageSettings } from '@/stores/image'
 import { sceneKey, useScenes } from '@/stores/scenes'
+import { paragraphAnchor } from '@/narrator/paragraphs'
 import { useSettings } from '@/stores/settings'
 
 // 日誌插圖的自動生成：正文第一次寫完時才畫，沒有正文、重寫、沒設定好都不畫
@@ -91,6 +92,39 @@ describe('scene auto-generation', () => {
     t = setup('all', { imageReady: false })
     await t.game.narrate(t.report)
     await flush()
+    expect(t.scenes.jobs[t.key]).toBeUndefined()
+  })
+
+  it('draws one more image for the continued paragraphs, keeping the old ones', async () => {
+    const t = setup('all')
+    t.game.narrations[t.report.report_id] = { text: '你推開酒館的門。', status: 'done' }
+    // 原本第一段之後有一張插圖
+    await t.scenes.scan(t.game.state!.seed)
+    t.scenes.urls[`${t.key}#1`] = 'blob:old'
+    t.scenes.spots[`${t.key}#1`] = { after: 0, anchor: paragraphAnchor('你推開酒館的門。') }
+    useSettings().aiNarration = true
+    await t.game.continueNarration(t.report)
+    await flush()
+    expect(t.game.narrations[t.report.report_id]!.text).toContain('溶洞裡的水聲忽然停了。')
+    // 開始畫續寫的那一張（測試裡整理分鏡一律失敗），原本的插圖沒有被換掉
+    expect(t.scenes.jobs[t.key]?.error).toContain('測試不送出')
+    expect(t.scenes.urls[`${t.key}#1`]).toBe('blob:old')
+
+    // 最後一段已經有圖：不再畫
+    t.scenes.clearError(t.key)
+    t.scenes.urls[`${t.key}#2`] = 'blob:new'
+    t.scenes.spots[`${t.key}#2`] = { after: 1, anchor: paragraphAnchor('溶洞裡的水聲忽然停了。') }
+    await t.scenes.autoContinued(t.game.state!, t.report)
+    expect(t.scenes.jobs[t.key]).toBeUndefined()
+  })
+
+  it('does not draw after continuing when auto-generation is off', async () => {
+    const t = setup('off')
+    t.game.narrations[t.report.report_id] = { text: '你推開酒館的門。', status: 'done' }
+    useSettings().aiNarration = true
+    await t.game.continueNarration(t.report)
+    await flush()
+    expect(t.game.narrations[t.report.report_id]!.text).toContain('溶洞裡的水聲忽然停了。')
     expect(t.scenes.jobs[t.key]).toBeUndefined()
   })
 

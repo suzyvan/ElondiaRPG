@@ -285,14 +285,7 @@ export const useScenes = defineStore('scenes', () => {
    * 沒有設定好、已經有圖或正在畫時什麼都不做，也不顯示錯誤；沒有正文的日誌不會走到這裡。
    */
   async function auto(state: GameState, report: Report) {
-    const image = useImageSettings()
-    const adult = adultScene(report)
-    if (image.sceneAuto === 'off' || (image.sceneAuto === 'adult' && !adult)) return
-    const service = image.sceneService(adult)
-    // 成人場景 ChatGPT 畫不出來：沒指定成人場景用的服務時不自動畫，免得白花整理分鏡的 token
-    if (adult && service === 'openai') return
-    const settings = useSettings()
-    if (!image.ready(service) || !settings.sourceReady(settings.sourceFor('tags').index)) return
+    if (!autoAllowed(report)) return
     const base = sceneKey(state, report.report_id)
     if (jobs.value[base]) return
     await scan(state.seed)
@@ -300,5 +293,37 @@ export const useScenes = defineStore('scenes', () => {
     await generate(state, report)
   }
 
-  return { urls, plans, spots, jobs, busy, scan, keysOf, layout, validSpots, generate, redraw, auto, remove, cancel, clearError }
+  /** 自動生成的設定與服務都好了嗎（這則是不是成人場景會影響要不要畫、用哪個服務） */
+  function autoAllowed(report: Report): boolean {
+    const image = useImageSettings()
+    const adult = adultScene(report)
+    if (image.sceneAuto === 'off' || (image.sceneAuto === 'adult' && !adult)) return false
+    const service = image.sceneService(adult)
+    // 成人場景 ChatGPT 畫不出來：沒指定成人場景用的服務時不自動畫，免得白花整理分鏡的 token
+    if (adult && service === 'openai') return false
+    const settings = useSettings()
+    return image.ready(service) && settings.sourceReady(settings.sourceFor('tags').index)
+  }
+
+  /**
+   * 續寫之後自動生成（玩家回報：續寫不會自動畫，想接著看就只能重新行動）：替續寫的段落畫一張，插在最後一段之後，
+   * 原本的插圖照舊（照手動分段的做法：已經在的位置留著，畫「上一張之後到最後一段」）；這則還沒有插圖時照一般的自動生成。
+   * 設定沒開、服務沒設定好、正在畫、最後一段已經有圖時什麼都不做
+   */
+  async function autoContinued(state: GameState, report: Report) {
+    if (!autoAllowed(report)) return
+    const base = sceneKey(state, report.report_id)
+    if (jobs.value[base]) return
+    await scan(state.seed)
+    if (!keysOf(base).length) return generate(state, report)
+    const text = useGame().narrations[report.report_id]?.text
+    const paragraphs = text ? narrationParagraphs(text) : []
+    if (!paragraphs.length) return
+    const keep = validSpots(base, paragraphs)
+    const last = paragraphs.length - 1
+    if (keep.has(last)) return
+    await generate(state, report, { after: [...keep.keys(), last] })
+  }
+
+  return { urls, plans, spots, jobs, busy, scan, keysOf, layout, validSpots, generate, redraw, auto, autoContinued, remove, cancel, clearError }
 })

@@ -1302,6 +1302,7 @@ export const useGame = defineStore('game', () => {
     entry.status = 'streaming'
     delete entry.error
     let added = ''
+    let drawAfter: Report | undefined
     try {
       const [{ composeNarration }, opts] = await Promise.all([import('@/narrator/compose'), usePrompts().composeOptions()])
       const prompt = composeNarration(state.value, report, opts, narrations.value, { continuation: { written: base, hint }, ...(flagIntimate(report) ? { flagIntimate: true } : {}) }).prompt
@@ -1320,10 +1321,14 @@ export const useGame = defineStore('game', () => {
       entry.text = text.trim() ? `${base}\n\n${text.trim()}` : base
       if (text.trim()) entry.continued = (entry.continued ?? 0) + 1
       // 續寫寫出了親密場景：記在日誌上，記性經歷（讀整段正文）
+      let target = report
       if (split.intimate) {
+        target = noteIntimate(report, split.intimate)
         save()
-        void recordSex(noteIntimate(report, split.intimate), entry.text)
+        void recordSex(target, entry.text)
       }
+      // 自動生成插圖：替續寫的段落畫一張（寫完、存好之後；親密場景要用標過的日誌判斷成人場景）
+      if (text.trim()) drawAfter = target
     } catch (e) {
       // 按了停止：留下已經寫出來的；其他錯誤：恢復成續寫前的正文
       const kept = cleanText(splitSuggestions(added).text, 'narration').trim()
@@ -1339,6 +1344,7 @@ export const useGame = defineStore('game', () => {
       controllers.delete(report.report_id)
       save()
     }
+    if (drawAfter && state.value) void useScenes().autoContinued(state.value, drawAfter)
   }
 
   /** 這則日誌現在不能續寫的原因（可以時是空字串） */
