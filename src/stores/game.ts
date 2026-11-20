@@ -104,6 +104,7 @@ import { archiveOldReports, mergeUsage } from './logArchive'
 import { actionInputOf, firstNewReport, midTurn, restoreTurn, UNDO_STEPS, type UndoStep } from './undo'
 import { withoutIcons } from '@/engine/itemIcons'
 import { isProgramError, joinError, programErrorText, splitError, type ErrorParts } from '@/narrator/errorText'
+import { narrationParagraphs } from '@/narrator/paragraphs'
 import {
   AUTO_SLOTS, currentStore, parseSaveFile, QUICK_SLOT, saveFileName, slotMeta, slotStore, slotTitle, takePreloaded,
   type CurrentData, type SaveData, type SlotMeta,
@@ -1328,7 +1329,8 @@ export const useGame = defineStore('game', () => {
         void recordSex(target, entry.text)
       }
       // 自動生成插圖：替續寫的段落畫一張（寫完、存好之後；親密場景要用標過的日誌判斷成人場景）
-      if (text.trim()) drawAfter = target
+      // 按了停止：OpenAI 的 SDK 被中止時串流直接結束、不丟錯，會走到這裡，不自動畫
+      if (text.trim() && !controller.signal.aborted) drawAfter = target
     } catch (e) {
       // 按了停止：留下已經寫出來的；其他錯誤：恢復成續寫前的正文
       const kept = cleanText(splitSuggestions(added).text, 'narration').trim()
@@ -1344,7 +1346,7 @@ export const useGame = defineStore('game', () => {
       controllers.delete(report.report_id)
       save()
     }
-    if (drawAfter && state.value) void useScenes().autoContinued(state.value, drawAfter)
+    if (drawAfter && state.value) void useScenes().autoContinued(state.value, drawAfter, narrationParagraphs(base).length)
   }
 
   /** 這則日誌現在不能續寫的原因（可以時是空字串） */

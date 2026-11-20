@@ -175,7 +175,7 @@ export const useScenes = defineStore('scenes', () => {
     return [base, ...keysOf(base)].some((k) => !!jobs.value[k] && jobs.value[k]!.stage !== 'error')
   }
 
-  async function generate(state: GameState, report: Report, opts: { after?: number[] } = {}) {
+  async function generate(state: GameState, report: Report, opts: { after?: number[]; from?: number } = {}) {
     const base = sceneKey(state, report.report_id)
     if (busy(base)) return
     const image = useImageSettings()
@@ -200,7 +200,10 @@ export const useScenes = defineStore('scenes', () => {
       const todo = manual?.filter((a) => !keep.has(a))
       const segments: SceneSegments | undefined = !paragraphs.length
         ? undefined
-        : manual ? { paragraphs, after: todo!, kept: [...keep.keys()].filter((a) => manual.includes(a)).sort((a, b) => a - b) } : { paragraphs, count: autoSceneCount(image.sceneCount, paragraphs) }
+        : manual ? {
+          paragraphs, after: todo!, kept: [...keep.keys()].filter((a) => manual.includes(a)).sort((a, b) => a - b),
+          ...(opts.from && opts.from > 0 && opts.from < paragraphs.length ? { from: opts.from } : {}),
+        } : { paragraphs, count: autoSceneCount(image.sceneCount, paragraphs) }
 
       /** 用這個服務的寫法請 AI 整理分鏡；用量記在這則日誌 */
       const plan = async (service: typeof image.service): Promise<SegmentPlan[]> => {
@@ -307,22 +310,22 @@ export const useScenes = defineStore('scenes', () => {
 
   /**
    * 續寫之後自動生成（玩家回報：續寫不會自動畫，想接著看就只能重新行動）：替續寫的段落畫一張，插在最後一段之後，
-   * 原本的插圖照舊（照手動分段的做法：已經在的位置留著，畫「上一張之後到最後一段」）；這則還沒有插圖時照一般的自動生成。
-   * 設定沒開、服務沒設定好、正在畫、最後一段已經有圖時什麼都不做
+   * 原本的插圖照舊（照手動分段的做法：已經在的位置留著，畫「上一張之後到最後一段」）。
+   * from 是續寫的段落從第幾段開始：只畫續寫的內容（這則還沒有插圖時也一樣，例如「只畫成人場景」時續寫成親密場景，
+   * 不會畫到前面一般的段落）。設定沒開、服務沒設定好、正在畫、最後一段已經有圖時什麼都不做
    */
-  async function autoContinued(state: GameState, report: Report) {
+  async function autoContinued(state: GameState, report: Report, from?: number) {
     if (!autoAllowed(report)) return
     const base = sceneKey(state, report.report_id)
     if (jobs.value[base]) return
     await scan(state.seed)
-    if (!keysOf(base).length) return generate(state, report)
     const text = useGame().narrations[report.report_id]?.text
     const paragraphs = text ? narrationParagraphs(text) : []
     if (!paragraphs.length) return
     const keep = validSpots(base, paragraphs)
     const last = paragraphs.length - 1
     if (keep.has(last)) return
-    await generate(state, report, { after: [...keep.keys(), last] })
+    await generate(state, report, { after: [...keep.keys(), last], ...(from !== undefined ? { from } : {}) })
   }
 
   return { urls, plans, spots, jobs, busy, scan, keysOf, layout, validSpots, generate, redraw, auto, autoContinued, remove, cancel, clearError }
