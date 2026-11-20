@@ -56,6 +56,53 @@ def shrink(data, px=ICON_PX):
     return b.getvalue()
 
 
+# 原圖拼接錯位的修正（2026-11-20 玩家提供的圖鑑）：幾張圖是從一整排的圖切出來的，切的位置偏了，
+# 一張圖裡有兩件東西、中間一條直線（物品圖鑑的絲絨頸環到鍊金師的皮帽，連續 7 張），或邊上帶到隔壁那張的一條（幾隻怪物）。
+# 物品的那一排是連續的：一件東西被切成兩半、分在相鄰兩張裡，照順序把兩段接回來就是完整的圖。
+# 座標是原圖（256×256）的範圍 [x0, x1)；玩家給了修好的圖鑑時，把對應的項目拿掉。
+# 物品：名稱 → 依序接起來的幾段（取哪一張圖, x0, x1）
+ITEM_FIX = {
+    '絲絨頸環': [('絲絨頸環', 222, 256), ('盜賊公會的舊手套', 0, 175)],
+    '盜賊公會的舊手套': [('盜賊公會的舊手套', 177, 256), ('老獵人的護身符', 0, 128)],
+    '老獵人的護身符': [('老獵人的護身符', 130, 256), ('說書人的銀耳環', 0, 91)],
+    '說書人的銀耳環': [('說書人的銀耳環', 93, 256)],
+    '走私客的腳鍊': [('走私客的腳鍊', 0, 220)],
+    '修女的念珠': [('走私客的腳鍊', 222, 256), ('修女的念珠', 0, 179)],
+    '鍊金師的皮帽': [('修女的念珠', 181, 256), ('鍊金師的皮帽', 0, 245)],
+}
+# 怪物：id → （x0, x1），切掉右邊帶到的那一條
+MONSTER_TRIM = {
+    'lp_lewd_slug': (0, 230), 'lp_boss_white_fox': (0, 230), 'lp_rut_boar': (0, 229),
+    'lp_lewd_fox': (0, 246), 'lp_boss_hound_alpha': (0, 246), 'lp_aphro_leech': (0, 246),
+    'pp_scale_wing': (0, 247), 'pp_boss_succubus_mother': (0, 247), 'livia_projection': (0, 248),
+    'prototype_golem': (0, 250), 'nameless_khan_army': (0, 250), 'guaizi_horse_ghost': (0, 250), 'broken_arrow_ghost': (0, 250),
+}
+
+
+def panel(parts):
+    """把幾段 (原圖, x0, x1) 依序接起來再補成正方形：夠寬的上下各切掉一點，太窄的左右補上背景色（邊上像素的中位數）"""
+    ims = [Image.open(io.BytesIO(d)).convert('RGB') for d, _, _ in parts]
+    h = ims[0].height
+    crops = [im.crop((x0, 0, min(x1, im.width), h)) for im, (_, x0, x1) in zip(ims, parts)]
+    part = Image.new('RGB', (sum(c.width for c in crops), h))
+    x = 0
+    for c in crops:
+        part.paste(c, (x, 0))
+        x += c.width
+    pw = part.width
+    if pw >= h * 0.8:
+        top = (h - pw) // 2
+        out = part.crop((0, top, pw, top + pw))
+    else:
+        edge = [part.getpixel((x, y)) for x in (0, pw - 1) for y in range(h)] + [part.getpixel((x, y)) for y in (0, h - 1) for x in range(pw)]
+        fill = tuple(sorted(c[i] for c in edge)[len(edge) // 2] for i in range(3))
+        out = Image.new('RGB', (h, h), fill)
+        out.paste(part, ((h - pw) // 2, 0))
+    b = io.BytesIO()
+    out.save(b, 'PNG')
+    return b.getvalue()
+
+
 def item_file(name):
     return hashlib.sha1(name.encode('utf-8')).hexdigest()[:12]
 
@@ -84,7 +131,11 @@ def main(paths):
         idx_path = os.path.join(ROOT, 'src/assets/icons/itemIcons.json')
         index = json.load(open(idx_path, encoding='utf-8')) if os.path.exists(idx_path) else {}
         skipped = []
+        by_name = {c['name']: c['data'] for c in groups['物品圖鑑']}
         for c in groups['物品圖鑑']:
+            fix = ITEM_FIX.get(c['name'])
+            if fix and all(src in by_name for src, _, _ in fix):
+                c = {**c, 'data': panel([(by_name[src], x0, x1) for src, x0, x1 in fix])}
             if c['name'] not in items:
                 skipped.append(c['name'])
                 continue
@@ -109,7 +160,9 @@ def main(paths):
         os.makedirs(os.path.dirname(list_path), exist_ok=True)
         have = set(json.load(open(list_path, encoding='utf-8'))) if os.path.exists(list_path) else set()
         for c, e in zip(cs, order):
-            open(os.path.join(d, e['id'] + '.webp'), 'wb').write(shrink(c['data']))
+            trim = MONSTER_TRIM.get(e['id'])
+            data = panel([(c['data'], *trim)]) if trim else c['data']
+            open(os.path.join(d, e['id'] + '.webp'), 'wb').write(shrink(data))
             have.add(e['id'])
         json.dump(sorted(have), open(list_path, 'w', encoding='utf-8'), indent=0)
         print(f'怪物：{len(cs)} 張')
