@@ -22,7 +22,7 @@ const draw = computed(() => {
 </script>
 
 <template>
-  <img v-if="'img' in draw" class="item-icon img" :src="draw.img" :width="size" :height="size" alt="" draggable="false" />
+  <img v-if="'img' in draw" class="item-icon img" :class="{ smooth: draw.smooth }" :src="draw.img" :width="size" :height="size" alt="" draggable="false" />
   <svg v-else class="item-icon" :width="size" :height="size" viewBox="0 0 24 24" aria-hidden="true"><path :d="draw.path" :style="draw.color ? { fill: draw.color } : undefined" /></svg>
 </template>
 
@@ -30,4 +30,5 @@ const draw = computed(() => {
 .item-icon { flex: none; vertical-align: middle; }
 svg.item-icon { fill: currentColor; shape-rendering: crispEdges; }
 .img { object-fit: contain; image-rendering: pixelated; } /* 上傳的像素圖縮放時保持銳利 */
+.img.smooth { image-rendering: auto; } /* 內建的圖是畫的，縮小時平滑 */
 </style>

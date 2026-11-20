@@ -12,7 +12,8 @@
           "url": "https://github.com/halfmage/pixelarticons",
           "use": "介面圖示",
           "note": "Copyright (c) 2019 Gerrit Halfmann. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files, to deal in the Software without restriction, subject to the condition that the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND."
-        }
+        },
+        { "name": "物品、怪物與角色的圖", "author": "玩家提供", "license": "提供給本遊戲使用", "use": "物品圖示（2184 件）、怪物圖示（704 隻）、固定 NPC 的內建形象圖（232 位）" }
       ]
     },
     {

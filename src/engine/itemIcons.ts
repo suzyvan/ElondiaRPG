@@ -3,10 +3,12 @@
 //
 // 查找順序：
 // 1. 物品自己上傳的圖（物品目錄的 icon）
-// 2. 裝備：底材上傳的圖 → 內建的底材圖
-// 3. 打造材料（寫了 forge 的材料類物品）：第一個對應材料的內建圖（components/icons/materialArt.ts）
-// 4. 類別上傳的圖 → 內建的類別圖
+// 2. 這個名稱的內建圖（玩家提供的圖鑑，engine/builtinIcons.ts）
+// 3. 裝備：底材上傳的圖 → 內建的底材圖
+// 4. 打造材料（寫了 forge 的材料類物品）：第一個對應材料的內建圖（components/icons/materialArt.ts）
+// 5. 類別上傳的圖 → 內建的類別圖
 
+import { builtinItemIcon } from './builtinIcons'
 import { itemDef, type ItemCategory } from './data'
 import { gearRules, gearSpecOf } from './gear'
 import type { GameState, GearSpec } from './types'
@@ -31,9 +33,9 @@ export function setCategoryIcons(icons: Partial<Record<ItemCategory, string>>) {
   Object.assign(categoryIcons, icons)
 }
 
-/** 要顯示的圖示：上傳的圖、內建的底材圖、內建的材料圖（打造材料）或內建的類別圖 */
+/** 要顯示的圖示：上傳的圖、內建的圖（smooth：畫的圖，縮放時平滑）、內建的底材圖、內建的材料圖（打造材料）或內建的類別圖 */
 export type IconSource =
-  | { kind: 'image'; src: string }
+  | { kind: 'image'; src: string; smooth?: boolean }
   | { kind: 'base'; base: string }
   | { kind: 'category'; category?: ItemCategory }
   | { kind: 'material'; material: string }
@@ -52,6 +54,8 @@ export function gearIconSource(spec: Pick<GearSpec, 'base'>): IconSource {
 export function itemIconSource(state: Pick<GameState, 'customItems'> | undefined, name: string, spec?: GearSpec): IconSource {
   const def = itemDef(name)
   if (def?.icon) return { kind: 'image', src: def.icon }
+  const builtin = builtinItemIcon(name)
+  if (builtin) return { kind: 'image', src: builtin, smooth: true }
   const gear = spec ?? gearSpecOf(state, name)
   if (gear && gearRules.bases[gear.base]) return gearIconSource(gear)
   // 打造材料：用第一個對應材料的內建圖（依材料的類型、等級與稀有度）

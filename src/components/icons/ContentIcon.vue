@@ -12,7 +12,7 @@ import { monsterDraw } from './monsterArt'
 import { perkDraw } from './perkArt'
 
 type Def =
-  | { kind: 'monster'; def?: Pick<EnemyDef, 'kind' | 'level' | 'icon'> }
+  | { kind: 'monster'; def?: Pick<EnemyDef, 'kind' | 'level' | 'icon'> & { id?: string } }
   | { kind: 'ability'; def?: Pick<AbilityDef, 'type' | 'damage' | 'heal' | 'shield' | 'target'> }
   | { kind: 'material'; def?: Pick<MaterialDef, 'kind' | 'tier' | 'rarity'> }
   | { kind: 'perk'; def?: Pick<PerkDef, 'effects' | 'flaw' | 'rarity'> }
@@ -26,14 +26,14 @@ const props = withDefaults(defineProps<{
 
 const content = useContent()
 
-const draw = computed<{ img: string } | { layers: IconLayer[] } | undefined>(() => {
+const draw = computed<{ img: string; smooth?: boolean } | { layers: IconLayer[] } | undefined>(() => {
   void content.version
   const id = props.id ?? ''
   switch (props.kind) {
     case 'monster': {
       const e = (props.def as EnemyDef | undefined) ?? enemies[id]
       if (!e) return undefined
-      const d = monsterDraw(e)
+      const d = monsterDraw({ ...e, id: (e as { id?: string }).id ?? id })
       return 'img' in d ? d : { layers: [{ d: d.path, color: d.color }] }
     }
     case 'ability': {
@@ -60,7 +60,7 @@ const draw = computed<{ img: string } | { layers: IconLayer[] } | undefined>(() 
 <template>
   <!-- 圖都是亮色的：一律放在深色的小底框裡，羊皮紙對話框裡也看得清楚 -->
   <span v-if="draw" class="content-icon" :style="{ width: `${size + 4}px`, height: `${size + 4}px` }">
-    <img v-if="'img' in draw" :src="draw.img" :width="size" :height="size" alt="" draggable="false" />
+    <img v-if="'img' in draw" :class="{ smooth: draw.smooth }" :src="draw.img" :width="size" :height="size" alt="" draggable="false" />
     <svg v-else :width="size" :height="size" viewBox="0 0 24 24" aria-hidden="true">
       <path v-for="(l, i) in draw.layers" :key="i" :d="l.d" :style="{ fill: l.color, opacity: l.opacity }" />
     </svg>
@@ -74,4 +74,5 @@ const draw = computed<{ img: string } | { layers: IconLayer[] } | undefined>(() 
 }
 svg { shape-rendering: crispEdges; }
 img { object-fit: contain; image-rendering: pixelated; }
+img.smooth { image-rendering: auto; } /* 內建的圖是畫的，縮小時平滑 */
 </style>

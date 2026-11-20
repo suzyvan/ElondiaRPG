@@ -2,6 +2,7 @@
 // 格式同 items/itemArt.ts：「#」是實心格，「.」是空格，會自動置中。
 // 玩家可以替單一怪物上傳圖片（EnemyDef.icon），不能替整個種類設定。
 
+import { builtinMonsterIcon } from '@/engine/builtinIcons'
 import type { EnemyDef } from '@/engine/data'
 import { pixelPath } from '../ui/pixelArt'
 
@@ -455,9 +456,11 @@ export function monsterArtPath(kind: string | undefined, band: number): string {
   return pixelPath(art[Math.min(BAND_ART - 1, Math.max(0, band))]!)
 }
 
-/** 怪物要畫的東西：上傳的圖，或依種類與等級的內建圖 */
-export function monsterDraw(e: Pick<EnemyDef, 'kind' | 'level'> & { icon?: string }): { img: string } | { path: string; color: string } {
+/** 怪物要畫的東西：上傳的圖、這隻怪物的內建圖（玩家提供的圖鑑），或依種類與等級的像素圖 */
+export function monsterDraw(e: Pick<EnemyDef, 'kind' | 'level'> & { icon?: string; id?: string }): { img: string; smooth?: boolean } | { path: string; color: string } {
   if (e.icon) return { img: e.icon }
+  const builtin = builtinMonsterIcon(e.id)
+  if (builtin) return { img: builtin, smooth: true }
   const band = monsterBand(e.level)
   return { path: monsterArtPath(e.kind, band), color: MONSTER_BAND_COLOR[band]! }
 }

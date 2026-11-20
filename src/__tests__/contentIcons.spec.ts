@@ -43,11 +43,20 @@ describe('monster icons', () => {
     for (const k of kinds) expect(MONSTER_KINDS).toContain(k)
   })
 
-  it('uses an upload only for that one monster', () => {
+  it('uses an upload only for that one monster, then its built-in picture, then pixel art', () => {
     const [a, b] = Object.values(enemies).filter((e) => e.kind === 'beast')
     applyContent(normalizeMods({ ...emptyMods(), enemies: { [a!.id]: { ...a!, icon: PNG } } }))
     expect(monsterDraw(enemies[a!.id]!)).toEqual({ img: PNG })
-    expect('img' in monsterDraw(enemies[b!.id]!)).toBe(false)
+    const own = monsterDraw(enemies[b!.id]!)
+    expect(own).toMatchObject({ smooth: true })
+    expect((own as { img: string }).img).toMatch(new RegExp(`icons/monsters/${b!.id}\\.webp$`))
+    // 沒有內建圖的（自建的怪物、沒給 id）用像素圖
+    expect('img' in monsterDraw({ ...b!, id: 'my_own_beast' })).toBe(false)
+    expect('img' in monsterDraw({ kind: 'beast', level: 3 })).toBe(false)
+  })
+
+  it('has a built-in picture for every built-in monster', () => {
+    for (const e of Object.values(enemies)) expect('img' in monsterDraw(e), e.id).toBe(true)
   })
 
   it('keeps valid uploads and drops anything else; saves leave them out', () => {
@@ -100,11 +109,14 @@ describe('material icons', () => {
   })
 
   it('material items that forge into a material use its picture', () => {
-    const ore = itemRules.items.find((i) => i.category === 'material' && i.forge?.materials.length)!
+    // 內建物品都有內建圖：用名稱沒有內建圖的自建物品測
+    const builtinOre = itemRules.items.find((i) => i.category === 'material' && i.forge?.materials.length)!
+    const ore = { ...builtinOre, name: '測試用的礦石' }
+    const plain = { ...itemRules.items.find((i) => i.category === 'material' && !i.forge)!, name: '測試用的材料' }
+    applyContent(normalizeMods({ ...emptyMods(), items: { [ore.name]: { ...ore, custom: true }, [plain.name]: { ...plain, custom: true } } }))
     const src = itemIconSource(undefined, ore.name)
     expect(src).toEqual({ kind: 'material', material: ore.forge!.materials[0] })
     expect(sourceDraw(src)).toEqual(materialDraw(gearRules.materials[ore.forge!.materials[0]!]!))
-    const plain = itemRules.items.find((i) => i.category === 'material' && !i.forge)!
     expect(itemIconSource(undefined, plain.name)).toEqual({ kind: 'category', category: 'material' })
   })
 })

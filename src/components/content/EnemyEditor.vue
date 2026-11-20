@@ -14,6 +14,7 @@ import AffinityRows from './AffinityRows.vue'
 import UsageNote from './UsageNote.vue'
 import SourceNote from './SourceNote.vue'
 import IconField from './IconField.vue'
+import { builtinMonsterIcon } from '@/engine/builtinIcons'
 import { MONSTER_BAND_COLOR, MONSTER_BAND_LEVELS, monsterArtPath, monsterBand } from '../icons/monsterArt'
 import type { DrawSource } from '../items/itemIcon'
 import Hint from '../ui/Hint.vue'
@@ -49,6 +50,8 @@ watch(() => props.id, resetDungeons)
 const dirty = computed(() => JSON.stringify(draft.value) !== saved.value || JSON.stringify(dungeonDraft.value) !== dungeonSaved.value)
 // 沒有上傳時的內建圖（依草稿的種類與等級）
 const iconFallback = computed<DrawSource>(() => {
+  const builtin = builtinMonsterIcon(props.id)
+  if (builtin) return { kind: 'image', src: builtin, smooth: true }
   const band = monsterBand(draft.value.level)
   return { kind: 'path', path: monsterArtPath(draft.value.kind, band), color: MONSTER_BAND_COLOR[band] }
 })
@@ -296,7 +299,7 @@ function remove() {
       </div>
       <div class="block icon-row">
         <span>圖示</span>
-        <IconField v-model="draft.icon" :fallback="iconFallback" :hint="`只給這隻怪物用（不能設定到整個種類）。沒有上傳時依種類與等級用內建的圖：每 ${MONSTER_BAND_LEVELS} 級一個區間，顏色越後面越紅。上傳的圖會縮到 48×48 以內，存在這個世界裡。`" />
+        <IconField v-model="draft.icon" :fallback="iconFallback" :hint="`只給這隻怪物用（不能設定到整個種類）。沒有上傳時用這隻怪物的內建圖；沒有內建圖的依種類與等級用像素圖：每 ${MONSTER_BAND_LEVELS} 級一個區間，顏色越後面越紅。上傳的圖會縮到 48×48 以內，存在這個世界裡。`" />
       </div>
       <div class="row checks">
         <label class="check"><input v-model="draft.armed" type="checkbox" /> 持有裝備 <Hint text="打倒時可能掉裝備。" /></label>

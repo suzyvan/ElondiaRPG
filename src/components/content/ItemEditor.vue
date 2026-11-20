@@ -23,6 +23,7 @@ import { useContent } from '@/stores/content'
 import { useGame } from '@/stores/game'
 import AffinityRows from './AffinityRows.vue'
 import IconField from './IconField.vue'
+import { builtinItemIcon } from '@/engine/builtinIcons'
 import ContentIcon from '../icons/ContentIcon.vue'
 import UsageNote from './UsageNote.vue'
 import SourceNote from './SourceNote.vue'
@@ -94,9 +95,11 @@ const bases = computed(() => {
   void content.version
   return Object.entries(gearRules.bases)
 })
-/** 沒有上傳圖時用的：裝備用底材的圖，打造材料用第一個材料的圖，其他用類別的圖 */
+/** 沒有上傳圖時用的：這個名稱的內建圖，裝備用底材的圖，打造材料用第一個材料的圖，其他用類別的圖 */
 const iconFallback = computed<IconSource>(() => {
   void content.version
+  const builtin = builtinItemIcon(props.name)
+  if (builtin) return { kind: 'image', src: builtin, smooth: true }
   const base = draft.value.category === 'equipment' ? draft.value.gear?.base : undefined
   if (base && gearRules.bases[base]) return gearIconSource({ base })
   const forge = draft.value.category === 'material' ? draft.value.forge?.materials.find((m) => !!gearRules.materials[m]) : undefined

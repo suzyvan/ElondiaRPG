@@ -10,8 +10,17 @@ afterEach(() => applyContent(emptyMods()))
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 const PNG2 = 'data:image/png;base64,AAAA'
-const food = itemRules.items.find((i) => i.category === 'food' && !i.gear)!.name
-const gear = itemRules.items.find((i) => i.gear && gearRules.bases[i.gear.base])!
+const builtinFood = itemRules.items.find((i) => i.category === 'food' && !i.gear)!
+const builtinGear = itemRules.items.find((i) => i.gear && gearRules.bases[i.gear.base])!
+// 內建物品都有內建圖：測試後面的查找順序用自建物品（名稱沒有內建圖）
+const food = '測試用的麵包'
+const gear = { ...builtinGear, name: '測試用的長劍' }
+function customMods() {
+  const mods = emptyMods()
+  mods.items[food] = { ...builtinFood, name: food, custom: true }
+  mods.items[gear.name] = { ...gear, custom: true }
+  return mods
+}
 
 describe('item icons', () => {
   it('only accepts small image data URLs', () => {
@@ -24,7 +33,23 @@ describe('item icons', () => {
     expect(sanitizeIcon(42)).toBeUndefined()
   })
 
+  it('uses the built-in picture of a built-in item, smoothly, unless the item has an upload', () => {
+    const src = itemIconSource(undefined, builtinFood.name)
+    expect(src).toMatchObject({ kind: 'image', smooth: true })
+    expect((src as { src: string }).src).toMatch(/icons\/items\/[0-9a-f]{12}\.webp$/)
+    expect(sourceDraw(src)).toEqual({ img: (src as { src: string }).src, smooth: true })
+    expect(itemIconSource(undefined, builtinGear.name)).toMatchObject({ kind: 'image', smooth: true })
+    // 底材、類別上傳的圖不蓋過物品自己的內建圖；物品自己上傳的圖優先
+    const mods = emptyMods()
+    mods.categoryIcons.food = { icon: PNG }
+    mods.items[builtinFood.name] = { ...builtinFood, icon: PNG2 }
+    applyContent(mods)
+    expect(itemIconSource(undefined, builtinFood.name)).toEqual({ kind: 'image', src: PNG2 })
+    expect(sourceDraw(itemIconSource(undefined, builtinFood.name))).toEqual({ img: PNG2 })
+  })
+
   it('falls back from the item to the base to the category', () => {
+    applyContent(customMods())
     expect(itemIconSource(undefined, food)).toEqual({ kind: 'category', category: 'food' })
     expect(itemIconSource(undefined, gear.name)).toEqual({ kind: 'base', base: gear.gear!.base })
     // 物品目錄裡沒有的裝備（AI 生成的）：用存檔裡的組成找底材
@@ -32,7 +57,7 @@ describe('item icons', () => {
     expect(itemIconSource(state, '奇怪的劍')).toEqual({ kind: 'base', base: 'longsword' })
     expect(itemIconSource(undefined, '不存在的東西')).toEqual({ kind: 'category', category: undefined })
 
-    const mods = emptyMods()
+    const mods = customMods()
     mods.categoryIcons.food = { icon: PNG }
     mods.bases[gear.gear!.base] = { ...gearRules.bases[gear.gear!.base]!, icon: PNG2 }
     applyContent(mods)
@@ -45,7 +70,7 @@ describe('item icons', () => {
     expect(itemIconSource(undefined, gear.name)).toEqual({ kind: 'image', src: PNG })
 
     // 恢復預設之後換回內建的
-    applyContent(emptyMods())
+    applyContent(customMods())
     expect(categoryIconSource('food')).toEqual({ kind: 'category', category: 'food' })
     expect(itemIconSource(undefined, gear.name)).toEqual({ kind: 'base', base: gear.gear!.base })
   })

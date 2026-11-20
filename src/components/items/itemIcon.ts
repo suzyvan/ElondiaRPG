@@ -105,8 +105,8 @@ export function refPath(ref: IconRef): string {
 export type DrawSource = IconSource | { kind: 'path'; path: string; color?: string }
 
 /** 圖示來源要畫的東西：圖片網址或 SVG path（color 沒給時用文字顏色） */
-export function sourceDraw(src: DrawSource): { img: string } | { path: string; color?: string } {
-  if (src.kind === 'image') return { img: src.src }
+export function sourceDraw(src: DrawSource): { img: string; smooth?: boolean } | { path: string; color?: string } {
+  if (src.kind === 'image') return src.smooth ? { img: src.src, smooth: true } : { img: src.src }
   if (src.kind === 'path') return { path: src.path, color: src.color }
   if (src.kind === 'material') {
     const m = gearRules.materials[src.material]
