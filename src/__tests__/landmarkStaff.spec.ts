@@ -1,6 +1,8 @@
 // 待在地標的固定 NPC：冒險者不是「店主與職員」，可以雇用、偷襲（玩家回報：玄霜、青蘿沒有雇用與偷襲的按鈕）
 import { describe, expect, it } from 'vitest'
-import { npcs as namedNpcs } from '@/engine/data'
+import { hireAtAsking } from '@/engine/companions'
+import { landmarkDef, npcs as namedNpcs } from '@/engine/data'
+import { getArea, placeAt, standOn } from '@/engine/grid'
 import { npcRecord } from '@/engine/npcs'
 import { isStaffNpc } from '@/engine/population'
 import { newGame } from '@/engine/state'
@@ -22,5 +24,27 @@ describe('NPCs who stay at a landmark', () => {
     expect(isStaffNpc(npcRecord(s, roaming.id)!)).toBe(false)
     const rec = { ...npcRecord(s, 'npc_yh_xuanshuang')!, landmark: undefined, fixed: undefined }
     expect(isStaffNpc(rec)).toBe(true)
+  })
+})
+
+describe('hiring an adventurer who stays at a landmark', () => {
+  it('logs the place where you stand, not the tavern', () => {
+    const s = newGame({ name: '北眺', race: 'human', classId: 'fighter', seed: 4, birthplace: 'pingjiang' })
+    s.money_cc = 100000
+    const at = landmarkDef('lm_yh_bamboo_lake')!.at
+    placeAt(s, getArea(s, at.area), at.x, at.y)
+    const r = hireAtAsking(s, 'npc_yh_qingluo')
+    expect(r.outcome.summary).toMatch(/^在竹湖雇用了青蘿/)
+    expect(r.location.scene).toContain('竹湖')
+    expect(r.location.scene).not.toContain('酒館')
+  })
+
+  it('still says tavern when you hire at the tavern', () => {
+    const s = newGame({ name: '北眺', race: 'human', classId: 'fighter', seed: 4, birthplace: 'pingjiang' })
+    s.money_cc = 100000
+    standOn(s, 'tavern')
+    const r = hireAtAsking(s, 'npc_yh_qingluo')
+    expect(r.outcome.summary).toMatch(/^在酒館雇用了青蘿/)
+    expect(r.location.scene).toContain('酒館')
   })
 })
