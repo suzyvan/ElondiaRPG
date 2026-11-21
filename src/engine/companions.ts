@@ -45,7 +45,7 @@ import { setupPatron } from './brothel'
 import { setupResign } from './resign'
 import { setupWork } from './work'
 import { setupExplore } from './landmarks'
-import { currentArea, currentCell, palaceGateName } from './grid'
+import { currentArea, currentCell, palaceGateName, spotName } from './grid'
 import { assertMayPersuadePalace, palacePersuadeDc, settlePalacePersuasion } from './security'
 import { ensureRelationship } from './social'
 import { bargainSetup } from './trade'
@@ -82,6 +82,20 @@ function socialReport(state: GameState, hours: number, scene: string, kind: Repo
 
 function tavernScene(state: GameState) {
   return `${locationById(state.location).name}的酒館`
+}
+
+/**
+ * 雇人的地方：站在酒館時是酒館；從「這裡」雇身邊的冒險者時是目前站的地方（地標、街上……），
+ * 日誌與交給 AI 的場景才不會把在竹湖雇的人寫成在酒館雇的（玩家回報）
+ */
+function hireSpot(state: GameState): { scene: string; where: string } {
+  const area = currentArea(state)
+  const cell = currentCell(state)
+  if (area.kind === 'settlement' && cell.kind === 'tavern') return { scene: tavernScene(state), where: '酒館' }
+  const spot = spotName(area, cell)
+  const town = locationById(state.location).name
+  // 城裡的區塊名稱已經帶著城名（「萍江府・園林」），別的地方（特殊地圖……）才補上
+  return { scene: spot.startsWith(town) ? spot : `${town}・${spot}`, where: spot.split('・').at(-1) || area.name }
 }
 
 // ---- 1. 酒館雇傭 ----
@@ -140,10 +154,11 @@ export function hireAtAsking(state: GameState, npcId: string, offer?: number): R
   assertCanHire(state, npcId, fee)
   if (fee < askingFor(c)) throw new Error('出價低於要價，需要談判')
   const rec = npcRecord(state, npcId)!
-  const report = socialReport(state, 1, tavernScene(state))
+  const spot = hireSpot(state)
+  const report = socialReport(state, 1, spot.scene)
   joinParty(state, rec, 'hired', report, { reason: '雇傭' })
   report.changes.money_cc = -fee
-  report.outcome.summary = `在酒館雇用了${rec.name}，支付 ${formatMoney(fee)}。`
+  report.outcome.summary = `在${spot.where}雇用了${rec.name}，支付 ${formatMoney(fee)}。`
   report.narration = { pov: 'second_person', length: 'short', focus: [`${rec.name}的第一印象與性格`] }
   return commitReport(state, report)
 }
@@ -958,7 +973,7 @@ export function setupFor(state: GameState, kind: ActionKind, target?: string, of
       validateHire(state, rec.id, o)
       const c = candidate(state, rec.id)
       return {
-        dc: hireDc(state, rec.id, o), targetName: rec.name, situational: [], scene: tavernScene(state),
+        dc: hireDc(state, rec.id, o), targetName: rec.name, situational: [], scene: hireSpot(state).scene,
         outcomes: {
           critical: `以 ${formatMoney(o)} 加入，對主角印象很好`,
           success: `以 ${formatMoney(o)} 加入`,
