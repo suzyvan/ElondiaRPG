@@ -425,10 +425,21 @@ export function peopleHere(state: GameState): PresentNpc[] {
     if (inParty.has(rec.id) || areaOf(state, rec, state.time.day, allies) !== area.key) continue
     const cell = npcCell(state, rec, area, allies)
     if (!cell) continue
-    const staff = !rec.haunts?.length && !!npcSpot(rec)
+    const staff = isStaffNpc(rec)
     out.push({ rec, kind: npcKind(rec), staff, ...cell, dist: Math.max(Math.abs(cell.x - p.x), Math.abs(cell.y - p.y)) })
   }
   return out.sort((a, b) => a.dist - b.dist || Number(b.staff) - Number(a.staff) || a.rec.name.localeCompare(b.rec.name))
+}
+
+/**
+ * 職員：店主、公會職員這類固定待在自己設施的人（不能雇用、偷襲，名單上列在「店主與職員」）。
+ * 沒有活躍地點的固定 NPC 預設待在酒館（npcSpot），但待在地標或固定格子的冒險者不是職員：
+ * 和其他冒險者一樣可以雇用、偷襲（玩家回報：待在地標的角色明明能雇用，卻沒有雇用與偷襲的按鈕）
+ */
+export function isStaffNpc(rec: NpcRecord): boolean {
+  if (rec.haunts?.length) return false
+  if (npcKind(rec) === 'adventurer' && !rec.keeper && fixedCell(rec)) return false
+  return !!npcSpot(rec)
 }
 
 /** 身邊的人：同一格或相鄰的格子 */

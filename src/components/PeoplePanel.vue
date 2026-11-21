@@ -15,7 +15,7 @@ import { cellAt, CELL_NAME, cellName, position } from '@/engine/grid'
 import { affinityTable, itemValue, type InteractionKind } from '@/engine/interactions'
 import { CURRENCY, formatMoney } from '@/engine/money'
 import { npcRecord, npcTitle } from '@/engine/npcs'
-import { isGuarded, isHostile, type PresentNpc } from '@/engine/population'
+import { isGuarded, isHostile, isUnhireable, type PresentNpc } from '@/engine/population'
 import { npcActivity } from '@/engine/activities'
 import { inActiveSquad } from '@/engine/squads'
 import { jobName, staffInviteDc, staffInviteRefusal } from '@/engine/staff'
@@ -293,7 +293,7 @@ function squadAct(kind: 'invite' | 'squad_join', p: PresentNpc) {
                   <button class="small" :disabled="busy || !!squadOpt(p.rec.id).invite.why" :title="squadOpt(p.rec.id).invite.why ?? `整隊 ${squadOpt(p.rec.id).size} 人入隊・魅力檢定，參考 DC ${squadOpt(p.rec.id).invite.dc}`" @click="squadAct('invite', p)"><GameIcon name="feather" :size="13" />整隊邀請</button>
                   <button class="small" :disabled="busy || !!squadOpt(p.rec.id).join.why" :title="squadOpt(p.rec.id).join.why ?? `跟著他們的隊伍・魅力檢定，參考 DC ${squadOpt(p.rec.id).join.dc}`" @click="squadAct('squad_join', p)"><GameIcon name="flag" :size="13" />請他們帶你同行</button>
                 </template>
-                <button v-else-if="p.kind === 'adventurer' && !p.staff && !squadOf(p.rec.id)" class="small" :disabled="busy || (bound && partyFull)" @click="startHire(p.rec.id)">
+                <button v-else-if="p.kind === 'adventurer' && !p.staff && !squadOf(p.rec.id) && !isUnhireable(p.rec.id)" class="small" :disabled="busy || (bound && partyFull)" @click="startHire(p.rec.id)">
                   <GameIcon name="hand" :size="13" />{{ hiring === p.rec.id ? '收起' : bound ? '向主人提議雇用' : '雇用' }}
                 </button>
                 <template v-if="hasHomeHere && p.kind === 'commoner' && !p.staff && !p.rec.staff && !bound">
