@@ -32,6 +32,13 @@
     "carver": { "name": "刻印師", "oath_per_point": 1000, "custom_extra": 500, "remove": { "plain": 800, "oath": 4000, "curse": 1000 }, "hours": 4 },
     "temple": { "name": "神殿", "remove": { "plain": 150, "oath": 1200, "curse": 600 }, "min_reputation": 10, "hours": 2 }
   },
+  "companion": {
+    "$comment": "替隊伍裡的人刺青、洗刺青（刺青店、刻印師、神殿；docs/TATTOOS.md 第 6.1 節）。主角自己的奴隸不用問；自由的夥伴（雇來的、自願入隊的）要親密度夠：普通刺青 min_affinity、誓約印記 oath_min_affinity（會改屬性）、成人向的圖樣（淫紋）adult_min_affinity，或淫亂到 adult_min_lewdness 也肯。洗刺青和普通刺青一樣。跟著別人的隊伍時，隊長與主人的人不能替他們刺。",
+    "min_affinity": 20,
+    "oath_min_affinity": 40,
+    "adult_min_affinity": 60,
+    "adult_min_lewdness": 60
+  },
   "templates": {
     "thorn_vine": { "kind": "plain", "name": "荊棘藤蔓", "desc": "一圈纏繞的黑色荊棘藤蔓，刺尖處點著細小的紅。", "places": ["left_arm", "right_arm", "left_calf", "right_calf"] },
     "spread_hawk": { "kind": "plain", "name": "展翅之鷹", "desc": "一隻張開雙翼的鷹，羽毛層層分明，眼神銳利。", "places": ["back", "chest"] },

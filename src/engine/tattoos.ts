@@ -34,6 +34,8 @@ export const tattooRules = tattooJson as unknown as {
   places: Record<TattooPlace, string>
   kinds: Record<TattooKind, string>
   oath: { max_attrs: number; max_change: number; max_per_character: number }
+  /** 替隊伍裡的人刺青：自由的夥伴要多少親密度（或淫亂）才肯（tattooShop.ts 的 inkConsent） */
+  companion: { min_affinity: number; oath_min_affinity: number; adult_min_affinity: number; adult_min_lewdness: number }
   templates: Record<string, TattooTemplate>
 }
 

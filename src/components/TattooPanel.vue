@@ -3,7 +3,7 @@ import { pcTagMult } from '@/engine/pcTags'
 import { computed, reactive, ref, watch } from 'vue'
 import { ATTR_IDS, attrName } from '@/engine/data'
 import { formatMoney } from '@/engine/money'
-import { inkKind, inkPrice, orderTattoo, removePrice, shopRefusal, tattooShop, templateBlock, type TattooShopId } from '@/engine/tattooShop'
+import { inkConsent, inkKind, inkPrice, orderTattoo, removePrice, shopRefusal, tattooShop, tattooTargets, templateBlock, type TattooShopId } from '@/engine/tattooShop'
 import { cureOffers, reinkOffers } from '@/engine/parasiteEvents'
 import {
   freePlaces, oathError, oathText, placeName, tattooError, tattooKindName, tattooName, tattooRules, tattoosOf,
@@ -21,18 +21,25 @@ const show = (x: TattooSection) => !props.section || props.section === x
 const game = useGame()
 const s = computed(() => game.state!)
 const pc = computed(() => s.value.party.find((m) => m.isPlayer)!)
+// 替誰刺（洗）：主角，或隊伍裡自己的奴隸、雇來的、自願入隊的夥伴（docs/TATTOOS.md 第 6.1 節）
+const targets = computed(() => tattooTargets(s.value))
+const whoId = ref('pc')
+const who = computed(() => targets.value.find((m) => (m.isPlayer ? 'pc' : m.id) === whoId.value) ?? pc.value)
+watch(targets, (list) => { if (!list.some((m) => (m.isPlayer ? 'pc' : m.id) === whoId.value)) whoId.value = 'pc' })
+const whoArg = computed(() => (who.value.isPlayer ? undefined : who.value.id))
 const rules = computed(() => tattooShop(props.shop))
 const kind = computed(() => inkKind(props.shop))
 const refusal = computed(() => shopRefusal(s.value, props.shop))
 
 // ---- 刺青 ----
 // 內容篩選關掉、主角的身體刺不了的圖樣（淫紋・乳泉）不列出（tattooShop.ts 的 templateBlock）
-const templates = computed(() => Object.entries(tattooRules.templates).filter(([id, t]) => t.kind === kind.value && !templateBlock(s.value, id)))
+const templates = computed(() => Object.entries(tattooRules.templates).filter(([id, t]) => t.kind === kind.value && !templateBlock(s.value, id, who.value)))
+watch(templates, (list) => { if (mode.value !== 'custom' && !list.some(([id]) => id === mode.value)) mode.value = list[0]?.[0] ?? 'custom' })
 const mode = ref<string>('')
 const place = ref<TattooPlace | ''>('')
 const custom = reactive({ name: '', desc: '', attrs: {} as Record<string, number> })
 watch(() => props.shop, () => (mode.value = templates.value[0]?.[0] ?? 'custom'), { immediate: true })
-const free = computed(() => freePlaces(pc.value))
+const free = computed(() => freePlaces(who.value))
 // 選圖樣時，部位預設成圖樣建議的空位
 watch([mode, free], () => {
   const tpl = tattooRules.templates[mode.value]
@@ -49,7 +56,7 @@ const order = computed(() => {
 const preview = computed(() => {
   if (!order.value) return null
   try {
-    return orderTattoo(s.value, order.value)
+    return orderTattoo(s.value, order.value, who.value)
   } catch {
     return null
   }
@@ -58,22 +65,23 @@ const problem = computed(() => {
   if (!free.value.length) return '身上已經沒有空著的部位'
   if (mode.value === 'custom' && !custom.name.trim()) return '請替刺青取個名字'
   if (mode.value === 'custom' && kind.value === 'oath') return oathError(custom.attrs)
-  return preview.value ? tattooError(pc.value, preview.value) : undefined
+  return preview.value ? tattooError(who.value, preview.value) ?? inkConsent(who.value, preview.value) : undefined
 })
 const price = computed(() => (preview.value ? inkPrice(props.shop, preview.value) : 0))
 function setAttr(a: string, v: number) {
   if (v) custom.attrs[a] = v
   else delete custom.attrs[a]
 }
-const inkHint = computed(() => `${kind.value === 'oath' ? `誓約印記讓一些屬性變強、另一些變弱（加總為 0，每項最多 ±${tattooRules.oath.max_change}、最多動 ${tattooRules.oath.max_attrs} 項，每人最多 ${tattooRules.oath.max_per_character} 個）。價格依加的總點數。` : '只是外觀，會寫進給 AI 的主角資料。'}自己描述的圖樣另外加 ${formatMoney(rules.value.custom_extra ?? 0)}。`)
+const inkHint = computed(() => `${kind.value === 'oath' ? `誓約印記讓一些屬性變強、另一些變弱（加總為 0，每項最多 ±${tattooRules.oath.max_change}、最多動 ${tattooRules.oath.max_attrs} 項，每人最多 ${tattooRules.oath.max_per_character} 個）。價格依加的總點數。` : '只是外觀，會寫進給 AI 的角色資料。'}自己描述的圖樣另外加 ${formatMoney(rules.value.custom_extra ?? 0)}。`)
 function ink() {
-  if (order.value) game.inkTattoo(order.value)
+  if (order.value) game.inkTattoo(order.value, whoArg.value)
 }
 
 // ---- 洗刺青 ----
 // 神殿洗刺青：神職的身分打折（身分標籤）
 const serviceMult = computed(() => (props.shop === 'temple' ? pcTagMult(pc.value, 'service_mult') : 1))
-const washable = computed(() => tattoosOf(pc.value).filter((t) => t.kind !== 'slave').map((t) => {
+const washConsent = computed(() => inkConsent(who.value))
+const washable = computed(() => tattoosOf(who.value).filter((t) => t.kind !== 'slave').map((t) => {
   const base = removePrice(props.shop, t.kind, t.kind !== 'curse' || !!t.tamed)
   return { t, price: base === undefined ? undefined : Math.round(base * serviceMult.value) }
 }))
@@ -89,6 +97,12 @@ const REINK_HINT = '被奴隸印記頂掉、或馴服後洗掉的淫紋，以及
 <template>
   <div class="tattoo-shop small">
     <p v-if="refusal" class="muted">{{ refusal }}</p>
+    <label v-if="targets.length > 1 && (show('ink') && kind || show('wash'))" class="row who">替誰
+      <select v-model="whoId" aria-label="替誰刺青">
+        <option v-for="m in targets" :key="m.id" :value="m.isPlayer ? 'pc' : m.id">{{ m.isPlayer ? `${m.name}（自己）` : m.name }}</option>
+      </select>
+      <Hint text="可以替隊伍裡的人刺青、洗刺青：自己的奴隸不用問；雇來的、自願入隊的夥伴要親密度夠才肯（普通刺青 20、誓約印記 40、淫紋 60 或淫亂 60）。" />
+    </label>
     <template v-if="kind && show('ink')">
       <h4 v-if="!section">
         <GameIcon name="feather" :size="14" />刺{{ tattooKindName(kind) }}
@@ -126,12 +140,13 @@ const REINK_HINT = '被奴隸印記頂掉、或馴服後洗掉的淫紋，以及
     <ul v-if="washable.length" class="plain">
       <li v-for="{ t, price: p } in washable" :key="t.place">
         {{ placeName(t.place) }}・{{ tattooKindName(t.kind) }}【{{ tattooName(t) }}】
-        <button v-if="p !== undefined" class="small" :disabled="!!refusal || s.money_cc < p" @click="game.washTattoo(t.place)">洗掉（{{ formatMoney(p) }}）</button>
+        <button v-if="p !== undefined" class="small" :disabled="!!refusal || !!washConsent || s.money_cc < p" :title="washConsent ?? ''" @click="game.washTattoo(t.place, whoArg)">洗掉（{{ formatMoney(p) }}）</button>
         <span v-else-if="t.kind === 'curse' && !t.tamed" class="muted">未馴服的詛咒印記洗不掉，要解咒</span>
         <span v-else class="muted">這裡不洗{{ tattooKindName(t.kind) }}</span>
       </li>
     </ul>
     <p v-else class="muted">身上沒有可以洗的刺青。</p>
+    <p v-if="washable.length && washConsent" class="muted">{{ washConsent }}</p>
     </template>
 
     <template v-if="show('cure') && (cures.length || section)">
@@ -166,5 +181,6 @@ const REINK_HINT = '被奴隸印記頂掉、或馴服後洗掉的淫紋，以及
 .custom { display: grid; gap: 4px; }
 .custom textarea { width: 100%; }
 .num { width: 52px; }
+.who { align-items: center; gap: 6px; }
 .warn { color: var(--danger); }
 </style>

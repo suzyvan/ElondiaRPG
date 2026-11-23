@@ -1695,8 +1695,8 @@ export const useGame = defineStore('game', () => {
       useContent().promoteNpc(s, id)
       markPromoted(s, id)
     }),
-    inkTattoo: (order: tattooShop.InkOrder) => run((s) => tattooShop.inkTattoo(s, order)),
-    washTattoo: (place: TattooPlace) => run((s) => tattooShop.washTattoo(s, place)),
+    inkTattoo: (order: tattooShop.InkOrder, who?: string) => run((s) => tattooShop.inkTattoo(s, order, who)),
+    washTattoo: (place: TattooPlace, who?: string) => run((s) => tattooShop.washTattoo(s, place, who)),
     chooseAbility: (member: string, ability: string) => run((s) => town.chooseAbility(s, member, ability)),
     rerollAbility: (member: string) => run((s) => town.rerollAbility(s, member, useSettings().rerollLimit())),
     // 技能攜帶上限：把學會的技能帶上或放回技能庫
