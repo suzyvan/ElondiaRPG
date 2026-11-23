@@ -56,6 +56,8 @@ export interface PromptOptions {
   continuation?: { written: string; hint?: string }
   /** 請寫手在正文後標出親密場景（<intimate_scene>）：自動記性經歷開著、這則日誌不是已知的親密場景時（stores/game.ts） */
   flagIntimate?: boolean
+  /** 不是已知親密場景的日誌：套用到「成人場景」的成人向條目，只在正文寫到性愛場景時套用（compose.ts） */
+  sceneEntries?: PromptEntry[]
   /** 登場的怪物的外觀（<monsters>，narrator/monsters.ts 組好的；魔物娘的設定打開時是魔物娘） */
   monsters?: string
 }
@@ -395,7 +397,7 @@ export function buildPrompt(report: Report, lore: LoreLike[] | { constant: LoreL
     // 成人向的戰敗事件：另外一套規則
     { key: 'defeat', title: '戰敗事件規則', part: 'system', text: report.narration?.mode ? fillDefeatRules(opts.defeatRules, opts.playerName, victim) : '' },
     // 成人向的親密場景：要求在正文詳細描寫經過
-    { key: 'scene', title: '成人場景規則', part: 'system', text: scene ? `${fillSceneRules(opts.sceneRules, opts.playerName)}${opts.bodyNote ? `\n${opts.bodyNote}` : ''}` : '' },
+    { key: 'scene', title: '成人場景規則', part: 'system', text: scene ? `${fillSceneRules(opts.sceneRules, opts.playerName)}${opts.bodyNote ? `\n${opts.bodyNote}` : ''}` : opts.sceneEntries?.length ? `如果正文寫到了性愛場景，那一段另外照下面的成人場景文風與提示詞寫（沒有就不要套用）：\n<adult_style>\n${opts.sceneEntries.map((s) => `## ${s.name}\n${s.content.trim()}`).join('\n\n')}\n</adult_style>` : '' },
     // 限定陰柔、中性主角的內容，不是親密場景的那幾段（任務點、事件的固定文字也會寫到身體）：一樣提醒照主角的身體寫
     { key: 'body', title: '主角的身體', part: 'system', text: !scene && opts.bodyNote && report.narration?.body_limited ? opts.bodyNote : '' },
     { key: 'protagonist', title: '主角設定', part: 'user', text: opts.protagonist ? `<protagonist>\n${opts.protagonist}\n</protagonist>` : '' },

@@ -127,6 +127,35 @@ describe('adult scenes', () => {
     expect(sanitizeJudgment(free, free.pendingAction!, { degree: 'success', attr: 'cha', dc: 12, adult_scene: '親密場景' }).adult_scene).toBe('親密場景')
   })
 
+  it('sends the adult-scene styles with a judge that writes the narrative, to use only if it flags a scene', () => {
+    // 玩家回報：明明成人向文風禁止「肉刃」，自由行動寫到性愛場景時還是一直出現（判定寫經過時，成人向條目整個沒送）
+    const free = game()
+    const p = prepareAction(free, { kind: 'free', text: '邀她回房間' })
+    const judge = composeJudge(free, p, judgeOptions()).prompt
+    const scene = judge.sections.find((x) => x.key === 'scene')!.text
+    expect(scene).toContain('<adult_style>')
+    expect(scene).toContain('NSFW 底座')
+    expect(scene).toContain('沒有親密場景時不要套用')
+    expect(judge.sections.find((x) => x.key === 'style')!.text).not.toContain('NSFW 底座')
+    // 經過另外交給寫手時（分開寫）不必附
+    const split = composeJudge(free, p, { ...judgeOptions(), splitNarrative: true }).prompt
+    expect(split.sections.find((x) => x.key === 'scene')?.text ?? '').not.toContain('<adult_style>')
+  })
+
+  it('uses the adult entries for an entry the writer flagged as a sex scene, and offers them when it might become one', () => {
+    const state = game()
+    const r = act(state, { kind: 'free', text: '在河邊散步' }, 12, { degree: 'success', attr: 'cha', dc: 12 })
+    const plain = composeNarration(state, r, options(), undefined, { flagIntimate: true }).prompt
+    expect(plain.sections.find((x) => x.key === 'style')?.text ?? '').not.toContain('NSFW 底座')
+    expect(plain.sections.find((x) => x.key === 'scene')!.text).toContain('<adult_style>')
+    expect(composeNarration(state, r, options()).prompt.sections.find((x) => x.key === 'scene')?.text ?? '').toBe('')
+    // 寫手標出過性愛場景（重新生成、續寫）：照成人向的條目寫
+    const flagged = { ...r, narration: { ...r.narration, intimate_note: '兩人在河邊溫存' } } as Report
+    const again = composeNarration(state, flagged, options()).prompt
+    expect(again.system).toContain('NSFW 底座')
+    expect(again.sections.find((x) => x.key === 'scene')?.text ?? '').not.toContain('<adult_style>')
+  })
+
   it('describes the defeat event in detail only when the hero fails to get away', () => {
     combatRules.defeat_event.check.dc = -100
     const respond = (natural: number) => {

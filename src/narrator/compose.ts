@@ -16,7 +16,7 @@ import { adultSceneOf, buildPrompt, mascBodyNote, varietyHint, type Prompt } fro
 import { mascBodyContentOn } from '@/engine/content'
 import { characterBody } from '@/engine/look'
 import { continuityBefore, continuityForReport, type NarrationLike } from './continuity'
-import { activeEntries, type PromptConfig, type PromptTarget } from './promptConfig'
+import { activeEntries, type PromptConfig, type PromptEntry, type PromptTarget } from './promptConfig'
 import { toOutputScript } from './script'
 import { girlMonsterIds, girlSeed, girlsDownNotDead, monsterGirlsIn, monstersText, reportFocus, reportGirlSeed, reportMonsters } from './monsters'
 
@@ -63,6 +63,14 @@ export function judgeContext(state: GameState, p: ActionPending): string {
   return social.formatContext(state, social.selectContext(state, { participants, location: state.location }))
 }
 
+/** 套用到「成人場景」的成人向條目（文風與其他提示詞），已經送出的（sent）不重複 */
+function adultOnly(config: PromptConfig, name: string, sent: { id: string }[]) {
+  const ids = new Set(sent.map((e) => e.id))
+  return [...config.styles, ...config.custom]
+    .filter((e) => e.adult && !ids.has(e.id))
+    .flatMap((e) => activeEntries([e], 'adult', name, { adult: true }))
+}
+
 /** 這則日誌的敘事屬於哪一種：帶親密場景是「成人場景」 */
 export function narrationTarget(report: Report): Extract<PromptTarget, 'narration' | 'adult'> {
   return adultSceneOf(report) ? 'adult' : 'narration'
@@ -79,8 +87,9 @@ function bodyNoteFor(state: GameState | null, name: string): string | undefined 
 export function composeNarration(state: GameState | null, report: Report, o: ComposeOptions, narrations?: Record<string, NarrationLike>, extra: { continuation?: { written: string; hint?: string }; flagIntimate?: boolean } = {}): Composed {
   const name = playerName(state)
   const bodyNote = bodyNoteFor(state, name)
-  // 分流：帶親密場景的日誌才送成人向的條目（世界書、文風、其他提示詞）
-  const adult = !!adultSceneOf(report)
+  // 分流：帶親密場景的日誌才送成人向的條目（世界書、文風、其他提示詞）；
+  // 寫手標出過性愛場景、記過性經歷的日誌（重新生成、續寫）也算，內容已經是成人向
+  const adult = !!adultSceneOf(report) || !!report.narration?.intimate_note || !!report.sex_log?.length
   const lore = loreForReport(o.lore, report, { adult, budgetChars: o.budgetChars, playerName: name, ...flagsOf(state) })
   // 成人場景：主角與隊友的慾望指標（分段的文字），以及主角、隊友與在場的人的性經歷
   // 懷孕與孩子（docs/FAMILY.md）：孩子只在一般的敘事寫，成人場景不送
@@ -93,14 +102,27 @@ export function composeNarration(state: GameState | null, report: Report, o: Com
   const monsters = monstersText(reportMonsters(report), girls, reportGirlSeed(state, report))
   // 被打倒的魔物娘在報告裡是「倒下」，不是「死亡」
   const sent = girlsDownNotDead(report, girlMonsterIds(reportMonsters(report), girls, reportGirlSeed(state, report)))
+  // 標出過性愛場景、但不是判定的親密場景（照一般敘事寫）：套用到「成人場景」的條目也一起送
+  const both = (list: PromptEntry[], position?: 'system' | 'end') => {
+    const out = activeEntries(list, target, name, { ...(position ? { position } : {}), adult })
+    if (!adult || target === 'adult') return out
+    const ids = new Set(out.map((e) => e.id))
+    return [...out, ...activeEntries(list, 'adult', name, { ...(position ? { position } : {}), adult }).filter((e) => !ids.has(e.id))]
+  }
+  const styles = both(o.config.styles)
+  const instructions = both(o.config.custom, 'system')
+  const endNotes = both(o.config.custom, 'end')
+  // 還不知道會不會寫成親密場景的日誌（請寫手標出性愛場景時）：成人場景的條目附在後面，寫到性愛場景才套用
+  const sceneEntries = !adult && extra.flagIntimate ? adultOnly(o.config, name, [...styles, ...instructions, ...endNotes]) : []
   const prompt = buildPrompt(sent, lore, {
     playerName: name,
     language: o.language,
     ...(protagonist ? { protagonist } : {}),
     ...(context ? { context } : {}),
-    styles: activeEntries(o.config.styles, target, name, { adult }),
-    instructions: activeEntries(o.config.custom, target, name, { position: 'system', adult }),
-    endNotes: activeEntries(o.config.custom, target, name, { position: 'end', adult }),
+    styles,
+    instructions,
+    endNotes,
+    ...(sceneEntries.length ? { sceneEntries } : {}),
     ...(o.config.narrationRules ? { rules: o.config.narrationRules } : {}),
     ...(o.config.defeatRules ? { defeatRules: o.config.defeatRules } : {}),
     ...(o.config.sceneRules ? { sceneRules: o.config.sceneRules } : {}),
@@ -129,12 +151,19 @@ export function composeJudge(state: GameState, p: ActionPending, o: ComposeOptio
   const monsters = p.kind === 'defeat_event'
     ? monstersText([...new Set((state.pendingDefeat?.foes ?? []).map((f) => f.monster).filter((m): m is string => !!m))], monsterGirlsIn(state, p.actor), girlSeed(state, state.pendingDefeat?.day ?? state.time.day))
     : ''
+  const styles = activeEntries(o.config.styles, 'judge', name, { adult })
+  const instructions = activeEntries(o.config.custom, 'judge', name, { position: 'system', adult })
+  const endNotes = activeEntries(o.config.custom, 'judge', name, { position: 'end', adult })
+  // 判定寫經過時：套用到「成人場景」的成人向條目附在成人場景規則後面，填了 adult_scene 才套用
+  // （判定之前不知道會不會寫成親密場景；已經照上面送出的條目不重複）
+  const sceneEntries = o.splitNarrative ? [] : adultOnly(o.config, name, [...styles, ...instructions, ...endNotes])
   const prompt = buildActionPrompt(state, p, judgeContext(state, p), {
     language: o.language,
     narrative: !o.splitNarrative,
-    styles: activeEntries(o.config.styles, 'judge', name, { adult }),
-    instructions: activeEntries(o.config.custom, 'judge', name, { position: 'system', adult }),
-    endNotes: activeEntries(o.config.custom, 'judge', name, { position: 'end', adult }),
+    styles,
+    instructions,
+    endNotes,
+    ...(sceneEntries.length ? { sceneEntries } : {}),
     ...(o.config.defeatRules ? { defeatRules: o.config.defeatRules } : {}),
     ...(o.config.sceneRules ? { sceneRules: o.config.sceneRules } : {}),
     ...(bodyNote ? { bodyNote } : {}),

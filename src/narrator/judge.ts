@@ -222,6 +222,12 @@ export interface JudgePromptOptions {
   styles?: PromptEntry[]
   instructions?: PromptEntry[]
   endNotes?: PromptEntry[]
+  /**
+   * 判定寫經過時，套用到「成人場景」的成人向條目（文風、其他提示詞）：寫在成人場景規則後面，
+   * 只在這次填了 adult_scene 時套用。判定之前不知道經過會不會寫成親密場景（自由行動、誘惑……），
+   * 以前這些條目整個不送，寫到性愛場景時玩家的成人向文風與禁用詞都沒有作用
+   */
+  sceneEntries?: PromptEntry[]
   /** 是否順便寫出經過（false：只判定，經過由敘事正文的模型另外撰寫） */
   narrative?: boolean
   /** 判定也帶世界書時：常駐條目與這次觸發的條目 */
@@ -279,7 +285,11 @@ function judgeFormat(): string {
 /** 可以標出親密場景；寫經過時附上成人場景規則 */
 function sceneSection(opts: JudgePromptOptions, player: string, narrative: boolean): string {
   const flag = '如果這次的經過包含性愛等親密場景（例如兩人決定共度一夜、被迫接客、被敵人侵犯），adult_scene 用一句話寫出是什麼場景（≤ 40 字）；沒有就不要填這個欄位，也不要硬把行動寫成親密場景。'
-  return narrative ? `${flag}填了 adult_scene 時，narrative 依下面的成人場景規則詳細描寫：\n${fillSceneRules(opts.sceneRules, player)}${opts.bodyNote ? `\n${opts.bodyNote}` : ''}` : flag
+  if (!narrative) return flag
+  const extra = opts.sceneEntries?.length
+    ? `\n填了 adult_scene 時，narrative 另外照下面的成人場景文風與提示詞寫（沒有親密場景時不要套用）：\n<adult_style>\n${opts.sceneEntries.map((s) => `## ${s.name}\n${s.content.trim()}`).join('\n\n')}\n</adult_style>`
+    : ''
+  return `${flag}填了 adult_scene 時，narrative 依下面的成人場景規則詳細描寫：\n${fillSceneRules(opts.sceneRules, player)}${opts.bodyNote ? `\n${opts.bodyNote}` : ''}${extra}`
 }
 
 function narrativeLength(p: ActionPending, scale: LengthScale, custom?: CustomLength): string {
